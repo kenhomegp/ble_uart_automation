@@ -50,6 +50,8 @@ class ConfigReader:
 
         self.mobile_to_use = conf.duts_to_use.get(MOBILE_TO_USE)
 
+        self.multilink_phone_config = conf.multilink_phone_config.get(MOBILE_TO_USE)
+
         # Add here
         appium_server_details = conf.appium_config.get("appium_server_config")
         self.com_port = conf.com_port
