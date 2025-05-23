@@ -4,8 +4,8 @@ from ..CommonSupportLib.StationDefines import DEVICE_NAME_K, PLATFORM_NAME_K, PL
 
 # dut_friendly_name = "BLE_UART_D46B_H" #D46B_H, 6C3B
 #dut_friendly_name = "BLE_UART_8242"
-#dut_friendly_name = "BLE_UART_436F"
-dut_friendly_name = "BLE_UART_CDDF"
+dut_friendly_name = "BLE_UART_436F"
+#dut_friendly_name = "BLE_UART_CDDF"
 #dut_friendly_name = "MBD_PERIPHERAL"
 # com_port = "COM29"
 com_port = "COM15"
@@ -177,7 +177,7 @@ duts_to_use = {
 }
 
 multilink_phone_config = {
-    MOBILE_TO_USE: "SamsungA54"
+    MOBILE_TO_USE: "SamsungA54/Pixel7"
 }
 
 DUT_ADD_K = "001167939393"

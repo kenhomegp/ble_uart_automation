@@ -115,6 +115,7 @@ def default_class_fixture(request):
         if(len(sd.multilink_mobile_driver) >= 1):
             print("[Multilink]Close app and kill appium server ")
 
+            android_udid_list = []
             for phone_info_dic in sd.multilink_mobile_driver:
                 phone_name = phone_info_dic['phone']
                 print("phone_name = {}.Close MBD app".format(phone_name))
@@ -124,10 +125,17 @@ def default_class_fixture(request):
                 else:
                     app_package = mobile_driver.get_capability('appPackage')
                 time.sleep(3)
-                pid = mobile_driver.get_android_app_pid('R5CW321G69K')
-                #mobile_driver.get_android_adb_log('R5CW321G69K', pid)
-                mobile_driver.get_android_adb_log('R5CW321G69K')
-                time.sleep(25)
+                #pid = mobile_driver.get_android_app_pid('R5CW321G69K')
+
+                if "iphone" in phone_name.lower():
+                    print("[iPhone]Get adb log. not supported")
+                else:
+                    mobile_info = sd.config.mobile_data_config.get(phone_name)
+                    udid = mobile_info.get(PHONE_UDID_K)
+                    android_udid_list.append(udid)
+                    #mobile_driver.get_android_adb_log('R5CW321G69K', pid)
+                    #mobile_driver.get_android_adb_log(udid)
+                    #time.sleep(25)
                 status = mobile_driver.close_app(app_package)
                 time.sleep(3)
                 assert status, "Failed to close application"
@@ -140,6 +148,9 @@ def default_class_fixture(request):
                     mobile_driver.appium_service.stop()
                 else:
                     if mobile_driver.ssh_handler is not None:
+                        for udid in android_udid_list:
+                            mobile_driver.get_android_adb_log(udid)
+                            time.sleep(15)
                         sd.mobile_driver.kill_remote_appium_server()
         else:
             if sd.mobile_platform == "Android":
