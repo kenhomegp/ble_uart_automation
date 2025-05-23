@@ -1,0 +1,398 @@
+{
+    "RNBD_Baudrate_115200_to_921600": [
+			{"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"preaction": "Factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+			{"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+            {"peripheralcommands": "Set UART baud rate/SB,00,00,00,00\r/AOK/1"},
+			{"peripheralcommands": "Get UART baud rate/GB\r/00/1"},
+			{"deprecatedcommands": "SR-8000 HW flow control enable /SR,8000\r/AOK/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"}
+
+	],
+
+	"RNBD_Baudrate_921600": [
+			{"preaction": "$$$ - Enter CMD Mode/$$$/CMD> /1"},
+            {"gattservice": "Send A to Start advertising/A\r/AOK/1"}
+	],
+
+	"RNBD_Baudrate_921600_to_115200_CHANGE": [
+		    {"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+            {"peripheralcommands": "Set UART baud rate/SB,03,00,00,00\r/AOK/1"},
+			{"peripheralcommands": "Get UART baud rate/GB\r/03/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"}
+	],
+
+	"RNBD_Baudrate_115200": [
+			{"preaction": "$$$ - Enter CMD Mode/$$$/CMD> /1"},
+
+            {"gattservice": "Send A to Start advertising/A\r/AOK/1"}
+	],
+	"RNBD_Start_Advertising": [
+            {"gattservice": "Send A to Start advertising/A\r/AOK/1"}
+	],
+
+	"RNBD_115200_SET": [
+		    {"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+			{"preaction": "Factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+		    {"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+			{"deprecatedcommands": "SR-8000 HW flow control enable /SR,8000\r/AOK/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"},
+
+		    {"preaction": "$$$ - Enter CMD Mode/$$$/CMD> /1"},
+			{"preaction": "Send --- to Exit mode/---\r/END/1"}
+	],
+
+	"RNBD_Baudrate_115200_to_921600_SET": [
+		    {"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+			{"preaction": "Factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+			{"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+            {"peripheralcommands": "Set UART baud rate/SB,00,00,00,00\r/AOK/1"},
+			{"deprecatedcommands": "SR-8000 HW flow control enable /SR,8000\r/AOK/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"},
+		    {"preaction": "$$$ - Enter CMD Mode/$$$/CMD> /1"},
+		    {"gattservice": "Send A to Start advertising/A\r/AOK/1"}
+	],
+
+	"RNBD_Baudrate_115200_to_2400": [
+
+			{"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+            {"peripheralcommands": "Set UART baud rate/SB,0B,00,00,00\r/AOK/1"},
+			{"peripheralcommands": "Get UART baud rate/GB\r/0B/1"},
+			{"deprecatedcommands": "SR-8000 HW flow control enable /SR,8000\r/AOK/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"}
+	],
+
+	"RNBD_Baudate_2400": [
+			{"preaction": "$$$ - Enter CMD Mode/$$$/CMD> /1"},
+
+            {"gattservice": "Send A to Start advertising/A\r/AOK/1"}
+	],
+
+	"RNBD_MTP_Command_Test": [
+			{"preaction": "$$$ - Enter CMD Mode/$$$/CMD> /1"},
+			{"preaction": "factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+			{"gattservice": "Send A to Start advertising/A\r/AOK/1"}
+	],
+	"RNBD_Set_IO_Capability_NoInputNoOutput_With_Bonding": [
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+			{"preaction": "factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+			{"pairing": "Send U,Z to clear bonded devices/U,Z\r/AOK/1"},
+			{"pairing": "Send SA,0 to set IO capability to No Input No Output/SA,0\r/AOK/1"},
+			{"pairing": "Send GA to get IO capability Info/GA\r/0/1"}
+	],
+	"RNBD_Set_IO_Capability_DisplayYesNo": [
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"preaction": "factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+			{"pairing": "Send U,Z to clear bonded devices/U,Z\r/AOK/1"},
+			{"pairing": "Send SA,1 to set IO capability to Display yes or NO/SA,1\r/AOK/1"},
+			{"pairing": "Send GA to get IO capability Info/GA\r/1/1"}
+	],
+	"RNBD_Set_IO_Capability_NoInputNoOutput_Withoutbond": [
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"preaction": "factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+			{"pairing": "Send U,Z to clear bonded devices/U,Z\r/AOK/1"},
+			{"pairing": "Send SA,2 to set IO capability to No Input No Output Without Bonding/SA,2\r/AOK/1"},
+			{"pairing": "Send GA to get IO capability Info/GA\r/2/1"}
+	],
+	"RNBD_Set_IO_Capability_KeyboardOnly": [
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"preaction": "factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+			{"pairing": "Send U,Z to clear bonded devices/U,Z\r/AOK/1"},
+			{"pairing": "Send SA,3 to set IO capability to Keyboard Only/SA,3\r/AOK/1"},
+			{"pairing": "Send GA to get IO capability Info/GA\r/3/1"}
+	],
+	"RNBD_Set_IO_Capability_DisplayOnly": [
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"preaction": "factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+			{"pairing": "Send U,Z to clear bonded devices/U,Z\r/AOK/1"},
+			{"pairing": "Send SA,4 to set IO capability to Display Only/SA,4\r/AOK/1"},
+			{"pairing": "Send GA to get IO capability Info/GA\r/4/1"}
+	],
+	"RNBD_Set_IO_Capability_Keyboard_Display": [
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"preaction": "factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+			{"pairing": "Send U,Z to clear bonded devices/U,Z\r/AOK/1"},
+			{"pairing": "Send SA,5 to set IO capability to Keyboard Display/SA,5\r/AOK/1"},
+			{"pairing": "Send GA to get IO capability Info/GA\r/5/1"}
+	],
+	"RNBD_Set_Firmware_Version_Test": [
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"preaction": "factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+            {"gattservice": "Send SDF to Set firmware version in Device Info service/SDF,0.99\r/AOK/1"},
+		    {"gattservice": "Send GDF to get firmware version Info/GDF\r/0.99/1"},
+			{"gattservice": "Send Y to Stop advertising/y\r/AOK/1"},
+			{"gattservice": "Send A to Start advertising/A\r/AOK/1"}
+	],
+	"RNBD_Set_Hardware_Version_Test": [
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"preaction": "factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+            {"gattservice": "Send SDH to Set hardware version in Device Info service/SDH,2.1\r/AOK/1"},
+		    {"gattservice": "Send GDH to get hardware version Info/GDH\r/2.1/1"},
+			{"gattservice": "Send Y to Stop advertising/y\r/AOK/1"},
+			{"gattservice": "Send A to Start advertising/A\r/AOK/1"}
+	],
+	"RNBD_Set_Model_String_Test": [
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"preaction": "factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+            {"gattservice": "Send SDM to Set model string in Device Info service/SDM,RNBD45x\r/AOK/1"},
+			{"gattservice": "Send GDM to get model string Info/GDM\r/RNBD45x/1"},
+			{"gattservice": "Send Y to Stop advertising/y\r/AOK/1"},
+			{"gattservice": "Send A to Start advertising/A\r/AOK/1"}
+	],
+	"RNBD_Set_Manufacturer_Name_Test": [
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"preaction": "factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+            {"gattservice": "Send SDN to Set manufacturer name in Device Info service/SDN,MCHP\r/AOK/1"},
+			{"gattservice": "Send GDN to get manufacturer name info/GDN\r/MCHP/1"},
+			{"gattservice": "Send Y to Stop advertising/y\r/AOK/1"},
+			{"gattservice": "Send A to Start advertising/A\r/AOK/1"}
+	],
+	"RNBD_Set_Software_Revision_Version_Test": [
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"preaction": "factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+            {"gattservice": "Send SDR to Set software revision in Device Info service/SDR,1.0.1\r/AOK/1"},
+			{"gattservice": "Send GDR to get software revision Info/GDR\r/1.0.1/1"},
+			{"gattservice": "Send Y to Stop advertising/y\r/AOK/1"},
+			{"gattservice": "Send A to Start advertising/A\r/AOK/1"}
+	],
+	"RNBD_Set_Serial_Number_Test": [
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"preaction": "factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+            {"gattservice": "Send SDS to Set serial number in Device Info service/SDS,123456789\r/AOK/1"},
+			{"gattservice": "Send GDS to get serial number Info/GDS\r/123456789/1"},
+			{"gattservice": "Send Y to Stop advertising/y\r/AOK/1"},
+			{"gattservice": "Send A to Start advertising/A\r/AOK/1"}
+	],
+	"RNBD_Set_Appearance_Test": [
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"preaction": "factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+            {"gapservice": "Send SDA to Set appearance in GAP service/SDA,0340\r/AOK/1"},
+			{"gapservice": "Send GDA to get appearance service Info/GDA\r/0340/1"},
+			{"gapservice": "Send Y to Stop advertising/y\r/AOK/1"},
+			{"gapservice": "Send A to Start advertising/A\r/AOK/1"}
+	],
+
+	"RNBD_Sleepmode_Enable_Test": [
+		    {"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+		    {"preaction": "Factory reset includes user defined services/SF,2\r/%REBOOT%/1"},
+			{"preaction": "delay/3"},
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+			{"deprecatedcommands": "SR-8000 HW flow control enable /SR,8000\r/AOK/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"},
+			{"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+            {"peripheralcommands": "To enable Sleep mode/SO,1\r/AOK/1"}
+	],
+
+	"RNBD_115200_Sleep_Mode": [
+			{"deprecatedcommands": "SR-8000 HW flow control enable /SR,8000\r/AOK/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"}
+	],
+
+	"RNBD_Conn_Interval_Param_Set1": [
+		    {"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+            {"peripheralcommands": "Set Connection Interval Parameter Set 1/T,0028,0028,0001,00C8\r/AOK\r\nCMD> %CONN_PARAM,0028,0001,00C8/1"},
+			{"preaction": "Send --- to Exit mode/---\r/END/1"}
+	],
+	"Sleep_Mode_Conn_Interval_Param_Set1": [
+		    {"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+            {"peripheralcommands": "Set Connection Interval Parameter Set 1/T,0054,0054,0000,00C8\r/AOK\r\nCMD> %CONN_PARAM,0054,0000,00C8/1"},
+			{"preaction": "Send --- to Exit mode/---\r/END/1"}
+	],
+	"Sleep_Mode_Conn_Interval_Param_Set2": [
+		    {"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+            {"peripheralcommands": "Set Connection Interval Parameter Set 1/T,003C,003C,0001,00C8\r/AOK\r\nCMD> %CONN_PARAM,003C,0001,00C8/1"},
+			{"preaction": "Send --- to Exit mode/---\r/END/1"}
+	],
+	"Sleep_Mode_Conn_Interval_Param_Set3": [
+		    {"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+            {"peripheralcommands": "Set Connection Interval Parameter Set 1/T,0024,0024,0003,00C8\r/AOK\r\nCMD> %CONN_PARAM,0024,0003,00C8/1"},
+			{"preaction": "Send --- to Exit mode/---\r/END/1"}
+	],
+
+	"RNBD_Sleepmode_Disable_Test": [
+			{"preaction": "Send $$$ to enter CMD Mode/$$$/CMD> /1"},
+
+            {"gattservice": "To disable Sleep mode/SO,0\r/AOK/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"}
+	],
+	"RNBD_Baudrate_2400_to_115200": [
+		 	{"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+            {"peripheralcommands": "Set UART baud rate/SB,03,00,00,00\r/AOK/1"},
+			{"peripheralcommands": "Get UART baud rate/GB\r/03/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"}
+
+	],
+	"RNBD_PDS_Reliability_Test_SN_Command": [
+		 	{"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+            {"peripheralcommands": "Set Device Name/SN,RNBD1\r/AOK/1"},
+			{"peripheralcommands": "Get Device Name/GN\r/RNBD1/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"},
+			{"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+			{"peripheralcommands": "Get Device Name/GN\r/RNBD1/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"},
+
+		    {"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+		    {"peripheralcommands": "Set Device Name/SN,RNBD2\r/AOK/1"},
+			{"peripheralcommands": "Get Device Name/GN\r/RNBD2/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"},
+			{"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+			{"peripheralcommands": "Get Device Name/GN\r/RNBD2/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"}
+	],
+	"RNBD_PDS_Reliability_Test_SA_Command": [
+		 	{"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+
+            {"peripheralcommands": "Set Pairing Mode/SA,1\r/AOK/1"},
+			{"peripheralcommands": "Get Pairing Mode/GA\r/1/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"},
+			{"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+			{"peripheralcommands": "Get Device Name/GA\r/1/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"},
+
+		    {"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+		    {"peripheralcommands": "Set Pairing Mode/SA,3\r/AOK/1"},
+			{"peripheralcommands": "Get Pairing Mode/GA\r/3/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"},
+			{"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+			{"peripheralcommands": "Get Device Name/GA\r/3/1"},
+			{"preaction": "Reset/R,1\r/Rebooting\r/1"}
+	],
+	"RNBD_Sleepmode_Enable_command": [
+		    {"preaction": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"Echo": "Send +<CR><LF>/+\r\n/ECHO ON/1"},
+            {"peripheralcommands": "To enable Sleep mode/SO,1\r/AOK/1"}
+	],
+	"RNBD_Disable_Command_Response":[
+            {"peripheralcommands": "Disable command response and enable UART flow control/SR,8010\r/AOK/1"}
+	],
+	"RNBD_Disconnect_Last_Connected_Device":[
+            {"peripheralcommands": "Multilink Disconnect last connected device/K,1\r/%DISCONNECT%/1"}
+
+	],
+	"RNBD_Data_Transmission_Command_Set":[
+            {"peripheralcommands": "Multilink Data transmission/IE,0071,0008,3132333435363738\r/AOK/1"},
+			{"peripheralcommands": "Multilink Data transmission/IE,0072,0008,3132333435363738\r/AOK/1"},
+			{"peripheralcommands": "Multilink Data transmission/IE,0073,0008,3132333435363738\r/AOK/1"},
+			{"peripheralcommands": "Multilink Data transmission/IE,0074,0008,3132333435363738\r/AOK/1"},
+			{"peripheralcommands": "Multilink Data transmission/IE,0075,0008,3132333435363738\r/AOK/1"},
+			{"peripheralcommands": "Multilink Data transmission/IE,0076,0008,3132333435363738\r/AOK/1"}
+	],
+	"RNBD_Data_Transmission_Without_Command_Response":[
+            {"peripheralcommands": "Multilink Data transmission/IE,0071,0008,3132333435363738\r/ /1"},
+			{"peripheralcommands": "Multilink Data transmission/IE,0072,0008,3132333435363738\r/ /1"},
+			{"peripheralcommands": "Multilink Data transmission/IE,0073,0008,3132333435363738\r/ /1"},
+			{"peripheralcommands": "Multilink Data transmission/IE,0074,0008,3132333435363738\r/ /1"},
+			{"peripheralcommands": "Multilink Data transmission/IE,0075,0008,3132333435363738\r/ /1"},
+			{"peripheralcommands": "Multilink Data transmission/IE,0076,0008,3132333435363738\r/ /1"}
+	],
+	"RNBD_Single_Link_Data_Transmission_Command_Set":[
+			{"Echo": "Send $$$ to Enter CMD mode/$$$/CMD> /1"},
+			{"peripheralcommands": "Enable command response and UART flow control/SR,8040\r/AOK/1"},
+            {"peripheralcommands": "Multilink Data transmission/IE,0071,0008,3132333435363738\r/AOK/1"}
+
+	],
+	"RNBD_Reboot":[
+            {"preaction": "Reset/R,1\r/Rebooting\r/1"}
+	]
+
+}

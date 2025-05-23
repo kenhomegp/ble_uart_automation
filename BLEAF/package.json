@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@appium/base-driver": "^9.3.20"
+  }
+}
