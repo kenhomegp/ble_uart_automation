@@ -71,8 +71,6 @@ def pytest_collection_modifyitems(session, config, items):
             #print("Selected tests for execution 2")
             for mark in marker_list:
                 print(mark.name)
-                print(mark.args[0])
-                print(mark.args[1])
                 selected_items.append(item)
                 print("Selected tests for execution")
             '''

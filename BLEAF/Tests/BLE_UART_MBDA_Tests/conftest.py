@@ -13,6 +13,7 @@ from ...BaseWrappers.BaseDriver import BaseDriver
 from ...CommonSupportLib.StationDefines import DEVICE_NAME_K, PLATFORM_NAME_K, PLATFORM_VERSION_K, PHONE_UDID_K, \
     PHONE_BT_ADDRESS_K, COM_PORT_K, BAUD_RATE_K, DUT_ADD_K
 
+from ...BaseWrappers.SSHSupport import ShellHandler
 
 sd = stationData()
 
@@ -23,10 +24,17 @@ def default_class_fixture(request):
     print("Appium Server Config data:")
     print(mobile_to_use)
 
+    #print(sd.config.multilink_phone_config)
+    phone_list = sd.config.multilink_phone_config.split("/")
+    phones_len = len(phone_list)
+    print("Multilink phone . len = {}".format(phones_len))
+
     #print(sd.config.app_package)
     #print(sd.config.ios_mbda_app_package)
     #print(sd.config.appium_server_ip)
     # Multiple drivers for mobiles
+
+    remote_appium = sd.remote_mac_server
 
     platform = mobile_to_use.get(PLATFORM_NAME_K)
     if platform == 'iOS':
@@ -34,17 +42,46 @@ def default_class_fixture(request):
         print("platform = iOS. app package={}".format(sd.config.ios_mbda_app_package))
         sd.mobile_platform = platform
 
-        driver = BaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
-                            mobile_to_use.get(PHONE_UDID_K),
-                            mobile_to_use.get(PLATFORM_NAME_K),
-                            mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
-                            sd.config.ios_mbda_app_package, sd.config.app_activity)
+        if remote_appium:
+            driver = BaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
+                                mobile_to_use.get(PHONE_UDID_K),
+                                mobile_to_use.get(PLATFORM_NAME_K),
+                                mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
+                                sd.config.ios_mbda_app_package, sd.config.app_activity, remote_appium=phones_len)
+        else:
+            driver = BaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
+                                mobile_to_use.get(PHONE_UDID_K),
+                                mobile_to_use.get(PLATFORM_NAME_K),
+                                mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
+                                sd.config.ios_mbda_app_package, sd.config.app_activity)
+
     else:
-        driver = BaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
-                            mobile_to_use.get(PHONE_UDID_K),
-                            mobile_to_use.get(PLATFORM_NAME_K),
-                            mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
-                            sd.config.app_package, sd.config.app_activity)
+        if remote_appium:
+            driver = BaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
+                                mobile_to_use.get(PHONE_UDID_K),
+                                mobile_to_use.get(PLATFORM_NAME_K),
+                                mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
+                                sd.config.app_package, sd.config.app_activity, remote_appium=phones_len)
+        else:
+            driver = BaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
+                                mobile_to_use.get(PHONE_UDID_K),
+                                mobile_to_use.get(PLATFORM_NAME_K),
+                                mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
+                                sd.config.app_package, sd.config.app_activity)
+        '''
+        if remote_appium:
+            driver = BaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
+                                mobile_to_use.get(PHONE_UDID_K),
+                                mobile_to_use.get(PLATFORM_NAME_K),
+                                mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
+                                sd.config.app_package, sd.config.app_activity, fresh_env=True, remote_appium=True)
+        else:
+            driver = BaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
+                                mobile_to_use.get(PHONE_UDID_K),
+                                mobile_to_use.get(PLATFORM_NAME_K),
+                                mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
+                                sd.config.app_package, sd.config.app_activity)
+        '''
 
     mobile_data_dic = {}
     dev_name = mobile_to_use.get(DEVICE_NAME_K)
@@ -73,33 +110,49 @@ def default_class_fixture(request):
 
     def class_finalizer():
         #sd.mobile_driver.kill_appium_server()
-        if sd.mobile_driver.platform == "Windows":
-            print("[Windows]kill appium server")
-        else:
-            if(len(sd.multilink_mobile_driver) > 1):
-                print("[Multilink]Close app and kill appium server ")
-                for phone_info_dic in sd.multilink_mobile_driver:
-                    phone_name = phone_info_dic['phone']
-                    print("phone_name = {}.Close MBD app".format(phone_name))
-                    mobile_driver = phone_info_dic['driver']
-                    if "iphone" in phone_name.lower():
-                        app_package = mobile_driver.get_capability('bundleId')
-                    else:
-                        app_package = mobile_driver.get_capability('appPackage')
-                    time.sleep(3)
-                    status = mobile_driver.close_app(app_package)
-                    time.sleep(3)
-                    assert status, "Failed to close application"
-                    mobile_driver.appium_service.stop()
-            else:
-                if sd.mobile_platform == "Android":
-                    app_package = sd.mobile_driver.get_capability('appPackage')
+        #if sd.mobile_driver.platform == "Windows":
+
+        if(len(sd.multilink_mobile_driver) >= 1):
+            print("[Multilink]Close app and kill appium server ")
+
+            for phone_info_dic in sd.multilink_mobile_driver:
+                phone_name = phone_info_dic['phone']
+                print("phone_name = {}.Close MBD app".format(phone_name))
+                mobile_driver = phone_info_dic['driver']
+                if "iphone" in phone_name.lower():
+                    app_package = mobile_driver.get_capability('bundleId')
                 else:
-                    app_package = sd.mobile_driver.get_capability('bundleId')
+                    app_package = mobile_driver.get_capability('appPackage')
                 time.sleep(3)
-                status = sd.mobile_driver.close_app(app_package)
+                pid = mobile_driver.get_android_app_pid('R5CW321G69K')
+                #mobile_driver.get_android_adb_log('R5CW321G69K', pid)
+                mobile_driver.get_android_adb_log('R5CW321G69K')
+                time.sleep(25)
+                status = mobile_driver.close_app(app_package)
                 time.sleep(3)
                 assert status, "Failed to close application"
+
+            for phone_info_dic in sd.multilink_mobile_driver:
+                #phone_name = phone_info_dic['phone']
+                #print("phone_name = {}.Close MBD app".format(phone_name))
+                mobile_driver = phone_info_dic['driver']
+                if not sd.remote_mac_server:
+                    mobile_driver.appium_service.stop()
+                else:
+                    if mobile_driver.ssh_handler is not None:
+                        sd.mobile_driver.kill_remote_appium_server()
+        else:
+            if sd.mobile_platform == "Android":
+                app_package = sd.mobile_driver.get_capability('appPackage')
+            else:
+                app_package = sd.mobile_driver.get_capability('bundleId')
+            time.sleep(3)
+            status = sd.mobile_driver.close_app(app_package)
+            time.sleep(3)
+            assert status, "Failed to close application"
+            if sd.remote_mac_server:
+                sd.mobile_driver.kill_remote_appium_server()
+            else:
                 sd.mobile_driver.appium_service.stop()
                 print("[MacOS]kill appium server")
 

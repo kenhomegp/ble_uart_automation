@@ -25,7 +25,7 @@ sd = stationData()
 
 class BaseDriver:
     def __init__(self, ip_addr, port_num, udid, platform_name, platform_verion,
-                 device_name, app_package, app_activity=None, fresh_env=True, remote_appium=False):
+                 device_name, app_package, app_activity=None, fresh_env=True, remote_appium=0):
         #print("remote_appium. Start")
         #print(fresh_env)
         #print(remote_appium)
@@ -39,7 +39,8 @@ class BaseDriver:
         self.platform = checkOS
 
         if fresh_env:
-            if not remote_appium:
+            #if not remote_appium:
+            if remote_appium == 0:
                 appium_server_logs = "appium_server_logs_{}".format(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
                 start_server_cmd = 'appium -a {} -p {} > "{}.txt'.format(ip_addr, port_num, appium_server_logs)
                 time.sleep(5)
@@ -64,11 +65,24 @@ class BaseDriver:
                         time.sleep(10)
                 #self.appium_process = subprocess.Popen(start_server_cmd, shell=True)
                 #print("Successfully Started Appium Server")
-            elif remote_appium:
-                print("Remote appium")
-                self.ssh_handler = ShellHandler(ip_addr, sd.config.remote_appium_username, sd.config.remote_appium_pwd)
-                self.kill_remote_appium_server()
-                self.start_remote_appium_server(ip_addr, port_num)
+            #elif remote_appium:
+            else:
+                if not sd.remote_mac_server:
+                    print("Remote appium,ip = {}".format(ip_addr))
+                    print("port = {}".format(port_num))
+                    self.ssh_handler = ShellHandler(ip_addr, sd.config.remote_appium_username, sd.config.remote_appium_pwd)
+                    self.kill_remote_appium_server()
+                    self.start_remote_appium_server(ip_addr, port_num)
+                else:
+                    if port_num == '4723':
+                        print("[Remote multi-server] appium,ip = {}".format(ip_addr))
+                        print("port = {}".format(port_num))
+                        self.ssh_handler = ShellHandler(ip_addr, sd.config.remote_appium_username, sd.config.remote_appium_pwd)
+                        self.kill_remote_appium_server()
+                        #self.start_remote_appium_server(ip_addr, port_num, multiple_appium_server=2)
+                        self.start_remote_appium_server(ip_addr, port_num, multiple_appium_server=remote_appium)
+                    else:
+                        self.ssh_handler = None
                 time.sleep(10)
 
         desired_caps = {}
@@ -82,7 +96,6 @@ class BaseDriver:
         #desired_caps['noReset'] = True
 
         if "android" in platform_name.lower():
-            print("Android.desired_caps ")
             # desired_caps['automationName'] = 'uiautomator1'
             desired_caps['automationName'] = 'uiautomator2'
             desired_caps['appPackage'] = app_package
@@ -94,6 +107,10 @@ class BaseDriver:
             # desired_caps['appPackage'] = app_package
             desired_caps['bundleId'] = app_package
             desired_caps['noReset'] = False
+            desired_caps['xcodeOrgId'] = 'K3G2PB8DXV'
+            desired_caps['xcodeSigningId'] = "Apple Developer"
+            desired_caps['updatedWDABundleId'] = 'com.microchip.DevOps.WebDriverAgentRunner'
+            desired_caps['showXcodeLog'] = False
 
         desired_caps['newCommandTimeout'] = 60 * 30
         ip_addr = str(ip_addr)
@@ -101,10 +118,10 @@ class BaseDriver:
         appium_addr = "http://" + ip_addr + ":" + port_num
         #appium_addr = "http://" + ip_addr + ":" + port_num + "/wd/hub"
         capabilities_options = UiAutomator2Options().load_capabilities(desired_caps)
-        print(desired_caps)
         try:
             time.sleep(15)
-            print("Create webDriver")
+            print("Create webDriver.appium addr = {}".format(appium_addr))
+            print(capabilities_options)
             self.driver = webdriver.Remote(appium_addr, options=capabilities_options)
         except WebDriverException as e:
             print("Unable to create WebDriver . Error: {}".format(e))
@@ -112,38 +129,147 @@ class BaseDriver:
 
     def kill_remote_appium_server(self):
         sh_in, sh_out, sh_error = self.ssh_handler.execute("ps -a")
-        pid = ''
+        pids = []
+        print("List process:")
         for line in sh_out:
+            print(line)
             if 'node' in line:
                 pid = line.split(' ')[0]
+                pids.append(pid)
 
-        if pid:
-            print('killing appium process')
-            cmd = 'kill -9 {}'.format(pid)
-            sh_in, sh_out, sh_error = self.ssh_handler.execute(cmd)
-            if not sh_error:
-                print("Appium Process Killed Successfully")
+        print("Appium PID.count = {}".format(len(pids)))
+        if len(pids) != 0:
+            for pid in pids:
+                print('killing appium process,pid = {}'.format(pid))
+                cmd = 'kill -9 {}'.format(pid)
+                sh_in, sh_out, sh_error = self.ssh_handler.execute(cmd)
+                if not sh_error:
+                    print("Appium Process Killed Successfully. cmd = {}".format(cmd))
+                else:
+                    assert False, "Failed to kill currently running appium. " \
+                                  "Please kill the process manually and restart execution. cmd output: {}".format(
+                        sh_out)
+                    break
+        '''
+        if sd.remote_mac_server:
+            pids = []
+            print("List process:")
+            for line in sh_out:
+                print(line)
+                if 'node' in line:
+                    pid = line.split(' ')[0]
+                    pids.append(pid)
+
+            print("pids.count = {}".format(len(pids)))
+            if len(pids) != 0:
+                for pid in pids:
+                    print('killing appium process,pid = {}'.format(pid))
+                    cmd = 'kill -9 {}'.format(pid)
+                    sh_in, sh_out, sh_error = self.ssh_handler.execute(cmd)
+                    if not sh_error:
+                        print("Appium Process Killed Successfully. cmd = {}".format(cmd))
+                    else:
+                        assert False, "Failed to kill currently running appium. " \
+                                      "Please kill the process manually and restart execution. cmd output: {}".format(sh_out)
+                        break
+        else:
+            pid = ''
+            for line in sh_out:
+                if 'node' in line:
+                    pid = line.split(' ')[0]
+
+            if pid:
+                print('killing appium process,pid = {}'.format(pid))
+                cmd = 'kill -9 {}'.format(pid)
+                sh_in, sh_out, sh_error = self.ssh_handler.execute(cmd)
+                if not sh_error:
+                    print("Appium Process Killed Successfully")
+                else:
+                    assert False, "Failed to kill currently running appium. " \
+                                  "Please kill the process manually and restart execution. cmd output: {}".format(sh_out)
             else:
-                assert False, "Failed to kill currently running appium. " \
-                              "Please kill the process manually and restart execution. cmd output: {}".format(sh_out)
-        else:
-            print("No running appium process. ")
-
-    def start_remote_appium_server(self, ip_addr, port_num):
-        appium_server_logs = "appium_server_logs_{}".format(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
-        start_server_cmd = 'appium -a {} -p {} --relaxed-security > {}.txt &'.format(ip_addr, port_num,
+                print("No running appium process. ")
+        '''
+    def start_remote_appium_server(self, ip_addr, port_num, multiple_appium_server=0):
+        if multiple_appium_server == 0:
+            appium_server_logs = "appium_server_logs_{}".format(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
+            start_server_cmd = 'appium -a {} -p {} --relaxed-security > {}.txt &'.format(ip_addr, port_num,
                                                                                      appium_server_logs)
-        sh_in, sh_out, sh_error = self.ssh_handler.execute(start_server_cmd)
-        if not sh_error:
-            print("Remote appium server started successfully.")
+            sh_in, sh_out, sh_error = self.ssh_handler.execute(start_server_cmd)
+            if not sh_error:
+                print("Remote appium server started successfully.")
+            else:
+                assert False, "Failed to start remote appium server. Command output: {}".format(sh_out)
         else:
-            assert False, "Failed to start remote appium server. Command output: {}".format(sh_out)
+            port = int(port_num)
+            for i in range(multiple_appium_server):
+                appium_server_logs = "appium_server_logs_{}_{}".format(i+1, datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
+                #start_server_cmd = 'appium -a {} -p {} --relaxed-security > {}.txt &'.format(ip_addr, str(port), appium_server_logs)
+                start_server_cmd = 'appium -a {} -p {} --relaxed-security > ./Chimera_BLEAF_Log/Appium/{}.txt &'.format(ip_addr, str(port), appium_server_logs)
+                sh_in, sh_out, sh_error = self.ssh_handler.execute(start_server_cmd)
+                if not sh_error:
+                    print("Remote appium server started successfully. cmd = {}".format(start_server_cmd))
+                    port += 1
+                    time.sleep(2)
+                else:
+                    assert False, "Failed to start remote appium server. Command output: {}".format(sh_out)
+                    break
+
+    def start_remote_test_appium_server(self, ip_addr, port_num):
+        if port_num == '4723':
+            appium_server_logs = "appium_server_logs_1_{}".format(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
+            start_server_cmd = 'appium -a {} -p {} --relaxed-security > {}.txt &'.format(ip_addr, port_num,
+                                                                                     appium_server_logs)
+            sh_in, sh_out, sh_error = self.ssh_handler.execute(start_server_cmd)
+            if not sh_error:
+                print("Remote appium server1 started successfully.")
+            else:
+                assert False, "Failed to start remote appium server1. Command output: {}".format(sh_out)
+
+            time.sleep(2)
+
+            appium_server_logs2 = "appium_server_logs_2_{}".format(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
+            start_server_cmd2 = 'appium -a {} -p {} --relaxed-security > {}.txt &'.format(ip_addr, '4724',
+                                                                                         appium_server_logs2)
+            sh_in1, sh_out1, sh_error1 = self.ssh_handler.execute(start_server_cmd2)
+            if not sh_error1:
+                print("Remote appium server2 started successfully.")
+            else:
+                assert False, "Failed to start remote appium server2. Command output: {}".format(sh_out)
 
     def kill_appium_server(self):
         print("Kill Appium Server")
         os.system("taskkill /F /IM node.exe")
         self.appium_process.terminate()
-        
+
+    def get_android_app_pid(self, device_id):
+        adb_cmd = 'adb -s {} shell pidof -s com.microchip.bluetooth.data &'.format(device_id)
+        sh_in, sh_out, sh_error = self.ssh_handler.execute(adb_cmd)
+        ll = []
+        pid = ''
+        for line in sh_out:
+            #print("get_android_app_pid command execute. result = {}".format(line))
+            ll.append(line)
+
+        if len(ll) == 3:
+            #print("pid info = {}".format(ll[1]))
+            print(ll[1])
+            pid = ll[1].split(' ')[1].replace('\n', '')
+
+        print("get_android_app_pid = {}".format(pid))
+        return pid
+
+    def get_android_adb_log(self, device_id, pid=''):
+        adb_logs = "adb_logs_{}_{}".format(pid, datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
+        #adb_cmd = 'adb -s {} logcat -d --pid={} > ./Chimera_BLEAF_Log/Android/{}.txt'.format(device_id, pid, adb_logs)
+        adb_cmd = 'adb -s {} logcat -d > ./Chimera_BLEAF_Log/Android/{}.txt'.format(device_id, adb_logs)
+        sh_in, sh_out, sh_error = self.ssh_handler.execute(adb_cmd)
+        if not sh_error:
+            print("Get adb log successfully.cmd = {}".format(adb_cmd))
+            print("Android log file = {}".format(adb_logs))
+        else:
+            assert False, "Failed to execute adb command. Command output: {}".format(sh_out)
+
     def find_element(self, by, locator, timeout=30):
         element = []
         found = False

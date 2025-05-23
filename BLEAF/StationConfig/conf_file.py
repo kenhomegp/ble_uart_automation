@@ -3,7 +3,9 @@ from ..CommonSupportLib.StationDefines import DEVICE_NAME_K, PLATFORM_NAME_K, PL
     APP_PACKAGE_K, APP_ACTIVITY_K, MOBILE_TO_USE, COM_PORT_K, BAUD_RATE_K,MEDC, RPI_CLIENT, MOBILE_CLIENT_MBDA, MOBILE_CLIENT_WTA, PHONE_BT_ADDRESS_K
 
 # dut_friendly_name = "BLE_UART_D46B_H" #D46B_H, 6C3B
-dut_friendly_name = "BLE_UART_8242"
+#dut_friendly_name = "BLE_UART_8242"
+#dut_friendly_name = "BLE_UART_436F"
+dut_friendly_name = "BLE_UART_CDDF"
 #dut_friendly_name = "MBD_PERIPHERAL"
 # com_port = "COM29"
 com_port = "COM15"
@@ -14,9 +16,9 @@ ota_downgrade_fw_version = "1.1.0.5"
 
 appium_config = {
     "appium_server_config": {
-        "appium_server_ip":  "127.0.0.1",
+        "appium_server_ip":  "10.160.54.60",
         "appium_server_port": "4723",
-        "remote_appium_server_ip":  "127.0.0.1",
+        "remote_appium_server_ip":  "10.160.54.60",
         "remote_appium_server_port": "4723",
         "remote_appium_username": "WSGAppDev",
         "remote_appium_pwd" : 'Amchp17217'
@@ -46,7 +48,7 @@ appium_config = {
         "iPhone15": {DEVICE_NAME_K  : "iPhone15",
                     PHONE_UDID_K : "00008120-0019581E2212201E",
                     PLATFORM_NAME_K : "iOS",
-                    PLATFORM_VERSION_K : "18.1"
+                    PLATFORM_VERSION_K : "17"
         },
         "iPhone XR": {DEVICE_NAME_K  : "iPhone XR",
                     PHONE_UDID_K : "00008020-001658643485002E",
@@ -169,10 +171,15 @@ appium_config = {
 }
 
 duts_to_use = {
-    MOBILE_TO_USE: "iPhone15",
+    MOBILE_TO_USE: "SamsungA54",
     "server":"DUT1",
     "client":"DUT2"
 }
+
+multilink_phone_config = {
+    MOBILE_TO_USE: "SamsungA54"
+}
+
 DUT_ADD_K = "001167939393"
 client = MEDC
 mcpfolderpath = r'C:\BLEAF\ExternalDependencies\MCP2210CLI'
