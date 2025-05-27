@@ -34,7 +34,10 @@ def default_class_fixture(request):
     #print(sd.config.appium_server_ip)
     # Multiple drivers for mobiles
 
-    remote_appium = sd.remote_mac_server
+    if sd.config.appium_server_ip == '127.0.0.1':
+        remote_appium = False
+    else:
+        remote_appium = sd.remote_mac_server
 
     platform = mobile_to_use.get(PLATFORM_NAME_K)
     if platform == 'iOS':
@@ -43,7 +46,7 @@ def default_class_fixture(request):
         sd.mobile_platform = platform
 
         if remote_appium:
-            driver = BaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
+            driver = BaseDriver(sd.config.remote_appium_server_ip, sd.config.remote_appium_server_port,
                                 mobile_to_use.get(PHONE_UDID_K),
                                 mobile_to_use.get(PLATFORM_NAME_K),
                                 mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
@@ -57,7 +60,7 @@ def default_class_fixture(request):
 
     else:
         if remote_appium:
-            driver = BaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
+            driver = BaseDriver(sd.config.remote_appium_server_ip, sd.config.remote_appium_server_port,
                                 mobile_to_use.get(PHONE_UDID_K),
                                 mobile_to_use.get(PLATFORM_NAME_K),
                                 mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
@@ -68,20 +71,6 @@ def default_class_fixture(request):
                                 mobile_to_use.get(PLATFORM_NAME_K),
                                 mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
                                 sd.config.app_package, sd.config.app_activity)
-        '''
-        if remote_appium:
-            driver = BaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
-                                mobile_to_use.get(PHONE_UDID_K),
-                                mobile_to_use.get(PLATFORM_NAME_K),
-                                mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
-                                sd.config.app_package, sd.config.app_activity, fresh_env=True, remote_appium=True)
-        else:
-            driver = BaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
-                                mobile_to_use.get(PHONE_UDID_K),
-                                mobile_to_use.get(PLATFORM_NAME_K),
-                                mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
-                                sd.config.app_package, sd.config.app_activity)
-        '''
 
     mobile_data_dic = {}
     dev_name = mobile_to_use.get(DEVICE_NAME_K)
@@ -144,7 +133,9 @@ def default_class_fixture(request):
                 #phone_name = phone_info_dic['phone']
                 #print("phone_name = {}.Close MBD app".format(phone_name))
                 mobile_driver = phone_info_dic['driver']
-                if not sd.remote_mac_server:
+                #if not sd.remote_mac_server:
+                if not remote_appium:
+                    print("[MacOS]kill local appium server")
                     mobile_driver.appium_service.stop()
                 else:
                     if mobile_driver.ssh_handler is not None:

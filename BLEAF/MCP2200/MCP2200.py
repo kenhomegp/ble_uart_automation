@@ -1,21 +1,28 @@
 import os
 import ctypes
+import platform
 
 class Mcp2200:
     def __init__(self):
         self.vid = 0x04d8
         self.pid = 0x00df
-        #self.dll = ctypes.WinDLL(os.getcwd()+'\\MCP2200\\MCP2200.dll')
-        self.dll = ctypes.WinDLL(os.getcwd() + '\\BLEAF\\MCP2200\\MCP2200.dll')
-        self.dll.InitMCP2200.argtype = [ctypes.c_uint,ctypes.c_uint]
-        self.dll.InitMCP2200(self.vid,self.pid)
+
+        self.checkOS = platform.system()
+
+        if self.checkOS == "Windows":
+            #self.dll = ctypes.WinDLL(os.getcwd()+'\\MCP2200\\MCP2200.dll')
+            self.dll = ctypes.WinDLL(os.getcwd() + '\\BLEAF\\MCP2200\\MCP2200.dll')
+            self.dll.InitMCP2200.argtype = [ctypes.c_uint,ctypes.c_uint]
+            self.dll.InitMCP2200(self.vid,self.pid)
 
     def IsConnected(self):
-        self.dll.IsConnected.restype = ctypes.c_bool
-        return self.dll.IsConnected()
+        if self.checkOS == "Windows":
+            self.dll.IsConnected.restype = ctypes.c_bool
+            return self.dll.IsConnected()
 
     def ConfigureMCP2200(self, IOmap, BaudRate, RxLedMode, TxLedMode,
                          Flow=False, Uload=False, SSPND=False, Invert=False):
+
         self.dll.ConfigureMCP2200.argtype = [ctypes.c_ubyte,ctypes.c_ulong,ctypes.c_uint,ctypes.c_int,
                                              ctypes.c_bool,ctypes.c_bool,ctypes.c_bool,ctypes.c_bool]
         self.dll.ConfigureMCP2200.restype = ctypes.c_bool

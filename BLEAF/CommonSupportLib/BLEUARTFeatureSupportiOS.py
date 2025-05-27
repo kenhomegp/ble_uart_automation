@@ -3,6 +3,8 @@ import sys
 import threading
 import time
 
+import re
+
 import pytest
 import serial
 import serial.tools.list_ports
@@ -438,15 +440,19 @@ class BLEUARTFeatureSupportiOS:
         assert status1, "Failed to find log message"
         log_text = self.driver.get_text(logmessage)
         transmission_time_tx = ''
-        if "Transmission elapsed time" in log_text:
+        #if "Transmission elapsed time" in log_text:
+        if "Downlink transmission time" in log_text:
             for line in log_text.split("\n"):
-                if "Transmission elapsed time" in line:
-                    transmission_time_tx = line.split("Transmission elapsed time = ")[1]
+                #if "Transmission elapsed time" in line:
+                if "Downlink transmission time" in line:
+                    #transmission_time_tx = line.split("Transmission elapsed time = ")[1]
+                    transmission_time_tx = line.split("Downlink transmission time = ")[1]
                     break
         else:
             print("Transmission time is not present in the log")
         result_str_TX = "Test Failed with following data:\nTx Size, Time and Throughput: {file_size},{time},{throughput}\n\n".format(file_size= "500004 B", time=transmission_time_tx, throughput=throughput_value_TX)
-        if ((text_500K in log_text) and (loopback_comparepass_text in log_text)):
+        #if ((text_500K in log_text) and (loopback_comparepass_text in log_text)):
+        if (("Downlink: 500004 bytes" in log_text) and ("Compare data: PASS" in log_text)):
             result_str_TX = "Loopback Mode Test Results(TX):\nTest Passed with following data:\nTx Size, Time and Throughput: {file_size},{time},{throughput}\n\n".format(file_size= "500004 B", time=transmission_time_tx, throughput=throughput_value_TX)
             result_status = True
             print(result_str_TX)
@@ -465,15 +471,19 @@ class BLEUARTFeatureSupportiOS:
         assert status1, "Failed to find log message"
         log_text = self.driver.get_text(logmessage)
         transmission_time_rx = ''
-        if "Transmission elapsed time" in log_text:
+        #if "Transmission elapsed time" in log_text:
+        if "Uplink transmission time" in log_text:
             for line in log_text.split("\n"):
-                if "Transmission elapsed time" in line:
-                    transmission_time_rx = line.split("Transmission elapsed time = ")[1]
+                #if "Transmission elapsed time" in line:
+                if "Uplink transmission time" in line:
+                    #transmission_time_rx = line.split("Transmission elapsed time = ")[1]
+                    transmission_time_rx = line.split("Uplink transmission time = ")[1]
                     break
         else:
             print("Transmission time is not present in the log")
         result_str_RX = "Test Failed with following data:\nRx Size, Time and Throughput: {file_size},{time},{throughput}\n\n".format(file_size= "500004 B", time=transmission_time_rx, throughput=throughput_value_RX)
-        if ((text_500K in log_text) and (loopback_comparepass_text in log_text)):
+        #if ((text_500K in log_text) and (loopback_comparepass_text in log_text)):
+        if (("Uplink: 500004 bytes" in log_text) and ("Compare data: PASS" in log_text)):
             print("Checking if the Received file size matches 500004")
             result_str_RX = "Loopback Mode Test Results(RX):\nTest Passed with following data:\nRx Size, Time and Throughput: {file_size},{time},{throughput}\n\n".format(file_size= "500004 B", time=transmission_time_rx, throughput=throughput_value_RX)
             result_status = True
@@ -1198,6 +1208,34 @@ class BLEUARTFeatureSupportiOS:
         assert status, "Failed to find back icon"
         status = self.driver.click_element(back_button)
         assert status, "Failed to click on back icon"
+
+    def get_TX_throughput_value(self):
+        status, loopback_throughput_value_TX = self.driver.find_element('XPATH', ioslocators.throughput_result_tx)
+        assert status, "Failed to find locator for TX throughput result"
+        throughput_result_field = self.driver.get_text(loopback_throughput_value_TX)
+        throughput_value_TX = throughput_result_field.strip("Downlink:")
+        print(throughput_value_TX)
+        match = re.search(r'(\d+\.\d+)\s*KB/s', throughput_value_TX)
+        if match:
+            value = float(match.group(1))
+            # print(value)
+            return value
+        else:
+            return "value not found"
+
+    def get_RX_throughput_value(self):
+        status, loopback_throughput_value_RX = self.driver.find_element('XPATH', ioslocators.throughput_result_rx)
+        assert status, "Failed to find locator for RX throughput result"
+        throughput_result_field = self.driver.get_text(loopback_throughput_value_RX)
+        throughput_value_RX = throughput_result_field.strip("Uplink:")
+        print(throughput_value_RX)
+        match = re.search(r'(\d+\.\d+)\s*KB/s', throughput_value_RX)
+        if match:
+            value = float(match.group(1))
+            # print(value)
+            return value
+        else:
+            return "value not found"
 
 
 

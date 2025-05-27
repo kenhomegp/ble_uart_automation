@@ -1,6 +1,9 @@
 import collections
 import pytest
 import time
+
+import concurrent.futures
+
 from collections import OrderedDict
 from ...BaseWrappers.BaseDriver import BaseDriver
 from ...CommonSupportLib.AppScanAndConnect import ScanningandConnection
@@ -12,6 +15,7 @@ from ...CommonSupportLib.BLEUARTFeatureSupportiOS import BLEUARTFeatureSupportiO
 
 from ...MCP2200.MCP2200 import Mcp2200
 from ...StationConfig import conf_file
+
 sd = stationData()
 MCU = Mcp2200()
 BTN_CTRL_PIN = 0x04
@@ -65,23 +69,10 @@ class TestChimeraConnectBLEUartMultilink:
         print("{0}Test to verify Chimera BLE UART Multilink Feature {0}".format('=' * 20))
         print("{0}Test to verify Scan and Connect with 6 Android phones {0}".format('=' * 20))
 
-        '''
-        print("Scan for the DUT and connect.")
-        self.scanandconnect.scan_and_connect_dut(dut_friendly_name)
-        print("Verifying the connection stability for 1 minute")
-        time.sleep(30)
-        status = self.scanandconnect.verify_dut_name_visibility(dut_friendly_name)
-        assert status, "Unable to scan and connect to DUT"
-        '''
-
-
-        phone_obj_dict = {}
-        #scanandconnect_obj = []
         bleuartfeature_obj = []
-        mobile_data_dic = {}
-
         phone_default = ""
         phone_default_driver = None
+
         mobile_phone_list = sd.config.multilink_phone_config.split("/")
         print("mobile_phone_list = {}".format(len(mobile_phone_list)))
 
@@ -103,9 +94,6 @@ class TestChimeraConnectBLEUartMultilink:
             #print("[Default mobile phone]App Launched")
             time.sleep(3)
             assert status, "Failed to launch application"
-            #if len(mobile_phone_list) == 0:
-            #    bleuartfeature_obj.append(self.bleuartfeature)
-            #    time.sleep(1)
 
             if (isinstance(self.bleuartfeature, BLEUARTFeatureSupport)):
                 app_open = self.bleuartfeature.verify_app_open()
@@ -114,21 +102,9 @@ class TestChimeraConnectBLEUartMultilink:
                 app_open = self.bleuartfeature.verify_ios_app_open()
                 print("[Default mobile phone]Launch iOS MBD")
             assert app_open, "Failed to open MBD Application"
-            #bleuartfeature_obj.append(self.bleuartfeature)
-            #time.sleep(3)
-            #sd.mobile_driver.get_android_app_pid('R5CW321G69K')
-            #time.sleep(3)
 
         #Create driver and launch MBD
         for phone in mobile_phone_list:
-            #print("phone is {0}".format(phone))
-            #mobile_data_dic = {}
-            #mobile_to_use = sd.config.mobile_data_config.get(phone)
-            #print("Appium Server Config data:")
-            #print(mobile_to_use)
-            #print(mobile_to_use)
-            #driver = BaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
-            #if phone != sd.platform:
             if phone != phone_default:
                 mobile_to_use = sd.config.mobile_data_config.get(phone)
                 print("Appium Server Config data:")
@@ -144,20 +120,6 @@ class TestChimeraConnectBLEUartMultilink:
                                         mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
                                         sd.config.app_package, sd.config.app_activity, fresh_env=True,
                                         remote_appium=remote_appium)
-                    '''
-                    if remote_appium:
-                        driver = BaseDriver(sd.config.appium_server_ip, str(4723 + len(sd.multilink_mobile_driver)),
-                                            mobile_to_use.get(PHONE_UDID_K),
-                                            mobile_to_use.get(PLATFORM_NAME_K),
-                                            mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
-                                            sd.config.app_package, sd.config.app_activity, fresh_env=True, remote_appium=True)
-                    else:
-                        driver = BaseDriver(sd.config.appium_server_ip, str(4723+len(sd.multilink_mobile_driver)),
-                                            mobile_to_use.get(PHONE_UDID_K),
-                                            mobile_to_use.get(PLATFORM_NAME_K),
-                                            mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
-                                            sd.config.app_package, sd.config.app_activity)
-                    '''
                     bleuartfeature = BLEUARTFeatureSupport(driver)
                     bleuartfeature_obj.append(bleuartfeature)
                 else:
@@ -169,7 +131,6 @@ class TestChimeraConnectBLEUartMultilink:
                     bleuartfeature = BLEUARTFeatureSupportiOS(driver)
                     bleuartfeature_obj.append(bleuartfeature)
 
-                #mobile_data_dic.clear()
                 mobile_data_dic = {}
                 dev_name = mobile_to_use.get(DEVICE_NAME_K)
                 mobile_data_dic['driver'] = driver
@@ -202,75 +163,6 @@ class TestChimeraConnectBLEUartMultilink:
                 print("[Default] bleuartfeature")
                 bleuartfeature_obj.append(self.bleuartfeature)
                 time.sleep(3)
-
-                #app_package = driver.get_capability('appPackage')
-                #status = driver.close_app(app_package)
-                #time.sleep(5)
-                #status = driver.launch_app(app_package)
-                #print("App Launched")
-                #time.sleep(2)
-                #assert status, "Failed to launch application"
-                #sd.second_mobile_driver = driver
-                #scanandconnect = ScanningandConnection(driver)
-                #scanandconnect_obj.append(scanandconnect)
-                #bleuartfeature = BLEUARTFeatureSupport(driver)
-                #mobile_data_dic['driver'] = driver
-                #mobile_data_dic['scanandconnect'] = scanandconnect
-                #mobile_data_dic['bleuartfeature'] = bleuartfeature
-                #print(mobile_data_dic)
-                #phone_obj_dict[phone] = mobile_data_dic
-                #mobile_obj_list.append(mobile_to_use)
-                #print("Phone Object Dictionary")
-                #print(phone_obj_dict)
-            #else:
-            #    bleuartfeature_obj.append(self.bleuartfeature)
-                #scanandconnect = ScanningandConnection(sd)
-                #bleuartfeature = BLEUARTFeatureSupport(driver)
-                #mobile_data_dic['driver'] = sd.mobile_driver
-                #mobile_data_dic['scanandconnect'] = self.scanandconnect
-                #if 'iphone' in phone_default.lower():
-                #    scanandconnect_obj.append(self.bleuartfeature)
-                #else:
-                #    scanandconnect_obj.append(self.scanandconnect)
-                #mobile_data_dic['bleuartfeature'] = None
-                #print(mobile_data_dic)
-                #phone_obj_dict[sd.platform] = mobile_data_dic
-                #mobile_obj_list.append(mobile_to_use)
-                #print("Phone Object Dictionary")
-                #print(phone_obj_dict)
-
-            '''
-            app_package = driver.get_capability('appPackage')
-            print(app_package)
-            status = driver.launch_app(app_package)
-            print("App Launched")
-            time.sleep(2)
-            assert status, "Failed to launch application"
-            #driver.launch_app('com.microchip.bluetooth.data')
-            print("{0}Test to verify Chimera device Discovery and connection {0}".format('=' * 20))
-            print("Verify MBD App is open")
-            app_open = scanandconnect.verify_app_open()
-            assert app_open, "Failed to open MBD Application"
-            '''
-            #print("Put the DUT to advertising mode")
-            #time.sleep(10)
-            '''
-            print("Scan for the DUT and connect")
-            scanandconnect.scan_and_connect_dut(dut_friendly_name)
-            time.sleep(3)
-            status = scanandconnect.verify_dut_name_visibility(dut_friendly_name)
-            print("DUT is connected with Phone:", phone)
-            assert status, "Unable to scan and connect to DUT"
-            time.sleep(5)
-            #self.iocontrolledstatus.IOCtrl(MCU, BTN_CTRL_PIN, 0.2)
-            print("LED IO Control")
-            time.sleep(5)
-            '''
-
-        #print("multilink_ble_uart. Done")
-        #print("multilink_mobile_driver.len = {}".format(len(sd.multilink_mobile_driver)))
-        #print("bleuartfeature_obj.len = {}".format(len(bleuartfeature_obj)))
-        #print("Launch MBD APP")
 
         print("Multilink WebDriver. len = {}".format(len(sd.multilink_mobile_driver)))
         print(sd.multilink_mobile_driver)
@@ -315,7 +207,6 @@ class TestChimeraConnectBLEUartMultilink:
                 assert mode_set_trp, "Loopback mode, TRP and 500K not set accordingly"
                 trp_result = "Loopback Mode TRP Mode Data Transfer Results \n"
                 print(trp_result)
-                #bleuartfeature.loopback_mode_data_transfer()
                 time.sleep(5)
             else:
                 bleuartfeature.verify_mode_loopback_ios()
@@ -326,15 +217,6 @@ class TestChimeraConnectBLEUartMultilink:
                 trp_result = "Loopback Mode TRP Mode Data Transfer Results \n"
                 print(trp_result)
                 time.sleep(5)
-                #bleuartfeature.loopback_mode_data_transfer_ios()
-                #time.sleep(5)
-                #status, msg = bleuartfeature.loopback_mode_results_TX_ios()
-                #assert status, msg
-                #print(msg)
-                #status, msg = bleuartfeature.loopback_mode_results_RX_ios()
-                #assert status, msg
-                #print(msg)
-
         print("multilink_Loopback_mode_trp_500k. Done. ")
 
         for i in range(len(bleuartfeature_obj)):
@@ -344,22 +226,86 @@ class TestChimeraConnectBLEUartMultilink:
             else:
                 bleuartfeature.data_transfer_START_mobile_app_ios()
 
+        time.sleep(4)
+
+        #delay = 0
+        #for i in range(len(bleuartfeature_obj)):
+        #    print("hello")
+            #bleuartfeature = bleuartfeature_obj[i]
+            #if (isinstance(bleuartfeature, BLEUARTFeatureSupport)):
+            #    print("Android.Get throughput value")
+            #else:
+            #    print("iOS.Get throughput value")
+
+            #msg_tx = bleuartfeature.get_TX_throughput_value()
+            #print(msg_tx)
+            #msg_rx = bleuartfeature.get_RX_throughput_value()
+            #print(msg_rx)
+            #delay = (500 / int(msg_rx)) - 3
+            #print("delay = {}".format(delay))
+
+        def ble_throughput_test(bleuartfeature_executor):
+            print("BLEUART Throughput test")
+            delay = 0
+            if (isinstance(bleuartfeature_executor, BLEUARTFeatureSupport)):
+                print("Android.Get throughput value")
+            else:
+                print("iOS.Get throughput value")
+
+            msg_tx = bleuartfeature_executor.get_TX_throughput_value()
+            print(msg_tx)
+            msg_rx = bleuartfeature_executor.get_RX_throughput_value()
+            print(msg_rx)
+            delay = (500 / int(msg_rx)) - 3
+            print("delay = {}".format(delay))
+
+            time.sleep(delay)
+
+            if (isinstance(bleuartfeature_executor, BLEUARTFeatureSupport)):
+                status, msg = bleuartfeature_executor.loopback_mode_results_TX()
+                assert status, msg
+                status, msg = bleuartfeature_executor.loopback_mode_results_RX()
+                assert status, msg
+            else:
+                status, msg = bleuartfeature_executor.loopback_mode_results_TX_ios()
+                assert status, msg
+                status, msg = bleuartfeature_executor.loopback_mode_results_RX_ios()
+                assert status, msg
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [executor.submit(ble_throughput_test, bleuart_executor) for bleuart_executor in bleuartfeature_obj]
+            print("futures: {}".format(futures))
+            concurrent.futures.wait(futures)
+
+        print("Loopback_mode_trp_500k. Data Transfer Done. Display throughput value")
+        time.sleep(5)
+
+        '''
         if len(sd.multilink_mobile_driver) == 1:
-            time.sleep(25)
-            print("Loopback_mode_trp_500k. Data Transfer Done. ")
+            if delay != 0:
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(ble_throughput_test, bleuartfeature_obj[0], delay)
+                    concurrent.futures.wait([future])
+                
+                time.sleep(delay)
+                bleuartfeature = bleuartfeature_obj[0]
+                if (isinstance(bleuartfeature, BLEUARTFeatureSupport)):
+                    status, msg = bleuartfeature.loopback_mode_results_TX()
+                    assert status, msg
+                    status, msg = bleuartfeature.loopback_mode_results_RX()
+                    assert status, msg
+                else:
+                    status, msg = bleuartfeature.loopback_mode_results_TX_ios()
+                    assert status, msg
+                    status, msg = bleuartfeature.loopback_mode_results_RX_ios()
+                    assert status, msg
+            else:
+                time.sleep(25)
+            print("Loopback_mode_trp_500k. Data Transfer Done. Display throughput value")
+            time.sleep(5)
         else:
             time.sleep(200)
             print("multilink_Loopback_mode_trp_500k. Data Transfer Done. ")
-
-        '''    
-        print("[Multilink] Launch MBD App.Connect BLE_UART_CDDF")
-        scanandconnect = ScanningandConnection(sd.second_mobile_driver)
-        print("Scan for the DUT and connect.")
-        scanandconnect.scan_and_connect_dut("BLE_UART_CDDF")
-        print("Verifying the connection stability for 1 minute")
-        time.sleep(30)
-        status = scanandconnect.verify_dut_name_visibility("BLE_UART_CDDF")
-        assert status, "Unable to scan and connect to DUT"
         '''
 
         #sd.second_mobile_driver.close_app('com.microchip.bluetooth.data')

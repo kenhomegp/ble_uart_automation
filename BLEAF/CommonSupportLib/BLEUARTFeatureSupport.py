@@ -7,7 +7,7 @@ from . import android_locators as locators
 from .StationData import stationData
 from ..StationConfig import conf_file
 from ..CommonSupportLib.Serial_Implementaiton import SerialSuppport
-
+import re
 
 # Text for result strings for each mode
 checksum_comparepass_text = "[TX] - Compare checksum : PASS"
@@ -917,3 +917,31 @@ class BLEUARTFeatureSupport:
         else:
             assert status, "DUT is not connected"
         return status
+
+    def get_TX_throughput_value(self):
+        status, loopback_throughput_value_TX = self.driver.find_element('XPATH', locators.loopback_TX_throughput_result)
+        assert status, "Failed to find locator for TX throughput result"
+        throughput_value_TX = self.driver.get_text(loopback_throughput_value_TX)
+        print(throughput_value_TX)
+        match = re.search(r'(\d+\.\d+)\s*KB/s', throughput_value_TX)
+        if match:
+            value = float(match.group(1))
+            #print(value)
+            return value
+        else:
+            return "value not found"
+        #return throughput_value_TX
+
+    def get_RX_throughput_value(self):
+        status, loopback_throughput_value_RX = self.driver.find_element('XPATH', locators.loopback_RX_throughput_result)
+        assert status, "Failed to find locator for RX throughput result"
+        throughput_value_RX = self.driver.get_text(loopback_throughput_value_RX)
+        print(throughput_value_RX)
+        match = re.search(r'(\d+\.\d+)\s*KB/s', throughput_value_RX)
+        if match:
+            value = float(match.group(1))
+            #print(value)
+            return value
+        else:
+            return "value not found"
+        #return throughput_value_RX
