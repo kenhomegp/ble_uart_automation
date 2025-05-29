@@ -299,6 +299,7 @@ class BLEUARTFeatureSupport:
         else:
             result_status = False
             print(result_str_TX)
+            print("App log = {}".format(log_text))
         return result_status, result_str_TX
 
     def loopback_mode_100Kresults_TX(self):
@@ -490,7 +491,7 @@ class BLEUARTFeatureSupport:
         self.data_transfer_START()
         time.sleep(15)
 
-    def verify_mode_loopback(self):
+    def verify_mode_loopback(self, multilink=False):
         if sd.platform == 'OnePlus10Pro':
             print("Click on settings icon")
             status1 = self.click_setting_onepluspro()
@@ -504,6 +505,9 @@ class BLEUARTFeatureSupport:
         time.sleep(5)
         self.set_500K()
         time.sleep(5)
+        if multilink:
+            self.set_timeout_10sec()
+            time.sleep(5)
 
     def verify_mode_100_loopback(self):
         if sd.platform == 'OnePlus10Pro':
@@ -945,3 +949,14 @@ class BLEUARTFeatureSupport:
         else:
             return "value not found"
         #return throughput_value_RX
+
+    def set_timeout_10sec(self):
+        status1, select_file = self.driver.find_element('XPATH', locators.data_timeout_icon)
+        assert status1, "set timeout icon not found"
+        status1 = self.driver.click_element(select_file)
+        assert status1, "Failed to select timeout icon"
+        time.sleep(5)
+        status2, click_on_100K = self.driver.find_element('XPATH', locators.ten_seconds_timeout)
+        assert status2, "10 sec not found"
+        status2 = self.driver.click_element(click_on_100K)
+        assert status2, "Failed to set timeout 10sec"

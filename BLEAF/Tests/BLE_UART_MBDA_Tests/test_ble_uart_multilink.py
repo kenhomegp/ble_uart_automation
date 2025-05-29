@@ -192,7 +192,7 @@ class TestChimeraConnectBLEUartMultilink:
             time.sleep(3)
             if(i+1) != len(bleuartfeature_obj):
                 print("MCP2200 IO control. Press button")
-                self.iocontrolledstatus.IOCtrl(MCU, BTN_CTRL_PIN, 0.2)
+                #self.iocontrolledstatus.IOCtrl(MCU, BTN_CTRL_PIN, 0.2)
                 time.sleep(3)
 
         print("multilink_scan_and_connect. Done. ")
@@ -200,7 +200,7 @@ class TestChimeraConnectBLEUartMultilink:
         for i in range(len(bleuartfeature_obj)):
             bleuartfeature = bleuartfeature_obj[i]
             if (isinstance(bleuartfeature, BLEUARTFeatureSupport)):
-                bleuartfeature.verify_mode_loopback()
+                bleuartfeature.verify_mode_loopback(multilink=True)
                 bleuartfeature.go_back()
                 time.sleep(5)
                 mode_set_trp = bleuartfeature.confirm_loopback_mode()
@@ -244,7 +244,7 @@ class TestChimeraConnectBLEUartMultilink:
             #delay = (500 / int(msg_rx)) - 3
             #print("delay = {}".format(delay))
 
-        def ble_throughput_test(bleuartfeature_executor):
+        def ble_throughput_test(bleuartfeature_executor, phone):
             print("BLEUART Throughput test")
             delay = 0
             if (isinstance(bleuartfeature_executor, BLEUARTFeatureSupport)):
@@ -266,14 +266,23 @@ class TestChimeraConnectBLEUartMultilink:
                 assert status, msg
                 status, msg = bleuartfeature_executor.loopback_mode_results_RX()
                 assert status, msg
+                print("Test phone = {}".format(phone))
             else:
                 status, msg = bleuartfeature_executor.loopback_mode_results_TX_ios()
                 assert status, msg
                 status, msg = bleuartfeature_executor.loopback_mode_results_RX_ios()
                 assert status, msg
+                print("Test phone = {}".format(phone))
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = [executor.submit(ble_throughput_test, bleuart_executor) for bleuart_executor in bleuartfeature_obj]
+            futures = []
+            for i in range(len(bleuartfeature_obj)):
+                bleuartfeature = bleuartfeature_obj[i]
+                phone_dic = sd.multilink_mobile_driver[i]
+                phone = phone_dic['phone']
+                app = executor.submit(ble_throughput_test, bleuartfeature, phone)
+                futures.append(app)
+            #futures = [executor.submit(ble_throughput_test, bleuart_executor) for bleuart_executor in bleuartfeature_obj]
             print("futures: {}".format(futures))
             concurrent.futures.wait(futures)
 

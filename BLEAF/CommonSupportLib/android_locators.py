@@ -1,4 +1,6 @@
 #MBD App Locators
+data_timeout_icon = "//android.widget.TextView[@resource-id='android:id/text1']"
+ten_seconds_timeout = "//android.widget.CheckedTextView[@resource-id='android:id/text1' and @text='10 sec']"
 dashboard_text = "//android.widget.TextView[@text='Microchip Bluetooth Data']"
 ble_uart_icon = "//android.widget.LinearLayout[@resource-id='com.microchip.bluetooth.data:id/bleuartLayout']"
 ble_sensor_icon = "//android.widget.LinearLayout[@resource-id='com.microchip.bluetooth.data:id/layout2']"

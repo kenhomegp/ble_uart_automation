@@ -5,7 +5,7 @@ from ..CommonSupportLib.StationDefines import DEVICE_NAME_K, PLATFORM_NAME_K, PL
 # dut_friendly_name = "BLE_UART_D46B_H" #D46B_H, 6C3B
 #dut_friendly_name = "BLE_UART_8242"
 #dut_friendly_name = "BLE_UART_436F"
-dut_friendly_name = "BLE_UART_CDDF"
+dut_friendly_name = "BLE_UART_CDDF_H"
 #dut_friendly_name = "MBD_PERIPHERAL"
 # com_port = "COM29"
 com_port = "COM15"
@@ -16,7 +16,7 @@ ota_downgrade_fw_version = "1.1.0.5"
 
 appium_config = {
     "appium_server_config": {
-        "appium_server_ip":  "127.0.0.1",
+        "appium_server_ip":  "10.160.54.60",
         "appium_server_port": "4723",
         "remote_appium_server_ip":  "10.160.54.60",
         "remote_appium_server_port": "4723",
@@ -111,6 +111,11 @@ appium_config = {
                        PLATFORM_NAME_K: "Android",
                        PLATFORM_VERSION_K: "11",
                        },
+        "Pixel17217": {DEVICE_NAME_K: "pixel17217",
+                       PHONE_UDID_K: "FA6CM0301069",
+                       PLATFORM_NAME_K: "Android",
+                       PLATFORM_VERSION_K: "10",
+                       },
         "Xiaomi12Pro": {DEVICE_NAME_K: "Xiaomi12Pro",
                        PHONE_UDID_K: "be16c1a7",
                        PLATFORM_NAME_K: "Android",
@@ -171,13 +176,14 @@ appium_config = {
 }
 
 duts_to_use = {
-    MOBILE_TO_USE: "iPhone15",
+    MOBILE_TO_USE: "SamsungS23",
     "server":"DUT1",
     "client":"DUT2"
 }
 
 multilink_phone_config = {
-    MOBILE_TO_USE: "iPhone15"
+    MOBILE_TO_USE: "SamsungS23"
+    #MOBILE_TO_USE: "Pixel7/iPhone15/Pixel17217/SamsungS23"
 }
 
 DUT_ADD_K = "001167939393"

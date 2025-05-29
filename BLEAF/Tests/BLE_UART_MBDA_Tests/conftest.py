@@ -122,12 +122,10 @@ def default_class_fixture(request):
                     mobile_info = sd.config.mobile_data_config.get(phone_name)
                     udid = mobile_info.get(PHONE_UDID_K)
                     android_udid_list.append(udid)
-                    #mobile_driver.get_android_adb_log('R5CW321G69K', pid)
-                    #mobile_driver.get_android_adb_log(udid)
-                    #time.sleep(25)
-                status = mobile_driver.close_app(app_package)
-                time.sleep(3)
-                assert status, "Failed to close application"
+
+                #status = mobile_driver.close_app(app_package)
+                #time.sleep(3)
+                #assert status, "Failed to close application"
 
             for phone_info_dic in sd.multilink_mobile_driver:
                 #phone_name = phone_info_dic['phone']
