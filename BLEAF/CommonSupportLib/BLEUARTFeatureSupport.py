@@ -228,6 +228,11 @@ class BLEUARTFeatureSupport:
         assert status, "Failed to transfer Data"
 
     def multilink_data_transfer_START(self):
+        status_clear, clear_text = self.driver.find_element('XPATH', locators.clear_text)
+        assert status_clear, "Failed to find the clear icon"
+        status_clear = self.driver.click_element(clear_text)
+        assert status_clear, "Failed to click on clear icon"
+        time.sleep(2)
         status, transfer_data = self.driver.find_element('XPATH', locators.start_data_transfer)
         assert status, "START icon not found"
         status = self.driver.click_element(transfer_data)
@@ -296,6 +301,10 @@ class BLEUARTFeatureSupport:
             result_str_TX = "Loopback Mode Test Results(TX):\nTest Passed with following data:\nTx Size, Time and Throughput: {}\n\n".format(throughput_value_TX)
             result_status = True
             print(result_str_TX)
+        elif "TRANSACTION Timeout error" in log_text:
+            print("Checking timeout")
+            result_str_TX = "TRANSACTION Timeout error"
+            result_status = True
         else:
             result_status = False
             print(result_str_TX)
@@ -336,6 +345,10 @@ class BLEUARTFeatureSupport:
                 throughput_value_RX)
             result_status = True
             print(result_str_RX)
+        elif "TRANSACTION Timeout error" in log_text:
+            print("Checking timeout")
+            result_str_RX = "TRANSACTION Timeout error"
+            result_status = True
         else:
             result_status = False
             print(result_str_RX)
@@ -491,7 +504,7 @@ class BLEUARTFeatureSupport:
         self.data_transfer_START()
         time.sleep(15)
 
-    def verify_mode_loopback(self, multilink=False):
+    def verify_mode_loopback(self, multilink=False, target_phone=False):
         if sd.platform == 'OnePlus10Pro':
             print("Click on settings icon")
             status1 = self.click_setting_onepluspro()
@@ -506,7 +519,10 @@ class BLEUARTFeatureSupport:
         self.set_500K()
         time.sleep(5)
         if multilink:
-            self.set_timeout_10sec()
+            if target_phone:
+                self.set_timeout_300ms()
+            else:
+                self.set_timeout_10sec()
             time.sleep(5)
 
     def verify_mode_100_loopback(self):
@@ -956,7 +972,18 @@ class BLEUARTFeatureSupport:
         status1 = self.driver.click_element(select_file)
         assert status1, "Failed to select timeout icon"
         time.sleep(5)
-        status2, click_on_100K = self.driver.find_element('XPATH', locators.ten_seconds_timeout)
+        status2, click_on_timeout = self.driver.find_element('XPATH', locators.ten_seconds_timeout)
         assert status2, "10 sec not found"
-        status2 = self.driver.click_element(click_on_100K)
-        assert status2, "Failed to set timeout 10sec"
+        status2 = self.driver.click_element(click_on_timeout)
+        assert status2, "Failed to set timeout 10 sec"
+
+    def set_timeout_300ms(self):
+        status1, select_file = self.driver.find_element('XPATH', locators.data_timeout_icon)
+        assert status1, "set timeout icon not found"
+        status1 = self.driver.click_element(select_file)
+        assert status1, "Failed to select timeout icon"
+        time.sleep(5)
+        status2, click_on_timeout = self.driver.find_element('XPATH', locators.test_seconds_timeout)
+        assert status2, "20 sec not found"
+        status2 = self.driver.click_element(click_on_timeout)
+        assert status2, "Failed to set timeout 20 sec"

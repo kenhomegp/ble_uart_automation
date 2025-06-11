@@ -192,7 +192,7 @@ class TestChimeraConnectBLEUartMultilink:
             time.sleep(3)
             if(i+1) != len(bleuartfeature_obj):
                 print("MCP2200 IO control. Press button")
-                #self.iocontrolledstatus.IOCtrl(MCU, BTN_CTRL_PIN, 0.2)
+                self.iocontrolledstatus.IOCtrl(MCU, BTN_CTRL_PIN, 0.2)
                 time.sleep(3)
 
         print("multilink_scan_and_connect. Done. ")
@@ -200,7 +200,10 @@ class TestChimeraConnectBLEUartMultilink:
         for i in range(len(bleuartfeature_obj)):
             bleuartfeature = bleuartfeature_obj[i]
             if (isinstance(bleuartfeature, BLEUARTFeatureSupport)):
-                bleuartfeature.verify_mode_loopback(multilink=True)
+                if i == 0:
+                    bleuartfeature.verify_mode_loopback(multilink=True, target_phone=True)
+                else:
+                    bleuartfeature.verify_mode_loopback(multilink=True)
                 bleuartfeature.go_back()
                 time.sleep(5)
                 mode_set_trp = bleuartfeature.confirm_loopback_mode()
@@ -245,8 +248,8 @@ class TestChimeraConnectBLEUartMultilink:
             #print("delay = {}".format(delay))
 
         def ble_throughput_test(bleuartfeature_executor, phone):
-            print("BLEUART Throughput test")
-            delay = 0
+            print("BLEUART multilink test")
+            #delay = 0
             if (isinstance(bleuartfeature_executor, BLEUARTFeatureSupport)):
                 print("Android.Get throughput value")
             else:
@@ -257,9 +260,10 @@ class TestChimeraConnectBLEUartMultilink:
             msg_rx = bleuartfeature_executor.get_RX_throughput_value()
             print(msg_rx)
             delay = (500 / int(msg_rx)) - 3
-            print("delay = {}".format(delay))
+            print("Data Transmission time = {}".format(delay))
 
             time.sleep(delay)
+            timeoutError = ""
 
             if (isinstance(bleuartfeature_executor, BLEUARTFeatureSupport)):
                 status, msg = bleuartfeature_executor.loopback_mode_results_TX()
@@ -267,12 +271,22 @@ class TestChimeraConnectBLEUartMultilink:
                 status, msg = bleuartfeature_executor.loopback_mode_results_RX()
                 assert status, msg
                 print("Test phone = {}".format(phone))
+                if msg == "TRANSACTION Timeout error":
+                    timeoutError = msg
             else:
                 status, msg = bleuartfeature_executor.loopback_mode_results_TX_ios()
                 assert status, msg
                 status, msg = bleuartfeature_executor.loopback_mode_results_RX_ios()
                 assert status, msg
                 print("Test phone = {}".format(phone))
+
+            if timeoutError == "TRANSACTION Timeout error":
+                if (isinstance(bleuartfeature_executor, BLEUARTFeatureSupport)):
+                    print("Timeout Error. Stop")
+                    bleuartfeature_executor.data_transfer_STOP()
+                    time.sleep(2)
+                    print("Timeout Error. Start")
+                    bleuartfeature_executor.multilink_data_transfer_START()
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = []

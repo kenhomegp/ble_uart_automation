@@ -2,6 +2,9 @@ import platform
 import time
 import os
 import subprocess
+
+import re
+
 from appium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.remote import errorhandler
@@ -134,10 +137,21 @@ class BaseDriver:
         for line in sh_out:
             print(line)
             if 'node' in line:
-                pid = line.split(' ')[0]
-                pids.append(pid)
+                match = re.match(r'\s*(\d+)', line)
+                if match:
+                    pid = match.group(1)
+                    pids.append(pid)
+                    print(f"PID: {pid}")
+                else:
+                    print("PID not found.")
+                #pid = line.split(' ')[0]
+                #pids.append(pid)
 
         print("Appium PID.count = {}".format(len(pids)))
+
+        if len(pids) == 1:
+            print("pid = {}".format(pids[0]))
+
         if len(pids) != 0:
             for pid in pids:
                 print('killing appium process,pid = {}'.format(pid))
