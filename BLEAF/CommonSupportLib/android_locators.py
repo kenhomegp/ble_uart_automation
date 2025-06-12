@@ -83,7 +83,6 @@ supervison_value_field = "//android.widget.EditText[@resource-id='com.microchip.
 save_button = "//android.widget.Button[@resource-id='com.microchip.bluetooth.data:id/saveButton']"
 connectionparam_icon = "//android.widget.TextView[@resource-id='com.microchip.bluetooth.data:id/connParamTxt']"
 confirm_Connparam_page ="//android.widget.LinearLayout/android.widget.TextView[@index=0]"
-
 # Phone settings
 device_pair = "//android.widget.Button[@text='Pair']"
 device_cancel_pair = "//android.widget.Button[@text='Cancel']"

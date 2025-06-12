@@ -24,6 +24,8 @@ from ..CommonSupportLib import ios_locators as ioslocators
 from .SSHSupport import ShellHandler
 from ..CommonSupportLib.StationData import stationData
 
+from .AppiumServer import AppiumServer
+
 sd = stationData()
 
 class BaseDriver:
@@ -55,17 +57,23 @@ class BaseDriver:
                     print("Kill appium server if needed")
                     #self.kill_remote_appium_server()
                     if port_num == '4723' or port_num == '4724':
-                        self.appium_service = AppiumService()
+                        #self.appium_service = AppiumService()
+                        self.appium_service = AppiumServer()
                         #self.appium_service.start()
                         #self.appium_service.start(args=['--address', '127.0.0.1', '-p', '4723', '--base-path', '/wd/hub'])
                         appium_start_args = ['--address', '127.0.0.1', '-p']
                         appium_start_args.append(port_num)
-                        #self.appium_service.start(args=['--address', '127.0.0.1', '-p', '4723'])
+                        #self.appium_service.start(args=['--address', '127.0.0.1', '-p', '4723'], stdout_file='appium_stdout.log', stderr_file='appium_stderr.log')
                         print(appium_start_args)
-                        self.appium_service.start(args= appium_start_args)
+                        print(os.getcwd())
+                        #self.appium_service.start(args= appium_start_args)
+                        appium_server_log_stdout = "Appium_log_{}.log".format(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
+                        appium_server_logs_stderr = "Appium_log_err_{}.log".format(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
+                        #self.appium_service.start(args=appium_start_args, stdout_file='appium_stdout.log', stderr_file='appium_stderr.log')
+                        self.appium_service.start(args= appium_start_args, stdout_file= appium_server_log_stdout, stderr_file= appium_server_logs_stderr)
                         #print(appium_start_args)
                         print("[MacOS]Successfully Started Appium Server")
-                        time.sleep(10)
+                        time.sleep(5)
                 #self.appium_process = subprocess.Popen(start_server_cmd, shell=True)
                 #print("Successfully Started Appium Server")
             #elif remote_appium:

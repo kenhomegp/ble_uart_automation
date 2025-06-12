@@ -3,9 +3,9 @@ from ..CommonSupportLib.StationDefines import DEVICE_NAME_K, PLATFORM_NAME_K, PL
     APP_PACKAGE_K, APP_ACTIVITY_K, MOBILE_TO_USE, COM_PORT_K, BAUD_RATE_K,MEDC, RPI_CLIENT, MOBILE_CLIENT_MBDA, MOBILE_CLIENT_WTA, PHONE_BT_ADDRESS_K
 
 # dut_friendly_name = "BLE_UART_D46B_H" #D46B_H, 6C3B
-dut_friendly_name = "BLE_UART_8242"
+#dut_friendly_name = "BLE_UART_8242"
 #dut_friendly_name = "BLE_UART_436F"
-#dut_friendly_name = "BLE_UART_CDDF_H"
+dut_friendly_name = "BLE_UART_CDDF_H"
 #dut_friendly_name = "MBD_PERIPHERAL"
 # com_port = "COM29"
 com_port = "COM15"
@@ -16,7 +16,7 @@ ota_downgrade_fw_version = "1.1.0.5"
 
 appium_config = {
     "appium_server_config": {
-        "appium_server_ip":  "10.160.54.60",
+        "appium_server_ip":  "127.0.0.1",
         "appium_server_port": "4723",
         "remote_appium_server_ip":  "10.160.54.60",
         "remote_appium_server_port": "4723",
@@ -39,11 +39,6 @@ appium_config = {
                     PHONE_UDID_K : "00008110-00061D340E11801E",
                     PLATFORM_NAME_K : "iOS",
                     PLATFORM_VERSION_K : "16.2"
-        },
-        "iPhone13mini": {DEVICE_NAME_K  : "iPhone13mini",
-                    PHONE_UDID_K : "00008110-000579813604801E",
-                    PLATFORM_NAME_K : "iOS",
-                    PLATFORM_VERSION_K : "15"
         },
         "iPhone14": {DEVICE_NAME_K  : "iPhone14",
                     PHONE_UDID_K : "00008110-000E10C90AE1401E",
@@ -127,12 +122,6 @@ appium_config = {
                        PLATFORM_VERSION_K: "12",
                        PHONE_BT_ADDRESS_K :"4ce0db291f55",
                        },
-        "Xiaomi12": {DEVICE_NAME_K: "Xiaomi12",
-                       PHONE_UDID_K: "eb5c71ec",
-                       PLATFORM_NAME_K: "Android",
-                       PLATFORM_VERSION_K: "14",
-                       PHONE_BT_ADDRESS_K :"4ce0db291f55",
-                       },
         "OnePlus10Pro": {DEVICE_NAME_K: "OnePlus10Pro",
                        PHONE_UDID_K: "ef205d3e",
                        PLATFORM_NAME_K: "Android",
@@ -187,14 +176,15 @@ appium_config = {
 }
 
 duts_to_use = {
-    MOBILE_TO_USE: "SamsungS23",
+    MOBILE_TO_USE: "SamsungA54",
     "server":"DUT1",
     "client":"DUT2"
 }
 
 multilink_phone_config = {
+    MOBILE_TO_USE: "SamsungA54"
     #MOBILE_TO_USE: "SamsungA54/Pixel7"
-    MOBILE_TO_USE: "SamsungS23/Pixel7/SamsungA54/Pixel17217/iPhone13mini"
+    #MOBILE_TO_USE: "SamsungA54/Pixel7/iPhone15/Pixel17217/SamsungS23"
 }
 
 DUT_ADD_K = "001167939393"
