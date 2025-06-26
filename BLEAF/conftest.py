@@ -110,8 +110,9 @@ def default_function_fixture_main(request):
     request.cls.note = ""
     def function_finalizer():
         test_marker = request.node.get_closest_marker('test_id')
-        test_id = test_marker.args[0]
-        print("test_id = {}".format(test_id))
+        if test_marker is not None:
+            test_id = test_marker.args[0]
+            print("test_id = {}".format(test_id))
         #external_id = sd.test_cases_dict.get(test_id)['id']
         #build_id = sd.test_cases_dict.get(test_id)['build']
         external_id = None

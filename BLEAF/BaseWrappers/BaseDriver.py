@@ -44,15 +44,31 @@ class BaseDriver:
         self.platform = checkOS
 
         if fresh_env:
-            #if not remote_appium:
             if remote_appium == 0:
                 appium_server_logs = "appium_server_logs_{}".format(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
                 start_server_cmd = 'appium -a {} -p {} > "{}.txt'.format(ip_addr, port_num, appium_server_logs)
                 time.sleep(5)
                 #checkOS = platform.system()
                 print("OS type is {}".format(self.platform))
+
                 if self.platform == "Windows":
-                    os.system("taskkill /F /IM node.exe")
+                    #os.system("taskkill /F /IM node.exe")
+                    self.appium_service = AppiumServer()
+                    #appium_start_args = ['--address', '127.0.0.1', '-p']
+                    appium_start_args = ['--address']
+                    appium_start_args.append(ip_addr)
+                    appium_start_args.append('-p')
+                    appium_start_args.append(port_num)
+                    print(appium_start_args)
+                    print(os.getcwd())
+                    appium_server_log_stdout = "Appium_log_{}.log".format(
+                        datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
+                    appium_server_logs_stderr = "Appium_log_err_{}.log".format(
+                        datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
+                    self.appium_service.start(args=appium_start_args, stdout_file=appium_server_log_stdout,
+                                              stderr_file=appium_server_logs_stderr)
+                    print("[Windows]Successfully Started Appium Server")
+                    time.sleep(5)
                 else:
                     print("Kill appium server if needed")
                     #self.kill_remote_appium_server()
@@ -74,9 +90,6 @@ class BaseDriver:
                         #print(appium_start_args)
                         print("[MacOS]Successfully Started Appium Server")
                         time.sleep(5)
-                #self.appium_process = subprocess.Popen(start_server_cmd, shell=True)
-                #print("Successfully Started Appium Server")
-            #elif remote_appium:
             else:
                 if not sd.remote_mac_server:
                     print("Remote appium,ip = {}".format(ip_addr))

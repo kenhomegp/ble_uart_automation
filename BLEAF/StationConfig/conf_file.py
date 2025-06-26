@@ -3,9 +3,9 @@ from ..CommonSupportLib.StationDefines import DEVICE_NAME_K, PLATFORM_NAME_K, PL
     APP_PACKAGE_K, APP_ACTIVITY_K, MOBILE_TO_USE, COM_PORT_K, BAUD_RATE_K,MEDC, RPI_CLIENT, MOBILE_CLIENT_MBDA, MOBILE_CLIENT_WTA, PHONE_BT_ADDRESS_K
 
 # dut_friendly_name = "BLE_UART_D46B_H" #D46B_H, 6C3B
-#dut_friendly_name = "BLE_UART_8242"
+dut_friendly_name = "BLE_UART_824B"
 #dut_friendly_name = "BLE_UART_436F"
-dut_friendly_name = "BLE_UART_CDDF_H"
+#dut_friendly_name = "BLE_UART_CDDF_H"
 #dut_friendly_name = "MBD_PERIPHERAL"
 # com_port = "COM29"
 com_port = "COM15"
@@ -16,7 +16,7 @@ ota_downgrade_fw_version = "1.1.0.5"
 
 appium_config = {
     "appium_server_config": {
-        "appium_server_ip":  "127.0.0.1",
+        "appium_server_ip":  "10.160.56.91",
         "appium_server_port": "4723",
         "remote_appium_server_ip":  "10.160.54.60",
         "remote_appium_server_port": "4723",
@@ -176,14 +176,14 @@ appium_config = {
 }
 
 duts_to_use = {
-    MOBILE_TO_USE: "SamsungA54",
+    MOBILE_TO_USE: "SamsungS23",
     "server":"DUT1",
     "client":"DUT2"
 }
 
 multilink_phone_config = {
-    MOBILE_TO_USE: "SamsungA54"
-    #MOBILE_TO_USE: "SamsungA54/Pixel7"
+    MOBILE_TO_USE: "SamsungS23"
+    #MOBILE_TO_USE: "Pixel7/SamsungS23/Pixel17217"
     #MOBILE_TO_USE: "SamsungA54/Pixel7/iPhone15/Pixel17217/SamsungS23"
 }
 

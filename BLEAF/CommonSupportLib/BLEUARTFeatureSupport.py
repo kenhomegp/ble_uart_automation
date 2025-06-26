@@ -227,12 +227,13 @@ class BLEUARTFeatureSupport:
         status = self.driver.click_element(transfer_data)
         assert status, "Failed to transfer Data"
 
-    def multilink_data_transfer_START(self):
-        status_clear, clear_text = self.driver.find_element('XPATH', locators.clear_text)
-        assert status_clear, "Failed to find the clear icon"
-        status_clear = self.driver.click_element(clear_text)
-        assert status_clear, "Failed to click on clear icon"
-        time.sleep(2)
+    def multilink_data_transfer_START(self, target_phone=False):
+        if target_phone:
+            status_clear, clear_text = self.driver.find_element('XPATH', locators.clear_text)
+            assert status_clear, "Failed to find the clear icon"
+            status_clear = self.driver.click_element(clear_text)
+            assert status_clear, "Failed to click on clear icon"
+            time.sleep(2)
         status, transfer_data = self.driver.find_element('XPATH', locators.start_data_transfer)
         assert status, "START icon not found"
         status = self.driver.click_element(transfer_data)
@@ -873,6 +874,16 @@ class BLEUARTFeatureSupport:
             status = self.driver.is_visible(dashboard_text)
             print("MBD Application opened.")
         return status
+
+    def stress_test_scan_dut(self, dut_friendly_name, scantime):
+        self.click_start_scan()
+        print("Please wait for {} sec to scan the devices".format(scantime))
+        time.sleep(scantime)
+        print("Press Cancel button to stop scanning")
+        self.click_cancel_button()
+        status, dut_to_select = self.driver.find_element('XPATH', locators.text_view_place_holder.format(
+            dut_friendly_name))
+        assert status, "Failed to find text view matching DUT name:{}".format(dut_friendly_name)
 
     def scan_and_connect_dut(self, dut_friendly_name):
         self.open_ble_uart_scanner()

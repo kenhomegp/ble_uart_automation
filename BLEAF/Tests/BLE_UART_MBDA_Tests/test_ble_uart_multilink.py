@@ -46,6 +46,42 @@ def local_function_fixture(request):
     print("Local function fixture")
     #print("Launch MBD Application")
 
+    test_func_name = request.node.name
+    print(f"Fixture {local_function_fixture.__name__} is being used by test: {test_func_name}")
+    if len(sd.multilink_mobile_driver) == 1:
+        if(test_func_name == "test_chimera_scan_stop_dut"):
+            #print(request.cls.bleuartfeature)
+            mobile_dic = sd.multilink_mobile_driver[0]
+            phone_default = mobile_dic.get('phone')
+            phone_default_driver = mobile_dic.get('driver')
+            print("Phone: {0}".format(phone_default))
+
+            if (isinstance(request.cls.bleuartfeature, BLEUARTFeatureSupport)):
+                app_package = phone_default_driver.get_capability('appPackage')
+            else:
+                app_package = phone_default_driver.get_capability('bundleId')
+
+            print("app_package: {0}".format(app_package))
+            status = sd.mobile_driver.close_app(app_package)
+            time.sleep(5)
+            status = sd.mobile_driver.launch_app(app_package)
+            # print("[Default mobile phone]App Launched")
+            time.sleep(3)
+            assert status, "Failed to launch application"
+
+            if (isinstance(request.cls.bleuartfeature, BLEUARTFeatureSupport)):
+                app_open = request.cls.bleuartfeature.verify_app_open()
+                print("Launch Android MBD")
+            else:
+                app_open = request.cls.bleuartfeature.verify_ios_app_open()
+                print("[Default mobile phone]Launch iOS MBD")
+            assert app_open, "Failed to open MBD Application"
+
+            time.sleep(1)
+            request.cls.bleuartfeature.open_ble_uart_scanner()
+
+            time.sleep(1)
+
     '''
     app_package = sd.mobile_driver.get_capability('appPackage')
     print(app_package)
@@ -63,8 +99,61 @@ def local_function_fixture(request):
     request.addfinalizer(function_finalizer)
 
 class TestChimeraConnectBLEUartMultilink:
-    #@pytest.mark.skip("MULTILINK_SCAN_AND_CONNECT", 'MBDA')
-    @pytest.mark.test_id("MULTILINK_SCAN_AND_CONNECT", 'MBDA')
+    #@pytest.mark.test_id("MULTILINK_SCAN_STOP_DUT", 'MBDA')
+    #def test_chimera_scan_stop_dut(self, local_function_fixture):
+    @pytest.mark.parametrize("test_iteration, scan_time", [(15, 10), (15, 9)])
+    def test_chimera_scan_stop_dut(self, test_iteration, scan_time):
+        #test_iteration = 15
+        #scan_time = 6
+        print("stress_test_scan_dut.{}.{}".format(test_iteration, scan_time))
+
+        for i in range(test_iteration):
+            print("ble_scan_stop_stress. iteration = {}".format(i))
+            self.bleuartfeature.stress_test_scan_dut(dut_friendly_name, scan_time)
+            print("duts:{} found".format(dut_friendly_name))
+
+        #phone_default = ""
+        '''
+        if len(sd.multilink_mobile_driver) == 1:
+            mobile_dic = sd.multilink_mobile_driver[0]
+            phone_default = mobile_dic.get('phone')
+            phone_default_driver = mobile_dic.get('driver')
+            print("Phone default: {0}".format(phone_default))
+            print(self.bleuartfeature)
+
+            if (isinstance(self.bleuartfeature, BLEUARTFeatureSupport)):
+                app_package = phone_default_driver.get_capability('appPackage')
+            else:
+                app_package = phone_default_driver.get_capability('bundleId')
+
+            print("app_package: {0}".format(app_package))
+            status = sd.mobile_driver.close_app(app_package)
+            time.sleep(5)
+            status = sd.mobile_driver.launch_app(app_package)
+            #print("[Default mobile phone]App Launched")
+            time.sleep(3)
+            assert status, "Failed to launch application"
+
+            if (isinstance(self.bleuartfeature, BLEUARTFeatureSupport)):
+                app_open = self.bleuartfeature.verify_app_open()
+                print("[Default mobile phone]Launch Android MBD")
+            else:
+                app_open = self.bleuartfeature.verify_ios_app_open()
+                print("[Default mobile phone]Launch iOS MBD")
+            assert app_open, "Failed to open MBD Application"
+
+            time.sleep(1)
+            self.bleuartfeature.open_ble_uart_scanner()
+
+            time.sleep(1)
+            for i in range(test_iteration):
+                print("ble_scan_stop_stress. iteration = {}".format(i))
+                self.bleuartfeature.stress_test_scan_dut(dut_friendly_name, scan_time)
+                print("duts:{} found".format(dut_friendly_name))
+        '''
+
+    @pytest.mark.skip("MULTILINK_SCAN_AND_CONNECT", 'MBDA')
+    #@pytest.mark.test_id("MULTILINK_SCAN_AND_CONNECT", 'MBDA')
     def test_chimera_connect_ble_uart_multilink_scan_and_connect(self):
         print("{0}Test to verify Chimera BLE UART Multilink Feature {0}".format('=' * 20))
         print("{0}Test to verify Scan and Connect with 6 Android phones {0}".format('=' * 20))
@@ -176,6 +265,10 @@ class TestChimeraConnectBLEUartMultilink:
             #    dut_name = dut_friendly_name
             dut_name = dut_friendly_name
 
+            #print("MCP2200 IO control. Press DUT button")
+            #self.iocontrolledstatus.IOCtrl(MCU, BTN_CTRL_PIN, 0.2)
+            #time.sleep(5)
+
             bleuartfeature = bleuartfeature_obj[i]
             if (isinstance(bleuartfeature, BLEUARTFeatureSupport)):
                 bleuartfeature.scan_and_connect_dut(dut_name)
@@ -191,7 +284,7 @@ class TestChimeraConnectBLEUartMultilink:
                 assert status, "Unable to scan and connect to DUT"
             time.sleep(3)
             if(i+1) != len(bleuartfeature_obj):
-                print("MCP2200 IO control. Press button")
+                print("MCP2200 IO control. Press DUT button")
                 self.iocontrolledstatus.IOCtrl(MCU, BTN_CTRL_PIN, 0.2)
                 time.sleep(3)
 
@@ -201,7 +294,8 @@ class TestChimeraConnectBLEUartMultilink:
             bleuartfeature = bleuartfeature_obj[i]
             if (isinstance(bleuartfeature, BLEUARTFeatureSupport)):
                 if i == 0:
-                    bleuartfeature.verify_mode_loopback(multilink=True, target_phone=True)
+                    #bleuartfeature.verify_mode_loopback(multilink=True, target_phone=True)
+                    bleuartfeature.verify_mode_loopback(multilink=True)
                 else:
                     bleuartfeature.verify_mode_loopback(multilink=True)
                 bleuartfeature.go_back()
@@ -222,71 +316,58 @@ class TestChimeraConnectBLEUartMultilink:
                 time.sleep(5)
         print("multilink_Loopback_mode_trp_500k. Done. ")
 
-        for i in range(len(bleuartfeature_obj)):
-            bleuartfeature = bleuartfeature_obj[i]
-            if (isinstance(bleuartfeature, BLEUARTFeatureSupport)):
-                bleuartfeature.multilink_data_transfer_START()
-            else:
-                bleuartfeature.data_transfer_START_mobile_app_ios()
-
-        time.sleep(4)
-
-        #delay = 0
-        #for i in range(len(bleuartfeature_obj)):
-        #    print("hello")
-            #bleuartfeature = bleuartfeature_obj[i]
-            #if (isinstance(bleuartfeature, BLEUARTFeatureSupport)):
-            #    print("Android.Get throughput value")
-            #else:
-            #    print("iOS.Get throughput value")
-
-            #msg_tx = bleuartfeature.get_TX_throughput_value()
-            #print(msg_tx)
-            #msg_rx = bleuartfeature.get_RX_throughput_value()
-            #print(msg_rx)
-            #delay = (500 / int(msg_rx)) - 3
-            #print("delay = {}".format(delay))
-
         def ble_throughput_test(bleuartfeature_executor, phone):
-            print("BLEUART multilink test")
-            #delay = 0
-            if (isinstance(bleuartfeature_executor, BLEUARTFeatureSupport)):
-                print("Android.Get throughput value")
-            else:
-                print("iOS.Get throughput value")
+            #print("BLEUART multilink test.target = {}".format(phone_default))
+            print("BLEUART multilink test.test phone = {}".format(phone))
 
-            msg_tx = bleuartfeature_executor.get_TX_throughput_value()
-            print(msg_tx)
-            msg_rx = bleuartfeature_executor.get_RX_throughput_value()
-            print(msg_rx)
-            delay = (500 / int(msg_rx)) - 3
-            print("Data Transmission time = {}".format(delay))
-
-            time.sleep(delay)
-            timeoutError = ""
-
-            if (isinstance(bleuartfeature_executor, BLEUARTFeatureSupport)):
-                status, msg = bleuartfeature_executor.loopback_mode_results_TX()
-                assert status, msg
-                status, msg = bleuartfeature_executor.loopback_mode_results_RX()
-                assert status, msg
-                print("Test phone = {}".format(phone))
-                if msg == "TRANSACTION Timeout error":
-                    timeoutError = msg
-            else:
-                status, msg = bleuartfeature_executor.loopback_mode_results_TX_ios()
-                assert status, msg
-                status, msg = bleuartfeature_executor.loopback_mode_results_RX_ios()
-                assert status, msg
-                print("Test phone = {}".format(phone))
-
-            if timeoutError == "TRANSACTION Timeout error":
+            j = 10
+            for i in range(j):
                 if (isinstance(bleuartfeature_executor, BLEUARTFeatureSupport)):
-                    print("Timeout Error. Stop")
-                    bleuartfeature_executor.data_transfer_STOP()
-                    time.sleep(2)
-                    print("Timeout Error. Start")
                     bleuartfeature_executor.multilink_data_transfer_START()
+                else:
+                    bleuartfeature_executor.data_transfer_START_mobile_app_ios()
+
+                time.sleep(4)
+                #delay = 0
+                if (isinstance(bleuartfeature_executor, BLEUARTFeatureSupport)):
+                    print("Android phone : {}, iterative testing : {}".format(phone, i))
+                else:
+                    print("iPhone : {}, iterative testing : {}".format(phone, i))
+
+                msg_tx = bleuartfeature_executor.get_TX_throughput_value()
+                print(msg_tx)
+                msg_rx = bleuartfeature_executor.get_RX_throughput_value()
+                print(msg_rx)
+                delay = (500 / int(msg_rx)) - 3
+                print("Data Transmission time = {}".format(delay))
+
+                time.sleep(delay)
+                timeoutError = ""
+
+                if (isinstance(bleuartfeature_executor, BLEUARTFeatureSupport)):
+                    status, msg = bleuartfeature_executor.loopback_mode_results_TX()
+                    assert status, msg
+                    status, msg = bleuartfeature_executor.loopback_mode_results_RX()
+                    assert status, msg
+                    print("Test phone = {}".format(phone))
+                    if msg == "TRANSACTION Timeout error":
+                        timeoutError = msg
+                else:
+                    status, msg = bleuartfeature_executor.loopback_mode_results_TX_ios()
+                    assert status, msg
+                    status, msg = bleuartfeature_executor.loopback_mode_results_RX_ios()
+                    assert status, msg
+                    print("Test phone = {}".format(phone))
+
+                if timeoutError == "TRANSACTION Timeout error":
+                    if (isinstance(bleuartfeature_executor, BLEUARTFeatureSupport)):
+                        print("Timeout Error. Stop")
+                        bleuartfeature_executor.data_transfer_STOP()
+                        time.sleep(2)
+                        print("Timeout Error. Start")
+                        bleuartfeature_executor.multilink_data_transfer_START()
+                else:
+                    time.sleep(2)
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = []

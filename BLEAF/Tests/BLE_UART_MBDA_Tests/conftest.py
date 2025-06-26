@@ -133,7 +133,7 @@ def default_class_fixture(request):
                 mobile_driver = phone_info_dic['driver']
                 #if not sd.remote_mac_server:
                 if not remote_appium:
-                    print("[MacOS]kill local appium server")
+                    print("kill local appium server")
                     mobile_driver.appium_service.stop()
                 else:
                     if mobile_driver.ssh_handler is not None:

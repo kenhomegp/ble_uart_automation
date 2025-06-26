@@ -14,4 +14,4 @@ class stationData:
         self.dut2 = None
         self.mobile_platform = None
         self.multilink_mobile_driver = []
-        self.remote_mac_server = True
+        self.remote_mac_server = False
