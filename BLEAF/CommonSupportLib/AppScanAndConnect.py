@@ -1,9 +1,12 @@
 import time
+
+from lxml.doctestcompare import strip
+
 from . import android_locators as locators
-from . import ios_locators as iOS_locators
 from .StationData import stationData
 from ..StationConfig import conf_file
 from ..CommonSupportLib.Serial_Implementaiton import SerialSuppport
+import threading
 
 import sys
 import serial
@@ -25,13 +28,9 @@ class ScanningandConnection:
         self.serialdriver = SerialSuppport()
     
     def verify_app_open(self):
-        print("[ScanningandConnection]verify_app_open. {}".format(sd.mobile_platform))
         status = False
-        if sd.mobile_platform == "Android":
-            status, dashboard_text = self.driver.find_element('By.XPATH', locators.dashboard_text)
-        else:
-            status, dashboard_text = self.driver.find_element('By.XPATH', iOS_locators.dashboard_text)
-
+        print("Checking if the MBD app is open")
+        status, dashboard_text = self.driver.find_element('XPATH', locators.dashboard_text)
         if status:
             status = self.driver.is_visible(dashboard_text)
             print("MBD Application opened.")
@@ -39,22 +38,16 @@ class ScanningandConnection:
     
     def open_ble_uart_scanner(self):
         error_msg = ""
-        print("Click BLE Uart\n\n")
         status, ble_uart_icon = self.driver.find_element('XPATH', locators.ble_uart_icon)
         assert status, "BLE Uart Icon not found"
-        
         status = self.driver.click_element(ble_uart_icon)
         assert status, "Failed to open BLE Uart page"
-
         status, ble_uart_scanner = self.driver.find_element('XPATH', locators.ble_uart_scanner)
         assert status, "PIC32CXBZ not found"
-
         status = self.driver.click_element(ble_uart_scanner)
         assert status, "Failed to open BLE Uart page"
-
         status, scan_button = self.driver.find_element('XPATH', locators.scan_button)
         assert status, "Scan button not found"
-        
         status = self.driver.is_visible(scan_button)
         assert status, "Scan button not visible"
 
@@ -105,8 +98,19 @@ class ScanningandConnection:
         assert status, "Failed to click on Cancel button"
 
     def search_and_select_dut(self, dut_friendly_name):
-        status, dut_to_select = self.driver.find_element('XPATH', locators.text_view_place_holder.format(
-            dut_friendly_name))
+        print("Searching for the DUT : {}".format(dut_friendly_name))
+        iter = 1
+        while iter <= 5:
+            iter=iter+1
+            status, dut_to_select = self.driver.find_element('XPATH', locators.text_view_place_holder.format(
+                dut_friendly_name))
+            if not status:
+                self.click_start_scan()
+                time.sleep(15)
+                self.click_cancel_button()
+                time.sleep(2)
+            if status:
+                break
         assert status, "Failed to find text view matching DUT name:{}".format(dut_friendly_name)
         status = self.driver.click_element(dut_to_select)
         assert status, "Failed to click DUT name to pair"
@@ -121,16 +125,15 @@ class ScanningandConnection:
     
     def scan_and_connect_dut(self, dut_friendly_name):
         self.open_ble_uart_scanner()
+        time.sleep(2)
         self.click_start_scan()
         print("Please wait for 15 sec to scan the devices")
         time.sleep(15)
         print("Press Cancel button to stop scanning")
         self.click_cancel_button()
 
-        time.sleep(1)
-        
         self.search_and_select_dut(dut_friendly_name)
-        time.sleep(1)
+
 
     def ble_sensor_scan_and_connect_dut(self, dut_friendly_name):
         self.open_ble_sensor_scanner()
@@ -177,17 +180,16 @@ class ScanningandConnection:
         assert status, "Unable to scan and connect to DUT"
         print("Disconnect the DUT")
         self.driver.go_back()
-        print("Verifying the disconnection status for 1 minute")
+        print("Verifying the disconnection status for 1 minute\n")
         # Adding delay of 60 secs
         time.sleep(60)
 
     def verify_raw_data_mode(self):
         status, text_mode_icon = self.driver.find_element('XPATH', locators.raw_data_icon)
         assert status, "Failed to find the raw data icon"
-        time.sleep(2)
         status = self.driver.click_element(text_mode_icon)
         assert status, "Failed to click on the raw data icon"
-        time.sleep(10)
+        time.sleep(1)
 
     def confirm_raw_data_mode_trp(self):
         status = False
@@ -315,7 +317,7 @@ class ScanningandConnection:
         TX_string = "[TX]:"+input_data
         status, send_button = self.driver.find_element('XPATH', locators.send_button)
         assert status, "Failed to find the SEND icon element"
-        time.sleep(15)
+        time.sleep(5)
         status = self.driver.click_element(send_button)
         assert status, "Failed to click on SEND icon"
         time.sleep(5)
@@ -369,6 +371,30 @@ class ScanningandConnection:
             print("Comparison Failed")
         return status
 
+
+    def send_raw_data_uart_mode_app_to_dut_300(self):
+        input_data = "In 2022, the company achieved a remarkable milestone by increasing its revenue by 15%, reaching a total of $5.3 million. This success was driven by the launch of three new products: the X-200, Y-300, and Z-400. Additionally, the team expanded from 50 to 75 employees, enhancing our capacity to serve clients across 12 different countries. #Success #Growth"
+        status, raw_text_field = self.driver.find_element('XPATH', locators.raw_text_field)
+        assert status, "Failed to find the raw data text field"
+        status = self.driver.click_element(raw_text_field)
+        assert status, "Failed to find the raw data text field to input"
+        self.driver.send_keys(raw_text_field, input_data)
+        time.sleep(5)
+        serialPort = self.serialdriver.ComportSet(com_port, baud_rate)
+        status = self.send_data_uart(input_data)
+        assert status, "Test Fails as the comparison is not successful"
+        read_data = self.read_serial_port(serialPort, input_data)
+        print(read_data)
+        serialPort.close()
+        if read_data == input_data:
+            status = True
+            print("Comparison Successful")
+        else:
+            status = False
+            print("Comparison Failed")
+        return status
+
+
     def send_raw_data_uart_mode_app_to_dut_stress_test(self, input_data):
         status, raw_text_field = self.driver.find_element('XPATH', locators.raw_text_field)
         assert status, "Failed to find the raw data text field"
@@ -417,6 +443,31 @@ class ScanningandConnection:
             print("Comparison Failed")
         return status
 
+
+    def send_raw_data_uart_mode_dut_to_app_300(self):
+        input_data = "In 2022, the company achieved a remarkable milestone by increasing its revenue by 15%, reaching a total of $5.3 million. This success was driven by the launch of three new products: the X-200, Y-300, and Z-400. Additionally, the team expanded from 50 to 75 employees, enhancing our capacity to serve clients across 12 different countries. #Success #Growth"
+        time.sleep(2)
+        serialPort = self.serialdriver.ComportSet(com_port, baud_rate)
+        print("Checking for input string", input_data)
+        self.write_serial_port(serialPort, input_data)
+        time.sleep(5)
+        serialPort.close()
+        result_status, pass_status = self.driver.find_element('XPATH', locators.raw_data_log_message)
+
+        assert result_status, "Failed to find the raw data log message"
+        pass_status_get_text = self.driver.get_text(pass_status)
+        print(pass_status_get_text)
+        pass_status_get_text = pass_status_get_text.replace('[RX]:','').replace('\n','')
+        print(pass_status_get_text)
+        if input_data in pass_status_get_text:
+            status = True
+            print("Comparison Successful")
+        else:
+            status = False
+            print("Comparison Failed")
+        return status, pass_status_get_text
+
+
     def send_raw_data_uart_mode_dut_to_app_stress_test(self, input_data):
         serialPort = self.serialdriver.ComportSet(com_port, baud_rate)
         print("Checking for input string", input_data)
@@ -426,12 +477,12 @@ class ScanningandConnection:
         result_status, pass_status = self.driver.find_element('XPATH', locators.raw_data_log_message)
         assert result_status, "Failed to find the raw data log message"
         pass_status_get_text = self.driver.get_text(pass_status)
-        time.sleep(5)
+        time.sleep(1)
         status_clear, clear_text = self.driver.find_element('XPATH', locators.raw_clear_text)
         assert status_clear, "Failed to find the clear icon"
         status_clear = self.driver.click_element(clear_text)
         assert status_clear, "Failed to click on clear icon"
-        time.sleep(5)
+        time.sleep(1)
         if input_data in pass_status_get_text:
             status = True
             print("Comparison Successful")
@@ -443,7 +494,7 @@ class ScanningandConnection:
     def verify_dut_name_visibility(self, dut_friendly_name):
         status = False
         status, dut_name = self.driver.find_element('XPATH', locators.ble_uart_dut_name.format(dut_friendly_name))
-        assert status, "Failed to find dut name locator"
+        assert status, "Failed to find dut name in the page as DUT may not be connected"
         status = self.driver.is_visible(dut_name)
         if status:
             status = True
@@ -451,10 +502,10 @@ class ScanningandConnection:
             assert status, "DUT is not connected"
         return status
 
-    def verify_dut_name_non_visibility(self):
+    def verify_dut_name_non_visibility(self,dut_friendly_name):
         status = False
         result_string = ""
-        status, dut_name = self.driver.find_element('XPATH', locators.ble_uart_dut_name)
+        status, dut_name = self.driver.find_element('XPATH', locators.ble_uart_dut_name.format(dut_friendly_name))
         if not status:
             print("DUT is not connected")
             result_string = "DUT is not connected, Kill MBD App successful"
@@ -528,8 +579,10 @@ class ScanningandConnection:
 
     def verify_scan_page_visiblity(self):
         status = False
+        time.sleep(1)
         status, scan_page = self.driver.find_element('XPATH', locators.scan_button)
         assert status, "Failed to find the scan icon element in the mobile app"
+        time.sleep(1)
         status = self.driver.is_visible(scan_page)
         if status:
             print("SCAN page is visible")
@@ -549,7 +602,7 @@ class ScanningandConnection:
                 status1, firmware_version = self.driver.find_element('XPATH', locators.firmware_version)
                 assert status1, "Failed to find the element on FW version section"
                 fw_text = self.driver.get_text(firmware_version)
-                if FWVerValue in fw_text:
+                if str(fw_text) in FWVerValue:
                     status = True
                     print("Firmware Version meets expectations")
                     FWVerValue_text = "Firmware Version is: {}".format(FWVerValue)
@@ -561,3 +614,48 @@ class ScanningandConnection:
         else:
             status = False
             return status, fail_text
+
+    def scan_and_reconnect_dut(self, dut_friendly_name):
+        self.click_start_scan()
+        print("Please wait for 15 sec to scan the devices")
+        time.sleep(15)
+        print("Press Cancel button to stop scanning")
+        self.click_cancel_button()
+        self.search_and_select_dut(dut_friendly_name)
+        time.sleep(1)
+
+    def loopback_mode_raw_trp(self):
+        self.verify_raw_data_mode()
+        self.confirm_raw_data_mode_trp()
+
+
+    def loopback_mode_raw_trcbp(self):
+        self.verify_raw_data_mode()
+        self.confirm_raw_data_mode_trp()
+
+    def click_dut_name_opporeno_log(self):
+        oppo = self.driver.click_dut_name_opporeno()
+
+    def get_fw_rev(self):
+        status = False
+        fail_text = "Firmware version is not mentioned"
+        text = "Firmware Version does not match"
+        status, device_info = self.driver.find_element('XPATH', locators.device_info)
+        if status:
+            visible = self.driver.is_visible(device_info)
+            if visible:
+                print("Collect the device information")
+                status1, firmware_version = self.driver.find_element('XPATH', locators.firmware_version)
+                assert status1, "Failed to find the element on FW version section"
+                fw_text = self.driver.get_text(firmware_version)
+                return fw_text
+            else:
+                return False
+        else:
+            return False
+
+    def open_ble_smart_scanner(self):
+        status, ble_uart_icon = self.driver.find_element('XPATH', locators.bluetooth_smart_icon)
+        assert status, "BLE Smart Icon not found"
+        status = self.driver.click_element(ble_uart_icon)
+        assert status, "Failed to open BLE Smart page"

@@ -12,6 +12,9 @@ class stationData:
         self.mobile_driver = None
         self.dut1 = None
         self.dut2 = None
+        self.ssh_handler = None
+        self.serialPort = None
+        ###################################3
         self.mobile_platform = None
         self.multilink_mobile_driver = []
         self.remote_mac_server = False

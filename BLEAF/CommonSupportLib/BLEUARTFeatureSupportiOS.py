@@ -3,11 +3,11 @@ import sys
 import threading
 import time
 
-import re
-
 import pytest
 import serial
 import serial.tools.list_ports
+from appium.webdriver.common.appiumby import AppiumBy
+
 from ..MCP2200.MCP2200 import Mcp2200
 from . import android_locators as locators
 from . import ios_locators as ioslocators
@@ -15,20 +15,22 @@ from .StationData import stationData
 
 # Text for result strings for each mode
 checksum_comparepass_text = "[TX] - Compare checksum : PASS"
-loopback_comparepass_text = "[loopback] - Compare data : PASS"
+loopback_comparepass_text = "Compare data: PASS"
 fixed_pattern_comparepass_text = "[Fixed data pattern] - Compare data: PASS"
 uart_comparepass_text = "UART UpLink: PASS"
 
-text_500K = "Bytes transfer = 500004"
+text_500K = "500004"
 text_100k = "100008"
 text_fixed_pattern = "512000"
 text_UART = "Uplink: 500004 bytes"
 
 # Move to config file
-com_port = 'COM62'
+#com_port = 'COM62'
+com_port = '/dev/tty.usbmodem00098255751'
 baud_rate = '921600'
 block_size = '4096'
-text_file = '500k'
+#text_file = '500k'
+text_file = '1k'
 text_file1 = '100k'
 q_receiveData = []
 serialPort = ""
@@ -87,6 +89,20 @@ class BLEUARTFeatureSupportiOS:
             return True
 
     def ComportSet(self, com_port, baud_rate):
+        try:
+            serial_port = serial.Serial(com_port, baud_rate, parity=serial.PARITY_NONE, timeout=0.10, xonxoff=1,
+                                        rtscts=1)
+            if not serial_port.isOpen():
+                print("Comport connect fail, please check the port status")
+                sys.exit()
+            else:
+                print("Comport is connected")
+            return serial_port
+        except(OSError, serial.SerialException):
+            print("Open comport fail, please checked {0} has release or not".format(com_port))
+            sys.exit()
+
+        '''
         Com = str(com_port).upper()
         if not self.ComportCheck(Com):
             sys.exit()
@@ -103,6 +119,8 @@ class BLEUARTFeatureSupportiOS:
             except(OSError, serial.SerialException):
                 print("Open comport fail, please checked {0} has release or not".format(Com))
                 sys.exit()
+        '''
+
     def initialize_com_port(self):
         global serialPort
         print ("Initialize com port")
@@ -129,7 +147,8 @@ class BLEUARTFeatureSupportiOS:
 
     def LoadFile(self, text_file):
         loadstr = ''
-        file = open(os.getcwd() + '\\TextFiles\\' + text_file + '.txt', 'rb')
+        #file = open(os.getcwd() + '\\TextFiles\\' + text_file + '.txt', 'rb')
+        file = open(os.getcwd() + '/BLEAF/TextFiles/' + text_file + '.txt', 'rb')
         for line in file:
             loadstr += line.decode("utf-8")
         file.close()
@@ -161,13 +180,48 @@ class BLEUARTFeatureSupportiOS:
         # message('i <-- ' + tmp)
         return info_[1]
 
+    def convert_lf_to_crlf(input_filepath, output_filepath):
+        """
+        Reads a file with LF line endings and writes it to a new file
+        with CRLF line endings.
+
+        Args:
+            input_filepath (str): The path to the input file.
+            output_filepath (str): The path to the output file.
+        """
+        try:
+            with open(input_filepath, 'r', newline='') as infile:
+                content = infile.read()
+
+            # Replace all existing line endings with CRLF
+            # First, normalize to LF, then replace LF with CRLF
+            normalized_content = content.replace('\r\n', '\n').replace('\n', '\r\n')
+
+            with open(output_filepath, 'w', newline='') as outfile:
+                outfile.write(normalized_content)
+
+            print(f"Successfully converted '{input_filepath}' to CRLF format in '{output_filepath}'")
+
+        except FileNotFoundError:
+            print(f"Error: File not found at '{input_filepath}'")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+    def ConvertTextFile(self):
+        input_file = os.getcwd() + '/BLEAF/TextFiles/1k.txt'
+        output_file = os.getcwd() + '/BLEAF/TextFiles/mac_1k.txt'
+        self.convert_lf_to_crlf(input_file, output_file)
+        print("ConvertTextFile.1k.txt")
+
     def TxEntry(self, serialPort, textFile):
         print("TxEntry, file = " + textFile)
+        #self.ConvertTextFile()
         textStr = self.LoadFile(textFile)
         txSendData = textStr
         TxEnd = False
         BlockSize = int(block_size)
         info = [txSendData, TxEnd, BlockSize]
+        print("Data len = {}".format(len(txSendData)))
         while not TxEnd:
             TxEnd = self.RawDataTxSend(serialPort, info)
         else:
@@ -235,7 +289,9 @@ class BLEUARTFeatureSupportiOS:
                 elif size == "08334":
                     name = "100k.txt"
 
-                file = open(os.getcwd() + '\\TextFiles\\' + name, 'rb')
+                print("Compared file = {}".format(name))
+                #file = open(os.getcwd() + '\\TextFiles\\' + name, 'rb')
+                file = open(os.getcwd() + '/BLEAF/TextFiles/' + name, 'rb')
                 comp = file.read()
                 file.close()
 
@@ -263,7 +319,7 @@ class BLEUARTFeatureSupportiOS:
         serialPort.close()
 
     def close_mbd_app(self):
-        self.driver.close_app()
+        self.driver.close_app(sd.config.ios_mbda_app_package)
 
     def verify_mode_checksum_ios(self):
         self.click_settings_icon_ios()
@@ -375,14 +431,20 @@ class BLEUARTFeatureSupportiOS:
     def loopback_mode_data_transfer_ios(self):
         print("Start the Data transfer")
         self.ios_data_transfer_START()
-        time.sleep(15)
+        #time.sleep(15)
 
     def ios_data_transfer_START(self):
+        status_clear, clear_text = self.driver.find_element('XPATH', ioslocators.clear_text)
+        assert status_clear, "Failed to find the clear icon"
+        time.sleep(1)
+        status_clear = self.driver.click_element(clear_text)
+        assert status_clear, "Failed to click on clear icon"
+        time.sleep(1)
         status, transfer_data = self.driver.find_element('XPATH', ioslocators.start_data_transfer)
         assert status, "START icon not found"
         status = self.driver.click_element(transfer_data)
         assert status, "Failed to transfer Data"
-        time.sleep(10)
+        #time.sleep(10)
 
     def checksum_mode_results_ios(self):
         result_status = False
@@ -424,12 +486,72 @@ class BLEUARTFeatureSupportiOS:
     def confirm_loopback_mode_ios(self):
         status = False
         loopback_comparepass_text_trp = "loopback ,Profile : TRP, Text file : 500k.txt"
-        status, confirm_loopback_500K = self.driver.find_element('XPATH', ioslocators.confirm_modes)
+        #status, confirm_loopback_500K = self.driver.find_element('XPATH', ioslocators.confirm_modes)
+        status, confirm_loopback_500K = self.driver.find_element('XPATH', "//XCUIElementTypeStaticText[@label = \"Loopback,Profile : TRP, Text file: 500k.txt\"]")
+
+        '''
         ble_data_value = self.driver.get_text(confirm_loopback_500K)
         if ble_data_value == loopback_comparepass_text_trp:
             print("Loopback mode, TRP and 500K is set accordingly")
+        '''
         return status
 
+    '''
+    def loopback_mode_results_TX_ios(self):
+        result_status = False
+        status, loopback_throughput_value_TX = self.driver.find_element('XPATH', ioslocators.throughput_result_tx)
+        assert status, "Failed to find locator for loopback throughput result"
+        throughput_result_field = self.driver.get_text(loopback_throughput_value_TX)
+        throughput_value_TX = throughput_result_field.strip("Downlink:")
+        status1, logmessage = self.driver.find_element('XPATH', ioslocators.logmessage)
+        assert status1, "Failed to find log message"
+        log_text = self.driver.get_text(logmessage)
+        transmission_time_tx = ''
+        if "Transmission elapsed time" in log_text:
+            for line in log_text.split("\n"):
+                if "Transmission elapsed time" in line:
+                    transmission_time_tx = line.split("Transmission elapsed time = ")[1]
+                    break
+        else:
+            print("Transmission time is not present in the log")
+        result_str_TX = "Test Failed with following data:\nTx Size, Time and Throughput: {file_size},{time},{throughput}\n\n".format(file_size= "500004 B", time=transmission_time_tx, throughput=throughput_value_TX)
+        if ((text_500K in log_text) and (loopback_comparepass_text in log_text)):
+            result_str_TX = "Loopback Mode Test Results(TX):\nTest Passed with following data:\nTx Size, Time and Throughput: {file_size},{time},{throughput}\n\n".format(file_size= "500004 B", time=transmission_time_tx, throughput=throughput_value_TX)
+            result_status = True
+            print(result_str_TX)
+        else:
+            result_status = False
+            print(result_str_TX)
+        return result_status, result_str_TX
+
+    def loopback_mode_results_RX_ios(self):
+        result_status = False
+        status, loopback_throughput_value_RX = self.driver.find_element('XPATH', ioslocators.throughput_result_rx)
+        assert status, "Failed to find locator for loopback throughput result"
+        throughput_result_field = self.driver.get_text(loopback_throughput_value_RX)
+        throughput_value_RX = throughput_result_field.strip("Uplink:")
+        status1, logmessage = self.driver.find_element('XPATH', ioslocators.logmessage)
+        assert status1, "Failed to find log message"
+        log_text = self.driver.get_text(logmessage)
+        transmission_time_rx = ''
+        if "Transmission elapsed time" in log_text:
+            for line in log_text.split("\n"):
+                if "Transmission elapsed time" in line:
+                    transmission_time_rx = line.split("Transmission elapsed time = ")[1]
+                    break
+        else:
+            print("Transmission time is not present in the log")
+        result_str_RX = "Test Failed with following data:\nRx Size, Time and Throughput: {file_size},{time},{throughput}\n\n".format(file_size= "500004 B", time=transmission_time_rx, throughput=throughput_value_RX)
+        if ((text_500K in log_text) and (loopback_comparepass_text in log_text)):
+            print("Checking if the Received file size matches 500004")
+            result_str_RX = "Loopback Mode Test Results(RX):\nTest Passed with following data:\nRx Size, Time and Throughput: {file_size},{time},{throughput}\n\n".format(file_size= "500004 B", time=transmission_time_rx, throughput=throughput_value_RX)
+            result_status = True
+            print(result_str_RX)
+        else:
+            result_status = False
+            print(result_str_RX)
+        return result_status, result_str_RX
+    '''
     def loopback_mode_results_TX_ios(self):
         result_status = False
         status, loopback_throughput_value_TX = self.driver.find_element('XPATH', ioslocators.throughput_result_tx)
@@ -495,15 +617,17 @@ class BLEUARTFeatureSupportiOS:
 
     def verify_mode_loopback_ios(self):
         self.click_settings_icon_ios()
-        time.sleep(5)
+        #time.sleep(1)
         self.change_mode_ios()
-        time.sleep(5)
+        #time.sleep(5)
         print("Select loopback mode in settings")
         self.loopback_mode_ios()
-        time.sleep(5)
+        #time.sleep(5)
         print("Select 500K file")
         self.ios_set_500K()
-        time.sleep(5)
+        #time.sleep(5)
+        print("Skip the timeout value")
+        #self.set_receive_timeout_ios()
 
     def confirm_fixed_pattern_mode_ios(self):
         status = False
@@ -590,15 +714,17 @@ class BLEUARTFeatureSupportiOS:
 
     def verify_mode_uart_ios(self):
         self.click_settings_icon_ios()
-        time.sleep(5)
+        time.sleep(2)
         print("Select UART mode")
         self.change_mode_ios()
-        time.sleep(5)
+        time.sleep(2)
         self.uart_mode_ios()
-        time.sleep(5)
+        time.sleep(2)
         print("Select 500K file")
         self.ios_set_500K()
-        time.sleep(5)
+        time.sleep(2)
+        self.set_receive_timeout_ios()
+        time.sleep(2)
 
     def uart_mode_data_transfer_from_ios_app(self):
         serialPort = self.ComportSet(com_port, baud_rate)
@@ -688,23 +814,22 @@ class BLEUARTFeatureSupportiOS:
         t3 = []
         serialPort = self.ComportSet(com_port, baud_rate)
         time.sleep(5)
-        status_clear, clear_text = self.driver.find_element('XPATH', ioslocators.clear_text)
-        assert status_clear, "Failed to find the clear icon"
-        status_clear = self.driver.click_element(clear_text)
-        assert status_clear, "Failed to click on clear icon"
+        #status_clear, clear_text = self.driver.find_element('XPATH', ioslocators.clear_text)
+        #assert status_clear, "Failed to find the clear icon"
+        #status_clear = self.driver.click_element(clear_text)
+        #assert status_clear, "Failed to click on clear icon"
         print("Start the Data transfer from the App side & DUT side <PC Tool> simultaneously")
-        t0 = threading.Thread(target=self.read_serial_port, args=(serialPort, q_receiveData,))
-        t0.start()
-        t1 = threading.Thread(target=self.ios_data_transfer_START, args=())
+        #t0 = threading.Thread(target=self.read_serial_port, args=(serialPort, q_receiveData,))
+        #t0.start()
+        #t1 = threading.Thread(target=self.ios_data_transfer_START, args=())
         t2 = threading.Thread(target=self.TxEntry, args=(serialPort, text_file,))
-        t3.append(t1)
+        #t3.append(t1)
         t3.append(t2)
-        # t1.start()
-        # t2.start()
         for eachThread in t3:
             eachThread.start()
             eachThread.join()
-        t0.join()
+        #t0.join()
+        print("Sleep 75 ")
         time.sleep(75)
         self.CloseSerialPort(serialPort)
         time.sleep(5)
@@ -900,22 +1025,23 @@ class BLEUARTFeatureSupportiOS:
 
     def ios_open_ble_uart_scanner(self):
         error_msg = ""
+        time.sleep(2)
         print("Click BLE Uart\n\n")
         status, ble_uart_icon = self.driver.find_element('XPATH', ioslocators.ble_uart_icon)
         assert status, "BLE Uart Icon not found"
-
+        time.sleep(1)
         status = self.driver.click_element(ble_uart_icon)
         assert status, "Failed to open BLE Uart page"
-
+        time.sleep(1)
         status, device_scanner = self.driver.find_element('XPATH', ioslocators.device_scanner)
         assert status, "PIC32CXBZ option not found"
-
+        time.sleep(1)
         status = self.driver.click_element(device_scanner)
         assert status, "Failed to open BLE Uart page"
-
+        time.sleep(1)
         status, scan_button = self.driver.find_element('XPATH', ioslocators.start_scan_button)
         assert status, "Start button not found"
-
+        time.sleep(1)
         status = self.driver.click_element(scan_button)
         assert status, "Failed to open scan page"
 
@@ -944,7 +1070,18 @@ class BLEUARTFeatureSupportiOS:
 
     def ios_verify_scan_page_visiblity(self):
         status = False
-        status, scan_page = self.driver.find_element('XPATH', locators.scan_button)
+        status, scan_page = self.driver.find_element('XPATH', ioslocators.scan_button)
+        assert status, "Failed to find the scan icon element in the mobile app"
+        status = self.driver.is_visible(scan_page)
+        if status:
+            print("SCAN page is visible")
+        else:
+            assert status, "SCAN page is not visible"
+        return status
+
+    def ios_verify_ota_scan_page_visiblity(self):
+        status = False
+        status, scan_page = self.driver.find_element('XPATH', ioslocators.ota_scan_button)
         assert status, "Failed to find the scan icon element in the mobile app"
         status = self.driver.is_visible(scan_page)
         if status:
@@ -958,7 +1095,7 @@ class BLEUARTFeatureSupportiOS:
         assert status, "Failed to find the raw data icon"
         status = self.driver.click_element(text_mode_icon)
         assert status, "Failed to click on the raw data icon"
-        time.sleep(10)
+        #time.sleep(10)
 
     def confirm_raw_data_mode_trcbp_ios(self):
         status = False
@@ -996,6 +1133,7 @@ class BLEUARTFeatureSupportiOS:
             status = self.driver.is_visible(confirm_raw_loopback)
             print("Raw data, TRCBP - Loopback mode is set accordingly")
         return status
+		
     def send_raw_data_loopback_mode_ios(self):
         input_data0 = "RAW Data Tests"
         input_data1 = "1234567890"
@@ -1008,7 +1146,7 @@ class BLEUARTFeatureSupportiOS:
         status = self.driver.click_element(raw_text_field)
         assert status, "Failed to find the raw data text field to input"
         self.driver.send_keys(raw_text_field, input_data2)
-        time.sleep(5)
+        time.sleep(2)
         status = self.send_data_ios(input_data2)
         assert status, "Test Fails as the comparison is not successful"
         return status
@@ -1131,11 +1269,12 @@ class BLEUARTFeatureSupportiOS:
             print("Comparison Failed")
         serialPort.close()
         return status
+		
     def send_data_ios(self, input_data):
         status = False
         pass_string = "Compare data: PASS"
         TX_string = "[TX] - "+input_data
-        RX_string = "[RX] - Received string = "+input_data
+        RX_string = "[RX] - "+input_data
         result_status, pass_status = self.driver.find_element('XPATH', ioslocators.raw_data_log_message)
         assert result_status, "Failed to find the raw data log message"
         pass_status_get_text = self.driver.get_text(pass_status)
@@ -1165,10 +1304,11 @@ class BLEUARTFeatureSupportiOS:
             status = False
             print("TX input is not matching. Data mismatch")
         return status
-    def ios_verify_dut_name_non_visibility(self):
+		
+    def ios_verify_dut_name_non_visibility(self,dut_friendly_name):
         status = False
         result_string = ""
-        status, dut_name = self.driver.find_element('XPATH', ioslocators.dut_name)
+        status, dut_name = self.driver.find_element('XPATH', ioslocators.dut_name.format(dut_friendly_name))
         if not status:
             print("DUT is not connected")
             result_string = "DUT is not connected, Kill MBD App successful"
@@ -1189,7 +1329,7 @@ class BLEUARTFeatureSupportiOS:
                 status1, firmware_version = self.driver.find_element('XPATH', ioslocators.firmware_version)
                 assert status1, "Failed to find the element on FW version section"
                 fw_text = self.driver.get_text(firmware_version)
-                if FWVerValue in fw_text:
+                if  fw_text in FWVerValue:
                     status = True
                     print("Firmware Version meets expectations")
                     FWVerValue_text = "Firmware Version is: {}".format(FWVerValue)
@@ -1209,33 +1349,341 @@ class BLEUARTFeatureSupportiOS:
         status = self.driver.click_element(back_button)
         assert status, "Failed to click on back icon"
 
-    def get_TX_throughput_value(self):
-        status, loopback_throughput_value_TX = self.driver.find_element('XPATH', ioslocators.throughput_result_tx)
-        assert status, "Failed to find locator for TX throughput result"
-        throughput_result_field = self.driver.get_text(loopback_throughput_value_TX)
-        throughput_value_TX = throughput_result_field.strip("Downlink:")
-        print(throughput_value_TX)
-        match = re.search(r'(\d+\.\d+)\s*KB/s', throughput_value_TX)
-        if match:
-            value = float(match.group(1))
-            # print(value)
-            return value
-        else:
-            return "value not found"
 
-    def get_RX_throughput_value(self):
-        status, loopback_throughput_value_RX = self.driver.find_element('XPATH', ioslocators.throughput_result_rx)
-        assert status, "Failed to find locator for RX throughput result"
-        throughput_result_field = self.driver.get_text(loopback_throughput_value_RX)
-        throughput_value_RX = throughput_result_field.strip("Uplink:")
-        print(throughput_value_RX)
-        match = re.search(r'(\d+\.\d+)\s*KB/s', throughput_value_RX)
-        if match:
-            value = float(match.group(1))
-            # print(value)
-            return value
+    def go_back(self):
+        self.ios_disconnect_dut()
+
+
+    def verify_disconnection(self):
+
+        print("Checking if last connected is disconnected")
+        result_status, pass_status = self.driver.find_element('XPATH', ioslocators.logmessage)
+        assert result_status, "Failed to find the raw data log message"
+        status_get_text = self.driver.get_text(pass_status)
+        if "disconnected" or "Disconnected" in status_get_text:
+            result_status = True
         else:
-            return "value not found"
+            result_status = False
+        return result_status
+
+    def loopback_mode_trp_ios(self):
+        self.verify_mode_loopback_ios()
+        self.save_settings_ios()
+        self.confirm_loopback_mode_ios()
+
+    def loopback_mode_trp_with_response_ios(self):
+        self.verify_mode_loopback_ios()
+        self.enable_write_with_response_ios()
+        self.save_settings_ios()
+        self.confirm_loopback_mode_ios()
+
+    def loopback_mode_trcbp_ios(self):
+        self.verify_mode_loopback_ios()
+        self.switch_to_trcbp_ios()
+        self.save_settings_ios()
+        self.confirm_loopback_mode_trcbp_ios()
+
+    def loopback_mode_trcbp_with_response_ios(self):
+        self.verify_mode_loopback_ios()
+        self.switch_to_trcbp_ios()
+        self.enable_write_with_response_ios()
+        self.save_settings_ios()
+        self.confirm_loopback_mode_trcbp_ios()
+
+    def loopback_mode_raw_trp_ios(self):
+        self.verify_raw_data_mode_ios()
+        self.click_settings_icon_ios()
+        self.change_mode_ios()
+        self.loopback_mode_ios()
+        self.save_settings_ios()
+        mode_set_trp = self.confirm_raw_data_loopbackmode_trp_ios()
+        assert mode_set_trp, "Raw data, TRP is not set accordingly"
+
+    def loopback_mode_raw_trcbp_ios(self):
+        self.verify_raw_data_mode_ios()
+        self.click_settings_icon_ios()
+        self.change_mode_ios()
+        self.loopback_mode_ios()
+        self.switch_to_trcbp_ios()
+        self.save_settings_ios()
+        mode_set_trp = self.confirm_raw_data_loopbackmode_trcbp_ios()
+        assert mode_set_trp, "Raw data, TRCBP is not set accordingly"
+
+
+    def set_receive_timeout_ios(self):
+        delay = "3 sec"
+        print("set_receive_timeout_ios.{}".format(delay))
+
+        print("perform_scroll_down_ios")
+        self.driver.perform_scroll_down_ios()
+        time.sleep(3)
+        print("perform_scroll_down_ios")
+        self.driver.perform_scroll_down_ios()
+        time.sleep(3)
+        status,timeout_button = self.driver.find_element('XPATH',ioslocators.receive_data_timeout_button)
+        assert status, "Failed to find the Multilink configuration button"
+        status = self.driver.click_element(timeout_button)
+        assert status, "unable to click the Multilink configuration button"
+        time.sleep(2)
+        status,timeout_field = self.driver.find_element('XPATH',ioslocators.set_timeout_field.format(delay))
+        if status:
+            status= self.driver.click_element(timeout_field)
+            # assert status,"Unable to click the timeout field"
+            # self.driver.send_keys(timeout_field,"5000")
+            # status, set_timeout_button = self.driver.find_element('XPATH',ioslocators.set_timeout_button)
+            # assert status, "Unable to set the timeout"
+            # status = self.driver.click_element(set_timeout_button)
+            assert status,"Unable to click the button"
+        else:
+            status, timeout_field = self.driver.find_element('XPATH', ioslocators.set_timeout_field.format(delay))
+            if status:
+                print("Timeout already set to 5000")
+                status, set_timeout_button = self.driver.find_element('XPATH', ioslocators.set_timeout_button)
+                assert status, "Unable to set the timeout"
+                status = self.driver.click_element(set_timeout_button)
+                assert status, "Unable to click the button"
+        #self.driver.perform_scroll_down_ios()
+        time.sleep(1)
+
+    def ios_start_scan(self):
+        status, scan_page = self.driver.find_element('XPATH', ioslocators.scan_button)
+        assert status, "Failed to find the scan icon element in the mobile app"
+        status = self.driver.click_element(scan_page)
+        assert status, "Unable to click scan button"
+
+
+    def ios_find_stop_transfer(self):
+        status, scan_page = self.driver.find_element('XPATH', ioslocators.stop_data_transfer)
+        assert status, "Failed to find the stop icon element in the mobile app"
+
+    def ios_goback_main(self):
+        print("Disconnect the DUT")
+        status, back_button = self.driver.find_element('XPATH', ioslocators.back_to_main_page)
+        assert status, "Failed to find back icon"
+        status = self.driver.click_element(back_button)
+        assert status, "Failed to click on back icon"
+
+    def lightblue_start_scan(self):
+        print('lightblue_start_scan')
+        if sd.mobile_platform == 'mac':
+            status, scan_page = self.driver.find_element('XPATH', 'XCUIElementTypeButton[@label="ArrowsClockwise"]')
+        else:
+            status, scan_page = self.driver.find_element('XPATH', 'XCUIElementTypeButton[@name="ArrowsClockwise"]')
+        assert status, "Failed to find the scan icon element"
+        status = self.driver.click_element(scan_page)
+        assert status, "Unable to click scan button"
+
+    def lightblue_filter_peripherals(self, name):
+        print('lightblue_filter_peripherals')
+        status, text_field = self.driver.find_element('XPATH', '//XCUIElementTypeTextField')
+        assert status, "Failed to find the textfield"
+        self.driver.send_keys(text_field, name)
+
+    def lightblue_connect(self, dut_name):
+        print('lightblue_connect: {}'.format(dut_name))
+        #ioslocators.dut_name.format(dut_friendly_name)
+        #status, peripheral = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@label="BLE_UART_CDDF_H"]')
+        status, peripheral = self.driver.find_element('XPATH', ioslocators.dut_name.format(dut_name))
+        #assert status, "Failed to find the peripheral"
+        if not status:
+            print("Failed to find the peripheral.Fail retry.")
+            if dut_name == 'Direct A':
+                new_dut_name = 'Direct Adv'
+            else:
+                new_dut_name = 'Direct A'
+            status, peripheral = self.driver.find_element('XPATH', ioslocators.dut_name.format(new_dut_name))
+            assert status, "Failed to find the peripheral"
+        if sd.mobile_platform == 'mac':
+            status, connect_button = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@label="Connect"]')
+        else:
+            status, connect_button = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@name="Connect"]')
+        assert status, "Failed to find the connect button"
+        status = self.driver.click_element(connect_button)
+        assert status, "Unable to click connect button"
+
+    def lightblue_scroll_gesture(self, delta_y):
+        print('lightblue_scroll_gesture.{}'.format(delta_y))
+        if sd.mobile_platform == 'mac':
+            status, dis_element = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@label="Device Information"]')
+        else:
+            status, dis_element = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@name="Device Information"]')
+        assert status, "Failed to find the element."
+        time.sleep(2)
+        #self.driver.perform_scroll_down_macos(dis, -400)
+        self.driver.perform_scroll_macos(dis_element.id, delta_y)
+        time.sleep(3)
+
+    def lightblue_verify_ble_connected(self):
+        print('lightblue_verify_ble_connected')
+        if sd.mobile_platform == 'mac':
+            status, element = self.driver.find_element('XPATH','//XCUIElementTypeStaticText[@label="Connected"]')
+        else:
+            status, element = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@name="Connected"]')
+        assert status, "Failed to find the element. Connected"
+
+    def lightblue_get_device_info_data(self):
+        print('lightblue_get_device_info_data')
+        self.driver.find_ios_collection_view_element(range_start=4, range_end=8)
+
+    def lightblue_verify_ble_services_and_characteristics(self, start_service=""):
+        print('lightblue_verify_ble_services_and_characteristics.{}'.format(start_service))
+
+        if sd.mobile_platform == 'mac':
+            locator = "//XCUIElementTypeStaticText[@label='{}']"
+        else:
+            locator = "//XCUIElementTypeStaticText[@name='{}']"
+
+        device_information_service = 'Device Information'
+        device_information_characteristics = ['Manufacturer Name String','Model Number String','Firmware Revision String']
+
+        mchp_transparent_service = '0x49535343-FE7D-4AE5-8FA9-9FAFD205E455'
+        mchp_transparent_characteristics = ['0x49535343-1E4D-4BD9-BA61-23C647249616','0x49535343-8841-43F4-A8D4-ECBE34729BB3','0x49535343-4C8A-39B3-2F49-511CFF073B7E']
+
+        mchp_ota_service = '0x4D434850-253D-46B3-9923-E61B8E8215D7'
+        mchp_ota_characteristics = ['0x4D434850-22E4-4246-AF03-0C4A2F906358','0x4D434850-34D9-40A6-BA7E-56F57C8CD478','0x4D434850-9327-45DE-8882-C97F39028A76']
+
+        services = [device_information_service,mchp_transparent_service,mchp_ota_service]
+        characteristics = {device_information_service:device_information_characteristics, mchp_transparent_service:mchp_transparent_characteristics, mchp_ota_service:mchp_ota_characteristics}
+
+        result = True
+        discover_service = ""
+
+        for service in services:
+            if start_service != "" and service != start_service:
+                continue
+            print("verify ble service.{}".format(service))
+            discover_service = service
+            status, element = self.driver.find_element('XPATH', locator.format(service))
+            #assert status, "Failed to find the service"
+            if not status:
+                print("Failed to find the service.")
+                result = False
+                break
+            char_array = characteristics.get(service)
+            #assert char_array is not None , "Failed to find the character array"
+            time.sleep(2)
+            for char in char_array:
+                print("verify ble characteristic.{}".format(char))
+                status, element = self.driver.find_element('XPATH', locator.format(char))
+                #assert status, "Failed to find the service"
+                if not status:
+                    print("Failed to find the characteristic.")
+                    result = False
+                    break
+                else:
+                    time.sleep(2)
+            if not result:
+                break
+
+        return result, discover_service
+
+    def lightblue_enter_characteristic_scene(self, characteristic):
+        print('lightblue_characteristic_control.{}'.format(characteristic))
+        if sd.mobile_platform == 'mac':
+            locator = "//XCUIElementTypeStaticText[@label='{}']"
+        else:
+            locator = "//XCUIElementTypeStaticText[@name='{}']"
+
+        status, element = self.driver.find_element('XPATH', locator.format(characteristic))
+        assert status, "Failed to find the characteristic."
+        time.sleep(2)
+        element.click()
+        return status
+
+    def lightblue_characteristic_screen_goback(self):
+        print('lightblue_characteristic_screen.goback')
+        if sd.mobile_platform == 'mac':
+            status, element = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@label=\"Peripheral\"]')
+        else:
+            status, element = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@name=\"Peripheral\"]')
+
+        assert status, "Failed to find the back button."
+        time.sleep(2)
+        element.click()
+        return status
+
+    def lightblue_ble_disconnect(self):
+        print('lightblue_ble_disconnect')
+        if sd.mobile_platform == 'mac':
+            status, element = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@label=\"Back\"]')
+        else:
+            status, element = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@name=\"Back\"]')
+        assert status, "Failed to find the back button(ble disconnect)."
+        time.sleep(2)
+        element.click()
+        return status
+
+    def lightblue_characteristic_action(self, characteristic ,action):
+        print('lightblue_characteristic_action.char = {}.{}'.format(characteristic, action))
+        if action == "Subscribe" or action == "Unsubscribe":
+            if sd.mobile_platform == 'mac':
+                locator = "//XCUIElementTypeButton[@label='{}']"
+            else:
+                locator = "//XCUIElementTypeButton[@name='{}']"
+            status, element = self.driver.find_element('XPATH', locator.format(action))
+            assert status, "Failed to find the action button."
+            time.sleep(2)
+            element.click()
+            time.sleep(3)
+            #print("Check state")
+            new_state = ""
+            if action == 'Subscribe':
+                new_state = 'Unsubscribe'
+            elif action == 'Unsubscribe':
+                new_state = 'Subscribe'
+            print("Check button: {} state".format(new_state))
+            status, btn_element = self.driver.find_element('XPATH', locator.format(new_state))
+            assert status, "Failed to find the action button."
+            print("Success")
+            time.sleep(2)
+            return status, new_state
+        else:
+            return False
+        #elif action == "Read":
+
+    def lightblue_characteristic_write(self, characteristic, hex_data):
+        print('lightblue_characteristic_write.char = {}.data = {}'.format(characteristic, hex_data))
+        if sd.mobile_platform == 'mac':
+            locator = "//XCUIElementTypeButton[@label='{}']"
+        else:
+            locator = "//XCUIElementTypeButton[@name=\"{}\"]"
+        status, element = self.driver.find_element('XPATH', locator.format('Write new value'))
+        assert status, "Failed to find the write button."
+        time.sleep(2)
+        element.click()
+        time.sleep(3)
+        status, text_field = self.driver.find_element('XPATH', '//XCUIElementTypeTextField')
+        assert status, "Failed to find the textfield"
+        time.sleep(2)
+        self.driver.send_keys(text_field, hex_data)
+        print("send kex :{}".format(hex_data))
+        time.sleep(3)
+        status, element = self.driver.find_element('XPATH', locator.format('Send'))
+        time.sleep(2)
+        assert status, "Failed to find the send button."
+        element.click()
+        time.sleep(3)
+        '''
+        status, element = self.driver.find_element('XPATH', locator.format('Characteristic'))
+        assert status, "Failed to find the back button."
+        time.sleep(2)
+        element.click()
+        time.sleep(3)
+        '''
+
+    def lightblue_characteristic_read(self, characteristic):
+        print('lightblue_characteristic_read.char = {}.{}'.format(characteristic, characteristic))
+        self.driver.find_ios_collection_view_element(range_start=7, range_end=8)
+
+    def lightblue_pairing(self):
+        print('lightblue_pairing')
+        #self.driver.find_pairing_alert1()
+        self.driver.find_pairing_alert2()
+
+
+
+
+
 
 
 

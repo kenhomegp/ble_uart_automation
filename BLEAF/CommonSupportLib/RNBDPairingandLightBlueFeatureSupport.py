@@ -1,6 +1,9 @@
+
 import os
 import time
 import json
+
+import threading
 
 from . import android_locators as locators
 from ..CommonSupportLib.StationData import stationData
@@ -8,10 +11,14 @@ from ..StationConfig import conf_file
 from ..CommonSupportLib.Serial_Implementaiton import SerialSuppport
 from ..CommonSupportLib.BleUARTPairingFeatureSupport import BLEUartPairingSupport
 
+from datetime import datetime
+
 sd = stationData()
 
 baudrate = conf_file.baud_rate
 comport = conf_file.com_port
+
+flagReadSerialData = True
 
 class RNBDvsPhoneFeatureSupport:
     def __init__(self, driver=sd.mobile_driver):
@@ -82,7 +89,7 @@ class RNBDvsPhoneFeatureSupport:
     def Read_json_file(self,command_set):
         step_result = []
         step_descript = []
-        json_file = os.getcwd() + "\Tests\RNBD45x_JSON_File\RNBD45x_vs_Phone_Command_Set.json"
+        json_file = os.getcwd() + "\BLEAF\Tests\RNBD45x_JSON_File\RNBD45x_vs_Phone_Command_Set.json"
         with open(json_file) as f:
             testSet = json.load(f)
         f.close()
@@ -159,6 +166,7 @@ class RNBDvsPhoneFeatureSupport:
             status, search_field = self.driver.find_element('XPATH', locators.lightblue_serach_field)
         time.sleep(5)
         self.driver.send_keys(search_field, dut_friendly_name)
+        self.driver.press_keycode(66)
         status, dut_to_select = self.driver.find_element('XPATH',
                                                          locators.text_view_place_holder.format(dut_friendly_name))
         assert status, "Failed to find text view matching DUT name:{}".format(dut_friendly_name)
@@ -216,10 +224,9 @@ class RNBDvsPhoneFeatureSupport:
         assert status, "Failed to click on read button"
         status, read_firmware_revision = self.driver.find_element('XPATH', locators.device_info_revision_string)
         assert status, "Failed to find firmware revison string"
-        read_value = read_firmware_revision.text
-        print(read_value)
-        # FWVerValue = self.driver.get_text(read_value)
-        # print(FWVerValue)
+        read_value = read_firmware_revision.find_element_by_xpath(locators.text_view)
+        FWVerValue = self.driver.get_text(read_value)
+        print(FWVerValue)
         if FWVerValue == SetFWVerValue:
             status = True
             print("Comparison Successful")
@@ -491,44 +498,112 @@ class RNBDvsPhoneFeatureSupport:
             return status, text
         return status, appearance_text
 
+
+    def read_again(self,value):
+        status = False
+        text = "Appearance value does not match"
+        self.driver.perform_bottom_to_up_swipe()
+        time.sleep(2)
+        status, appearance = self.driver.find_element('XPATH', locators.appearance)
+        assert status, "Failed the appearance text"
+        status = self.driver.click_element(appearance)
+        assert status, "Failed to click on serial number field"
+        time.sleep(2)
+        status, read_again = self.driver.find_element('XPATH', locators.lightblue_read_again_button)
+        assert status, "Failed find the read again button"
+        status = self.driver.click_element(read_again)
+        assert status, "Failed to click on read again button"
+        status, read_again_value = self.driver.find_element('XPATH',locators.read_again_value.format(value))
+        read_val = self.driver.get_text(read_again_value)
+        return read_val
+
     # Pairing feature support
     def google_pixel_pair_device(self):
-        print("scroll notification bar")
-        time.sleep(2)
-        status = self.driver.scroll_notification_bar()
-        time.sleep(5)
-        bt_status, bt_text = self.driver.find_element('XPATH', locators.pixel3a_displayonly_pairing_req_text)
-        if bt_status:
-            status = self.driver.is_visible(bt_text)
-            print("Pairing pop up Displayed")
-        status, pair_and_connect = self.driver.find_element('XPATH', locators.pixel3a_displayonly_pairing_req_text)
-        print(status)
-        assert status, "Failed to find pair and connect field"
-        print("click on pair and connect")
-        status = self.driver.click_element(pair_and_connect)
-        assert status, "Failed to click on pair and connect"
+        if "Vivo" not in sd.platform:
+            print("scroll notification bar")
+            status = self.driver.scroll_notification_bar()
+            time.sleep(1)
+            bt_status, bt_text = self.driver.find_element('XPATH', locators.pixel3a_displayonly_pairing_req_text)
+            if bt_status:
+                status = self.driver.is_visible(bt_text)
+                print("Pairing pop up Displayed")
+            status, pair_and_connect = self.driver.find_element('XPATH', locators.pixel3a_displayonly_pairing_req_text)
+            print(status)
+            assert status, "Failed to find pair and connect field"
+            time.sleep(2)
+            print("click on pair and connect")
+            status = self.driver.click_element(pair_and_connect)
+            assert status, "Failed to click on pair and connect"
+        time.sleep(1)
         status, pair_device = self.driver.find_element('XPATH', locators.device_pair)
         assert status, "Pair icon not found"
+        time.sleep(1)
         status = self.driver.click_element(pair_device)
-        assert status, "Unable to click on the Pair icon"
-        print("scroll notification bar")
-        time.sleep(2)
-        status = self.driver.scroll_notification_bar()
-        time.sleep(5)
-        bt_status, bt_text = self.driver.find_element('XPATH', locators.pixel3a_displayonly_pairing_req_text)
-        if bt_status:
-            status = self.driver.is_visible(bt_text)
-            print("Pairing pop up Displayed")
-        status, pair_and_connect = self.driver.find_element('XPATH', locators.pixel3a_displayonly_pairing_req_text)
-        print(status)
-        assert status, "Failed to find pair and connect field"
-        print("click on pair and connect")
-        status = self.driver.click_element(pair_and_connect)
-        assert status, "Failed to click on pair and connect"
-        status, pair_device = self.driver.find_element('XPATH', locators.device_pair)
-        assert status, "Pair icon not found"
-        status = self.driver.click_element(pair_device)
-        assert status, "Unable to click on the Pair icon"
+        #assert status, "Unable to click on the Pair icon"
+
+        #if self.driver.get_capability("deviceModel") == "Pixel 3a":
+        if status:
+            status, pair_device = self.driver.find_element('XPATH', locators.device_pair,timeout=5)
+            if status:
+                status, pair_device = self.driver.find_element('XPATH', locators.device_pair)
+                assert status, "Pair icon not found"
+                status = self.driver.click_element(pair_device)
+                assert status, "Unable to click on the Pair icon"
+            else:
+                print("scroll notification bar")
+                time.sleep(1)
+                status = self.driver.scroll_notification_bar()
+                time.sleep(1)
+                bt_status, bt_text = self.driver.find_element('XPATH', locators.pixel3a_displayonly_pairing_req_text,timeout=5)
+                if bt_status:
+                    status = self.driver.is_visible(bt_text)
+                    print("Pairing pop up Displayed")
+                    status, pair_and_connect = self.driver.find_element('XPATH', locators.pixel3a_displayonly_pairing_req_text)
+                    if status:
+                        print("click on pair and connect")
+                        status = self.driver.click_element(pair_and_connect)
+                        status, pair_device = self.driver.find_element('XPATH', locators.device_pair)
+                        assert status, "Pair icon not found"
+                        status = self.driver.click_element(pair_device)
+                        assert status, "Unable to click on the Pair icon"
+                else:
+                    print("No Second pop up")
+                    self.driver.go_back()
+
+
+
+
+    def google_pixel_pair_cancel(self):
+        status, pair_device = self.driver.find_element('XPATH', locators.device_cancel_pair,timeout=10)
+        if  not status:
+            if "Vivo" not in sd.platform:
+                print("scroll notification bar")
+                status = self.driver.scroll_notification_bar()
+                time.sleep(1)
+                bt_status, bt_text = self.driver.find_element('XPATH', locators.pixel3a_displayonly_pairing_req_text)
+                if bt_status:
+                    status = self.driver.is_visible(bt_text)
+                    print("Pairing pop up Displayed")
+                status, pair_and_connect = self.driver.find_element('XPATH', locators.pixel3a_displayonly_pairing_req_text)
+                assert status, "Failed to find pair and connect field"
+                time.sleep(2)
+                print("click on pairing pop up")
+                status = self.driver.click_element(pair_and_connect)
+                assert status, "Failed to click on Pair and connect"
+        time.sleep(1)
+        status, cancel_pair = self.driver.find_element('XPATH', locators.device_cancel_pair)
+        assert status, "Cancel icon not found"
+        time.sleep(1)
+        status = self.driver.click_element(cancel_pair)
+        assert status, "Failed to click on Cancel"
+
+    def google_pixel_pairing_ok(self):
+        status, ok_pair = self.driver.find_element('XPATH', locators.pixel3a_ok_button)
+        assert status, "Failed to find OK button"
+        time.sleep(1)
+        print("click on OK")
+        status = self.driver.click_element(ok_pair)
+        assert status, "Failed to click on OK button"
 
     def CloseSerialPort(self, ser):
         print("CloseSerialPort")
@@ -796,14 +871,22 @@ class RNBDvsPhoneFeatureSupport:
 
 
     def bond_device(self):
-        cmd = '$$$'
-        cmd = str(cmd).encode()
+        # cmd = '$$$'
+        # cmd = str(cmd).encode()
         bond_cmd = 'B\r'
         bond_cmd = str(bond_cmd).encode()
+        v_cmd = 'V\r'
+        v_cmd = str(v_cmd).encode()
+
         serialPort = self.serialdriver.ComportSet(comport, baudrate)
         serialPort.write(cmd)
         serial_read = serialPort.readlines()
         print(serial_read)
+
+        serialPort.write(v_cmd)
+        serial_read = serialPort.readlines()
+        print(serial_read)
+
         serialPort.write(bond_cmd)
         time.sleep(5)
         serial_read = serialPort.readlines()
@@ -865,10 +948,12 @@ class RNBDvsPhoneFeatureSupport:
         print("Last connected device has been disconnected")
         assert status, "Last connected device has not been disconnected"
         return status
+
     def send_raw_data_uart_mode_rnbd_to_app(self):
         input_data = "12345678"
         result_status, pass_status = self.driver.find_element('XPATH', locators.raw_data_log_message)
         assert result_status, "Failed to find the raw data log message"
+        time.sleep(2)
         pass_status_get_text = self.driver.get_text(pass_status)
         if input_data in pass_status_get_text:
             print("Data received in APP:",pass_status_get_text)
@@ -907,7 +992,7 @@ class RNBDvsPhoneFeatureSupport:
         print("Send raw data from RNBD to Mobile")
         serialPort.write(cmd)
         serial_read = serialPort.readlines()
-        if serial_read == "[]":
+        if len(serial_read) == 0:
             status = True
         else:
             status = False
@@ -915,6 +1000,350 @@ class RNBDvsPhoneFeatureSupport:
         time.sleep(5)
         self.CloseSerialPort(serialPort)
 
+    def Read_json_file_1(self,command_set,comport):
+        step_result = []
+        step_descript = []
+        json_file = os.getcwd() + "\BLEAF\Tests\RNBD45x_JSON_File\RNBD45x_vs_Phone_Command_Set.json"
+        with open(json_file) as f:
+            testSet = json.load(f)
+        f.close()
+        testSet = testSet[command_set]
+        for tc in testSet:
+            for key, value in dict.items(tc):
+                print("=========================================")
+                print(str(dict.items(tc)))
+                param_list = value.split("/")
+                print(param_list)
+                if len(param_list) == 2:
+                    name = param_list[0]
+                    time.sleep(int(param_list[1]))
+                    print(name + ":" + str(param_list[1]) + "(seconds)")
+
+                elif len(param_list) == 3:
+                    name = param_list[0]
+                    sendmsg = str(param_list[1]).encode()
+                    needreceivemsg = str(param_list[2]).encode()
+
+                    retcode = self.Send_Receive_Msg(comport, sendmsg, needreceivemsg)
+                    print("retcode: " + str(retcode))
+
+                elif len(param_list) == 4:
+                    name = param_list[0]
+                    sendmsg = str(param_list[1]).encode()
+                    needreceivemsg = str(param_list[2]).encode()
+                    timeout = int(param_list[3])
+                    print(timeout)
+                    retcode = self.Send_Receive_Msg(comport, sendmsg, needreceivemsg, timeout)
+                    step_result.append(retcode)
+                    print("retcode ", retcode)
+                    if retcode == True:
+                        step_descript.append(str(dict.items(tc)) + ": Pass \n")
+                    else:
+                        step_descript.append(str(dict.items(tc)) + ": Fail \n")
+
+                elif len(param_list) == 5:
+                    name = param_list[0]
+                    sendmsg = str(param_list[1]).encode()
+                    needreceivemsg = str(param_list[2]).encode()
+                    timeout = int(param_list[3])
+                    testlinkid = param_list[4]
+
+                    retcode = self.Send_Receive_Msg(comport, sendmsg, needreceivemsg, timeout)
+                    print("retcode: " + str(retcode))
+
+        return step_result, step_descript
+
+
+    def send_data_rnbd_to_rnbd(self,data_to_send):
+        cmd = '$$$'
+        cmd = str(cmd).encode()
+        cmd_to_send = str(data_to_send).encode()
+        v_cmd = 'V\r'
+        v_cmd = str(v_cmd).encode()
+
+        serialPort = self.serialdriver.ComportSet(comport, baudrate)
+        serialPort.write(cmd)
+        serial_read = serialPort.readlines()
+        print(serial_read)
+
+        serialPort.write(v_cmd)
+        serial_read = serialPort.readlines()
+        print(serial_read)
+
+        serialPort.write(cmd_to_send)
+        time.sleep(5)
+        serial_read = serialPort.readlines()
+        print(serial_read)
+        self.CloseSerialPort(serialPort)
+        return serial_read
+
+
+    def send_data_rnbd_to_rnbd_multirole(self,data_to_send,comport):
+        cmd = '$$$'
+        cmd = str(cmd).encode()
+        cmd_to_send = str(data_to_send).encode()
+        v_cmd = 'V\r'
+        v_cmd = str(v_cmd).encode()
+
+        serialPort = self.serialdriver.ComportSet(comport, baudrate)
+        serialPort.write(cmd)
+        serial_read = serialPort.readlines()
+        print(serial_read)
+
+        serialPort.write(v_cmd)
+        serial_read = serialPort.readlines()
+        print(serial_read)
+
+        serialPort.write(cmd_to_send)
+        time.sleep(5)
+        serial_read = serialPort.readlines()
+        print(serial_read)
+        self.CloseSerialPort(serialPort)
+        return serial_read
+
+    def lightblue_filter_peripherals(self, name):
+        print('lightblue_filter_peripherals')
+        status, text_field = self.driver.find_element('XPATH', '//android.widget.EditText')
+        assert status, "Failed to find the textfield"
+        self.driver.send_keys(text_field, name)
+
+    def ble_smart_filter_peripherals(self, name):
+        print('ble_smart_filter_peripherals')
+        status, search_icon = self.driver.find_element('XPATH', locators.search_icon)
+        assert status, "Failed to find the search icon"
+        time.sleep(2)
+        search_icon.click()
+        time.sleep(2)
+        status, search_field = self.driver.find_element('XPATH', locators.search_field)
+        assert status, "Failed to find the search field"
+        self.driver.send_keys(search_field, name)
+
+    def ble_smart_connect(self, dut_name):
+        print('ble_smart_connect')
+        status, scan_button = self.driver.find_element('XPATH', '//android.widget.Button[@resource-id="com.microchip.bluetooth.data:id/menu_scan"]')
+        assert status, "Failed to find the scan button"
+        button_text = scan_button.get_attribute('text')
+        print('button_text = {}'.format(button_text))
+        if button_text == 'STOP SCAN':
+            scan_button.click()
+            print("Stop scan")
+        time.sleep(2)
+        peripheral = None
+        locator = '//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/device_name" and @text="{}"]'
+        status, peripheral = self.driver.find_element('XPATH', locator.format(dut_name))
+        if not status:
+            print("Failed to find the peripheral.Fail retry.")
+            if dut_name == 'Direct A':
+                new_dut_name = 'Direct Adv'
+            else:
+                new_dut_name = 'Direct A'
+            time.sleep(2)
+            status, peripheral = self.driver.find_element('XPATH', locator.format(new_dut_name))
+        print("Find the peripheral")
+        time.sleep(2)
+        status = self.driver.click_element(peripheral)
+        assert status, "Unable to click the dut"
+
+    def lightblue_connect(self, dut_name):
+        locator = "//android.widget.TextView[@text='{}']"
+        print('lightblue_connect: {}'.format(dut_name))
+        #ioslocators.dut_name.format(dut_friendly_name)
+        #status, peripheral = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@label="BLE_UART_CDDF_H"]')
+        status, peripheral = self.driver.find_element('XPATH', locator.format(dut_name))
+        #assert status, "Failed to find the peripheral"
+        if not status:
+            print("Failed to find the peripheral.Fail retry.")
+            if dut_name == 'Direct A':
+                new_dut_name = 'Direct Adv'
+            else:
+                new_dut_name = 'Direct A'
+            status, peripheral = self.driver.find_element('XPATH', locator.format(new_dut_name))
+            assert status, "Failed to find the peripheral"
+        status, connect_button = self.driver.find_element('XPATH', "//android.widget.TextView[@text='Connect']")
+        assert status, "Failed to find the connect button"
+        status = self.driver.click_element(connect_button)
+        assert status, "Unable to click connect button"
+
+    def lightblue_verify_ble_connected(self):
+        print('lightblue_verify_ble_connected')
+        status, element = self.driver.find_element('XPATH', "//android.widget.TextView[@text='Connected']")
+        assert status, "Failed to find the element. Connected"
+        self.driver.perform_bottom_to_up_swipe()
+        self.driver.perform_bottom_to_up_swipe()
+
+    def ble_smart_verify_ble_connected(self, dut_name):
+        print('ble_smart_verify_ble_connected')
+        global flagReadSerialData
+        serial_recv = ''
+        flagReadSerialData = True
+
+        def ble_connect():
+            status1, connect_button = self.driver.find_element('XPATH','//android.widget.Button[@resource-id="com.microchip.bluetooth.data:id/menu_connect"]')
+            assert status1, "Failed to find the connect button"
+            time.sleep(1)
+            connect_button.click()
+            print('Click connect button')
+            #time.sleep(10)
+            #status2, conn_state = self.driver.find_element('XPATH','//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/connection_state"]')
+            #assert status2, "Failed to find the connection state"
+            #state = conn_state.get_attribute('text')
+            #print('ble_state = {}'.format(state))
+
+        status, dut = self.driver.find_element('XPATH',
+                                               '//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/device_name"]')
+        assert status, "Failed to find the dut name"
+        name = dut.get_attribute('text')
+        print('dut name = {}'.format(name))
+        assert name == dut_name, "Failed to find the dut name"
+        time.sleep(2)
+
+        serial_port = self.serialdriver.ComportSet(comport, baudrate)
+        t0 = threading.Thread(target=self.read_serial_data, args=(serial_port, serial_recv))
+        t0.start()
+        t1 = threading.Thread(target=ble_connect, args=())
+        t1.start()
+        t1.join()
+        print('work thread complete')
+        t0.join(80)
+        print("serial thread complete.serial_recv = {}".format(serial_recv))
+
+        status, state = self.driver.find_element('XPATH','//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/connection_state"]')
+        assert status, "Failed to find the connection state"
+        ble_state = state.get_attribute('text')
+        print('ble_state = {}'.format(ble_state))
+        #assert ble_state == 'Connected', "Failed to connect"
+        if ble_state == 'Disconnected':
+            for i in range(5):
+                print("Connect fail. retry: {}".format(i))
+                time.sleep(5)
+                ble_connect()
+                time.sleep(10)
+                #t0 = threading.Thread(target=self.read_serial_data, args=(serial_port, serial_recv))
+                #t0.start()
+                #t1 = threading.Thread(target=ble_connect, args=())
+                #t1.start()
+                #t1.join()
+                #print('work thread complete')
+                #t0.join(10)
+                #if t0.is_alive():
+                #    print('serial thread is still alive')
+                #print("serial thread complete.serial_recv = {}".format(serial_recv))
+                status, state = self.driver.find_element('XPATH','//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/connection_state"]')
+                assert status, "Failed to find the connection state"
+                ble_state = state.get_attribute('text')
+                if ble_state == 'Connected':
+                    #read_data = self.read_serial_data(serial_port)
+                    self.CloseSerialPort(serial_port)
+                    return ble_state
+            print('Fail retry. done')
+            if t0.is_alive():
+                print('serial port: timeout')
+            self.CloseSerialPort(serial_port)
+            return ble_state
+        else:
+            #read_data = self.read_serial_data(serial_port)
+            self.CloseSerialPort(serial_port)
+            return ble_state
+
+    def ble_smart_characteristic_write(self, service_uuid, char_uuid):
+        print('ble_smart_characteristic_write')
+        locator = '//android.widget.TextView[@resource-id="android:id/text2" and @text="{}"]'
+        #12345678-1234-5678-1234-56789abcdef0
+        #status, service = self.driver.find_element('XPATH','//android.widget.TextView[@resource-id="android:id/text2" and @text="12345678-1234-5678-1234-56789abcdef0"]')
+        status, service = self.driver.find_element('XPATH',locator.format(service_uuid))
+        assert status, "Failed to find the service"
+        service.click()
+        time.sleep(2)
+        #12345678-1234-5678-1234-56789abcdef2
+        status, char = self.driver.find_element('XPATH', locator.format(char_uuid))
+        assert status, "Failed to find the characteristic"
+        char.click()
+        time.sleep(3)
+        #//android.widget.EditText[@resource-id="com.microchip.bluetooth.data:id/characteristic_write"]
+        status, text_field = self.driver.find_element('XPATH', '//android.widget.EditText[@resource-id="com.microchip.bluetooth.data:id/characteristic_write"]')
+        assert status, "Failed to find the text field"
+        self.driver.send_keys(text_field, '11')
+        time.sleep(2)
+        status, write_button = self.driver.find_element('XPATH','//android.widget.Button[@resource-id="com.microchip.bluetooth.data:id/characteristic_write_button"]')
+        assert status, "Failed to find the text field"
+        write_button.click()
+
+    def ble_smart_pairing(self, dut_name, action):
+        print('ble_smart_pairing,action: {}'.format(action))
+        global flagReadSerialData
+        serial_recv = ''
+        flagReadSerialData = True
+
+        serial_port = self.serialdriver.ComportSet(comport, baudrate)
+        def handle_pairing():
+            self.driver.handle_pairing_alert(dut_name, action)
+
+        t0 = threading.Thread(target=self.read_serial_data, args=(serial_port, serial_recv))
+        t0.start()
+        t1 = threading.Thread(target=handle_pairing, args=())
+        t1.start()
+        t1.join()
+        print('work thread complete')
+        if action == 'timeout' or action == 'accept':
+            t0.join(60)
+        else:
+            t0.join(10)
+
+        print('time = {}'.format(datetime.now().strftime("%d-%m-%Y_%I-%M-%S")))
+        self.CloseSerialPort(serial_port)
+
+        if t0.is_alive():
+            print('Read serial data: Unknown data.')
+            return False
+        else:
+            print("serial thread complete.serial_recv = {}".format(serial_recv))
+            return True
+
+    def read_serial_data(self, ser, received_data):
+        global flagReadSerialData
+
+        reading =''
+        print("read_serial_data")
+        while flagReadSerialData:
+            while ser.inWaiting():
+                if ser.inWaiting() > 0:
+                    reading += ser.readline(ser.inWaiting()).decode()
+                    received_data += reading
+                    #print("*{}".format(reading))
+                    if 'Connected' in reading:
+                        #print('Ble connected')
+                        print("Read serial data: {}".format(reading))
+                        flagReadSerialData = False
+                    elif 'pairing failed' in reading:
+                        #print('Pairing failed')
+                        print("Read serial data: {}".format(reading))
+                        flagReadSerialData = False
+                    elif 'SMP Timeout' in reading:
+                        #print('SMP Timeout')
+                        print("Read serial data: {}".format(reading))
+                        flagReadSerialData = False
+                    elif 'Pairing completed' in reading:
+                        print("Read serial data: {}".format(reading))
+                        reading = ''
+                        #print('Pairing success,Check more information')
+                        #flagReadSerialData = False
+                    elif 'Direct advertising to' in reading:
+                        #print('Direct advertising to XX')
+                        if 'Rebooting in 5 seconds' in reading:
+                            #print('Rebooting in 5 seconds...')
+
+                            search_substring = 'Direct advertising to'
+                            start_index = reading.find(search_substring)
+                            if start_index != -1:
+                                flagReadSerialData = False
+                                end_index = start_index + len(search_substring)
+                                result = reading[start_index:end_index]
+                                print("Read serial data: {}".format('Rebooting in 5 seconds...' + result))
+                        #print("Receive serial data: {}".format(reading))
+                        #flagReadSerialData = False
+
+        print("read_serial_data.complete. serial data = {}".format(reading))
+        return reading
 
 
 

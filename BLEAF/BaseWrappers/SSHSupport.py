@@ -1,3 +1,5 @@
+import time
+
 import paramiko
 import re
 
@@ -26,6 +28,7 @@ class ShellHandler:
         """
         cmd = cmd.strip('\n')
         self.stdin.write(cmd + '\n')
+        time.sleep(3)
         finish = 'end of stdOUT buffer. finished with exit status'
         echo_cmd = 'echo {} $?'.format(finish)
         self.stdin.write(echo_cmd + '\n')
