@@ -4,6 +4,8 @@ from ..BaseWrappers.SerialDriver import SerialAccess
 import serial
 import serial.tools.list_ports
 import re
+import glob
+
 
 class SerialSuppport:
     def __init__(self):
@@ -36,8 +38,9 @@ class SerialSuppport:
 
     def ComportSet(self, com_port, baud_rate):
         global serial_port
-        Com = str(com_port).upper()
-        if not self.ComportCheck(Com):
+        #if sys.platform.startswith('darwin'):
+        #Com = str(com_port).upper()
+        if not self.ComportCheck(com_port):
             print("sys exit")
             sys.exit()
         else:
@@ -52,20 +55,30 @@ class SerialSuppport:
                     print("Comport is connected")
                 return serial_port
             except(OSError, serial.SerialException):
-                print("Open comport fail, please checked {0} has release or not".format(Com))
+                print("Open comport fail, please checked {0} has release or not".format(com_port))
                 sys.exit()
 
     def ComportCheck(self, com_port):
-        Com = str(com_port).upper()
-        comlist = serial.tools.list_ports.comports()
-        ComportList = []
-        for list_ in comlist:
-            str(list_)
-            ComportList.append(list_[0])
-
-        if Com not in ComportList:
-            print("Comport not found, please check the setting file")
-            return False
+        if sys.platform.startswith('darwin'):
+            comport_list = glob.glob('/dev/tty.*')
+            if com_port in comport_list:
+                print(comport_list)
+                print('com_port: {} is found'.format(com_port))
+                return True
+            else:
+                return False
         else:
-            return True
+            Com = str(com_port).upper()
+            comlist = serial.tools.list_ports.comports()
+
+            ComportList = []
+            for list_ in comlist:
+                str(list_)
+                ComportList.append(list_[0])
+
+            if Com not in ComportList:
+                print("Comport not found, please check the setting file")
+                return False
+            else:
+                return True
         

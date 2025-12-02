@@ -1,7 +1,4 @@
 #MBD App Locators
-data_timeout_icon = "//android.widget.TextView[@resource-id='android:id/text1']"
-ten_seconds_timeout = "//android.widget.CheckedTextView[@resource-id='android:id/text1' and @text='10 sec']"
-test_seconds_timeout = "//android.widget.CheckedTextView[@resource-id='android:id/text1' and @text='20 sec']"
 dashboard_text = "//android.widget.TextView[@text='Microchip Bluetooth Data']"
 ble_uart_icon = "//android.widget.LinearLayout[@resource-id='com.microchip.bluetooth.data:id/bleuartLayout']"
 ble_sensor_icon = "//android.widget.LinearLayout[@resource-id='com.microchip.bluetooth.data:id/layout2']"
@@ -29,9 +26,8 @@ ble_uart_mode_uart = "//android.widget.TextView[@text='UART']"
 ble_uart_dut_name = "//android.widget.TextView[@text='{}']"
 device_info = "//android.widget.TextView[@text='Device Information']"
 firmware_version = "//android.widget.TextView[@resource-id='com.microchip.bluetooth.data:id/firmwareVers']"
-#settings_icon = "//android.widget.TextView[@resource-id='com.microchip.bluetooth.data:id/menuSetting_btn']"
-settings_icon = "//android.widget.Button[@text='SETTING']"
-#settings_icon = '//android.widget.TextView[@content-desc="SCAN"]'
+#settings_icon = "//android.widget.TextView[@resource-id='com.microchip.bluetooth.data:id/menuscan_btn']"
+settings_icon = "//android.widget.Button[@content-desc='SCAN']"
 change_mode_icon = "//android.widget.TextView[@resource-id='com.microchip.bluetooth.data:id/changeMode']"
 mode_logmessage = "//android.widget.TextView[@resource-id='com.microchip.bluetooth.data:id/logMessage']"
 select_500K = "//android.widget.TextView[@resource-id='com.microchip.bluetooth.data:id/changeconnstatus2']"
@@ -42,6 +38,8 @@ select_10K_file = "//android.widget.TextView[@text='10k.txt']"
 select_50K_file = "//android.widget.TextView[@text='50k.txt']"
 select_100K_file = "//android.widget.TextView[@text='100k.txt']"
 select_200K_file = "//android.widget.TextView[@text='200k.txt']"
+receive_data_timeout_spinner = "//android.widget.Spinner[@resource-id='com.microchip.bluetooth.data:id/spinner1']"
+receive_data_timeout_5sec = "//android.widget.CheckedTextView[@resource-id='android:id/text1' and @text='5 sec']"
 #TRP
 confirm_checksum_500K = "//android.widget.TextView[@text=' checksum, Profile: TRP, File: 500k.txt']"
 confirm_loopback_500K = "//android.widget.TextView[@text=' loopback, Profile: TRP, File: 500k.txt']"
@@ -83,6 +81,7 @@ supervison_value_field = "//android.widget.EditText[@resource-id='com.microchip.
 save_button = "//android.widget.Button[@resource-id='com.microchip.bluetooth.data:id/saveButton']"
 connectionparam_icon = "//android.widget.TextView[@resource-id='com.microchip.bluetooth.data:id/connParamTxt']"
 confirm_Connparam_page ="//android.widget.LinearLayout/android.widget.TextView[@index=0]"
+
 # Phone settings
 device_pair = "//android.widget.Button[@text='Pair']"
 device_cancel_pair = "//android.widget.Button[@text='Cancel']"
@@ -93,6 +92,7 @@ samsung_S10_S21_S22_bluetooth_icon = "//android.widget.TextView[@text='Bluetooth
 samsung_S10_S21_S22_bt_switch = "//android.widget.LinearLayout[@resource_id='com.android.settings:id/com.android.settings:id/switch_background']"
 samsung_S10_S21_S22_bluetooth_on_off_button = "//android.widget.TextView[@text='On']"
 samsung_S10_S21_S22_bt_device_setting = "//android.widget.ImageView[@resource-id='com.android.settings:id/deviceDetails']"
+samsung_S10_S21_S22_bt_device_name = "//android.widget.TextView[@resource-id='com.android.settings:id/bluetooth_header_title']"
 samsung_S10_S21_S22_forget_device = "//android.widget.Button[@content-desc='Unpair']"
 samsung_S10_S21_S22_unpair_device = "//android.widget.Button[@text='Unpair']"
 #Samsung 'S' Series Display only
@@ -102,6 +102,7 @@ samsung_S10_S21_S22_passkey_entry = "//android.widget.EditText[@resource-id='com
 samsung_S10_S21_S22_display_yes_no_passkey = "//android.widget.TextView[@resource-id='com.android.settings:id/message']"
 #Samsung 'S' Series Keyboard Only
 samsung_S10_S21_S22_keyboard_only_passkey = "//android.widget.TextView[@resource-id='com.android.settings:id/message']"
+samsung_S22_display_yes_no_passkey = "//android.widget.TextView[@resource-id='com.android.settings:id/pincode']"
 
 
 # vivo V11 Locators
@@ -125,18 +126,55 @@ vivoV11_keyboard_only_passkey_text = "//android.widget.TextView[@resource-id='co
 vivoV11_keyboard_only_passkey = "//android.widget.TextView[@resource-id='com.android.bluetoothsettings:id/message']"
 vivoV11_ok_button = "//android.widget.Button[@text='OK']"
 
+#vivox80 locators
+
+vivoX80_bt_other_settings = "//android.widget.TextView[@resource-id='android:id/title' and @text='Bluetooth & devices']"
+vivoX80_bluetooth_settings = "//android.widget.TextView[@resource-id='android:id/title' and @text='Bluetooth']"
+vivoX80_bt_status = "//android.widget.Switch[@resource-id='android:id/switch_widget']"
+vivoX80_pair_new_device = "//android.widget.TextView[@resource-id='android:id/title' and @text='Pair new device']"
+vivoX80_device= "//android.widget.TextView[@resource-id='com.android.settings:id/entity_header_title' and @text='{}']"
+vivoX80_device_settings = '//android.widget.ImageView[@content-desc="Settings"]'
+vivoX80_forget_device = "//android.widget.Button[@resource-id='com.android.settings:id/button1']"
+vivoX80_forget_confirm = "//android.widget.Button[@resource-id='android:id/button1' and @text='Forget device']"
+
+#Xiaomi12Pro locators
+xiaomi_bluetooth_settings = "//android.widget.TextView[@resource-id='android:id/title' and @text='Bluetooth']"
+xiaomi_bluetooth_checkbox = "//android.widget.CheckBox[@resource-id='android:id/checkbox']"
+xiaomi_bt_device_settings = "//android.widget.ImageView[@content-desc='Device settings']"
+xiaomi_bt_device_name = "//android.widget.TextView[@resource-id='android:id/summary' and @text='{}']"
+xiaomi_unpair = "//android.widget.TextView[@resource-id='android:id/title' and @text='Unpair']"
+
+#oneplus 7
+
+oneplus7_bluetooth_settings = "//android.widget.TextView[@resource-id='android:id/title' and @text='Bluetooth']"
+oneplus7_bt_status = "//android.widget.Switch[@resource-id='android:id/switch_widget']"
+oneplus7_bt_device_settings = "//android.widget.ImageView[@content-desc='Device Settings']"
+oneplus7_unpair = "//android.widget.TextView[@resource-id='android:id/title' and @text='Unpair']"
+oneplus7_pair = "//android.widget.Button[@resource-id='android:id/button1']"
+oneplus7_bt_device_name = "//android.widget.TextView[@resource-id='com.oplus.wirelesssettings:id/assignment' and @text='{}']"
+oneplus7_displayonly_pairing_req_text = "//android.widget.TextView[@text='Enter pairing code']"
+oneplus7_displayyesno_pairing_req_text = "//android.widget.TextView[@text='Bluetooth pairing request']"
+oneplus7_passkey_entry = "//android.widget.EditText[@resource-id='com.oplus.wirelesssettings:id/text']"
+oneplus7_passkey = "//android.widget.TextView[@resource-id='com.oplus.wirelesssettings:id/passkey']"
 
 #Oppo R15 loactors
 oppoR15_bluetooth_settings = "//android.widget.TextView[@text='Bluetooth']"
 oppoR15_bluetooth_on_off_button = "//android.widget.LinearLayout/android.widget.Switch[@index=0]"
 oppo_R15_bt_device_setting = "//android.widget.ImageView[@resource-id='com.coloros.wirelesssettings:id/deviceDetails']"
+
 oppo_R15_forget_device = "//android.widget.TextView[@text='Unpair']"
+oppo_device_name = "//android.widget.TextView[@text='{}']"
+
 oppo_R15_passkey_entry = "//android.widget.EditText[@resource-id='com.coloros.wirelesssettings:id/text']"
 oppo_R15_displayonly_pairing_req_text = "//android.widget.TextView[@text='Bluetooth pairing']"
 oppo_R15_pair = "//android.widget.Button[@text='Pair']"
 oppo_R15_display_yes_no_passkey = "//android.widget.TextView[@resource-id='android:id/message']"
 oppo_R15_keyboard_only_passkey = "//android.widget.TextView[@resource-id='com.coloros.wirelesssettings:id/message']"
 
+#oppo F27
+oppo_f27_bluetooth_settings = "//android.widget.TextView[@resource-id='android:id/title' and @text='Bluetooth']"
+oppo_f27_device_name = "//android.widget.TextView[@resource-id='com.oplus.wirelesssettings:id/assignment\']"
+oppo_f27_bt_device_setting= "//android.widget.ImageView[@content-desc='Device settings']"
 # Light Blue App locators
 lightblue_dashboard_text = "//android.widget.TextView[@text='LightBlue®']"
 lightblue_connect_icon = "//android.widget.Button[@text='CONNECT']"
@@ -151,7 +189,7 @@ data_format_dropdown = "//android.widget.TextView[@resource-id='android:id/text1
 oppo_R15_data_format_dropdown = "//android.widget.Spinner[@resource-id='com.punchthrough.lightblueexplorer:id/data_format_spinner']"
 select_UTF8_string = "//android.widget.TextView[@text='UTF-8 String']"
 lightblue_read_button = "//android.widget.Button[@resource-id='com.punchthrough.lightblueexplorer:id/read_again_button']"
-device_info_revision_string = "//android.widget.TextView[@resource-id='com.punchthrough.lightblueexplorer:id/read_indicated_values_header']"
+device_info_revision_string = "//androidx.recyclerview.widget.RecyclerView[@resource-id='com.punchthrough.lightblueexplorer:id/read_or_indicated_values_list']"
 read_firmware_value = "//android.widget.TextView[@resource-id='com.punchthrough.lightblueexplorer:id/title']"
 text_view = ".//android.widget.TextView[@resource-id='com.punchthrough.lightblueexplorer:id/title']"
 hardware_revision_version = "//android.widget.TextView[@text='Hardware Revision String']"
@@ -160,6 +198,8 @@ manufacturer_name = "//android.widget.TextView[@text='Manufacturer Name String']
 software_revision_version = "//android.widget.TextView[@text='Software Revision String']"
 serial_number = "//android.widget.TextView[@text='Serial Number String']"
 appearance = "//android.widget.TextView[@text='Appearance']"
+lightblue_read_again_button = "//android.widget.Button[@resource-id='com.punchthrough.lightblueexplorer:id/read_again_button']"
+read_again_value = "//android.widget.TextView[@resource-id='com.punchthrough.lightblueexplorer:id/title' and @text='{}']"
 
 # Google pixel 3a Locators
 pixel3a_settings = "//android.widget.TextView[@text='Settings']"
@@ -173,6 +213,7 @@ pixel3a_bt_device_setting = "//android.widget.ImageView[@resource-id='com.androi
 pixel3a_forget_device = "//android.widget.Button[@text='Forget']"
 pixel3a_confirm_forget_device = "//android.widget.Button[@text='Forget device']"
 pixel3a_connect_confirm = "//android.widget.Button[@resource-id='android:id/button1']"
+pixel_device_name = "//android.widget.TextView[@text='{}']"
 #Google pixel 3a Display only
 pixel3a_status_bar = "//android.view.View[@resource-id='android:id/statusBarBackground']"
 pixel3a_displayonly_pairing_req_text = "//android.widget.TextView[@text='Pairing request']"
@@ -184,11 +225,14 @@ pixel3a_display_yes_no_passkey = "//android.widget.TextView[@resource-id='com.an
 pixel3a_keyboard_only_passkey_text = "//android.widget.TextView[@resource-id='com.android.settings:id/pairing_code_message']"
 pixel3a_keyboard_only_passkey = "//android.widget.TextView[@resource-id='com.android.settings:id/pairing_subhead']"
 pixel3a_ok_button = "//android.widget.Button[@text='OK']"
-
+pairing_request = "//android.widget.TextView[@text='Bluetooth pairing code']"
 # bluetooth_smart_icon
-bluetooth_smart_icon = "//android.widget.LinearLayout[@resource-id='com.microchip.bluetooth.data:id/smartconnect_layout']"
+#bluetooth_smart_icon = "//android.widget.LinearLayout[@resource-id='com.microchip.bluetooth.data:id/smartconnect_layout']"
+bluetooth_smart_icon = '//android.widget.LinearLayout[@resource-id="com.microchip.bluetooth.data:id/smart_discover_layout"]'
 start_scan_button = "//android.widget.FrameLayout/android.widget.TextView[@text='START SCAN']"
-search_icon = "//android.widget.TextView[@content-desc='Search']"
+#search_icon = "//android.widget.TextView[@content-desc='Search']"
+search_icon = "//android.widget.Button[@content-desc='Search']"
+search_field = "//android.widget.AutoCompleteTextView[@resource-id='android:id/search_src_text']"
 back_button = "//android.widget.ImageButton[@content-desc='Navigate up']"
 ascii_value_edittext = "//android.widget.EditText[@resource-id='com.microchip.bluetooth.data:id/value_edittext']"
 hex_value_edittext = "//android.widget.EditText[@resource-id='com.microchip.bluetooth.data:id/hex_edittext']"
@@ -209,7 +253,8 @@ ble_ota_icon = "//android.widget.TextView[@text='OTA DFU']"
 ota_select_image = "//android.widget.TextView[@text='Select Image']"
 ota_fw_version = "//android.widget.TextView[@resource-id='com.microchip.bluetooth.data:id/VersionInfoTextView']"
 ota_current_version = "//android.widget.TextView[@text='Current version : ']"
-ota_Command_error = "//android.widget.TextView[@text='Command error: 2']"
+ota_Command_error = "//android.widget.TextView[@text='OTA_REQUEST_INVALID_PARAMETER']"
+ota_Command_error_2 = "//android.widget.TextView[@text='OTA_REQUEST_NOT_SUPPORTED']"
 ota_result_code = "//android.widget.TextView[@text='Result code = 2']"
 ota_error = "//android.widget.TextView[@text='OTA Error']"
 ota_abnormal_disconnect = "//android.widget.TextView[@text='Abnormal disconnect']"
@@ -218,14 +263,14 @@ ota_current_version_no = "//android.widget.TextView[@resource-id='com.microchip.
 ota_update_version = "//android.widget.TextView[@text='Update Version : ']"
 ota_update_version_no = "//android.widget.TextView[@resource-id ='com.microchip.bluetooth.data:id/textView_update_version']"
 ota_update_success = "//android.widget.TextView[@text='OTA update successfully']"
-ota_bt_is_off = "//android.widget.TextView[@text='BT is off']"
+ota_bt_is_off = "//android.widget.TextView[@text='Bluetooth is off']"
 ota_bt_on = "//android.widget.TextView[@text='Bluetooth is turned off. Turn Bluetooth on to use the app']"
 ota_bt_on_confirm = "//android.widget.TextView[@text='Microchip Bluetooth Data is asking to turn on Bluetooth.']"
 ota_bt_on_allow = "//android.widget.Button[@text='Allow']"
 # ota_fw_binfile1 = "//android.widget.TextView[@text='ble_uart_OTA_v1.1.1.1_image2_pair.bin']"
-ota_fw_binfile1 = "//android.widget.TextView[@text='ble_uart_OTA_v1.1.1.1_image1.bin']"
+ota_fw_binfile1 = "//android.widget.TextView[@text='{}']"
 # ota_fw_binfile2 = "//android.widget.TextView[@text='ble_uart_OTA_v1.1.0.5_pair_48M.bin']"
-ota_fw_binfile2 = "//android.widget.TextView[@text='ble_uart_OTA_v1.1.0.5_48M.bin']"
-ota_fw_binfile3 = "//android.widget.TextView[@text='RNBD451_1.0.0.10.OTA.bin']"
-ota_bt_off = "//android.view.ViewGroup[@content-desc='Bluetooth,On.,Button']"
+ota_fw_binfile2 = "//android.widget.TextView[@text='{}']"
+ota_fw_binfile3 = "//android.widget.TextView[@text='{}']"
+ota_bt_off = "//android.widget.TextView[@resource-id='com.android.systemui:id/tile_label' and @text='Bluetooth']"
 ota_scroll_notification = "//android.widget.ScrollView[@resource-id='com.android.systemui:id/notification_stack_scroller']"
