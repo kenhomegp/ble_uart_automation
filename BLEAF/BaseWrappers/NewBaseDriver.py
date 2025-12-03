@@ -27,9 +27,10 @@ global localport_start
 localport_start = 8100
 
 import platform
+import re
 
 class NewBaseDriver:
-    def __init__(self, ip_addr, port_num, udid, platform_name, platform_verion,
+    def __init__(self, ip_addr, port_num, udid, platform_name, platform_version,
                  device_name, app_package, app_activity=None, fresh_env=True, remote_appium=False):
         global localport_start
         if fresh_env:
@@ -41,7 +42,7 @@ class NewBaseDriver:
                         # server command line arguments
                         #args=['--address', '127.0.0.1', '-p', str(4723)],
                         #args=['--address', '192.168.0.169', '-p', str(4723)],
-                        args=['--address', '172.20.10.6', '-p', str(4723)],
+                        args=['--address', sd.config.appium_server_ip, '-p', str(4723)],
                         timeout_ms=20000,
                     )
                     #print('Appium server ip:172.20.10.6')
@@ -61,7 +62,7 @@ class NewBaseDriver:
                 time.sleep(20)
         desired_caps = {}
         desired_caps['platformName'] = platform_name
-        # desired_caps['platformVersion'] = platform_verion
+        desired_caps['platformVersion'] = platform_version
         #desired_caps['appium:automationName'] = device_name
         #desired_caps['appium:udid'] = udid
 
@@ -77,14 +78,24 @@ class NewBaseDriver:
             desired_caps['df: saveVideo'] = True
             desired_caps['appium:udid'] = udid
         elif "ios" in platform_name.lower():
+            desired_caps['deviceName'] = 'iPhone'
+            desired_caps['automationName'] = "XCUITest"
+            desired_caps['bundleId'] = app_package
+            desired_caps['noReset'] = False
+            desired_caps['xcodeOrgId'] = 'K3G2PB8DXV'
+            desired_caps['xcodeSigningId'] = "Apple Developer"
+            desired_caps['updatedWDABundleId'] = 'com.microchip.DevOps.WebDriverAgentRunner'
+            desired_caps['showXcodeLog'] = True
+            desired_caps['udid'] = udid
+            '''
             desired_caps['showXcodeLog'] = True
             desired_caps['automationName'] = "XCUITest"
-            # desired_caps['appPackage'] = app_package
             desired_caps['bundleId'] = app_package
             desired_caps['noReset'] = False
             desired_caps['wdaLocalPort'] = localport_start
             desired_caps['appium: usePreinstalledWDA'] = True
             desired_caps['appium:udid'] = udid
+            '''
         elif "mac" in platform_name.lower():
             desired_caps['automationName'] = "Mac2"
             desired_caps['bundleId'] = app_package
@@ -107,6 +118,41 @@ class NewBaseDriver:
 
     def kill_remote_appium_server(self):
         sh_in, sh_out, sh_error = self.ssh_handler.execute("ps -a")
+        pids = []
+        print("List process:")
+        for line in sh_out:
+            print(line)
+            if 'node' in line:
+                match = re.match(r'\s*(\d+)', line)
+                if match:
+                    pid = match.group(1)
+                    pids.append(pid)
+                    print(f"PID: {pid}")
+                else:
+                    print("PID not found.")
+                #pid = line.split(' ')[0]
+                #pids.append(pid)
+
+        print("Appium PID.count = {}".format(len(pids)))
+
+        if len(pids) == 1:
+            print("pid = {}".format(pids[0]))
+
+        if len(pids) != 0:
+            for pid in pids:
+                print('killing appium process,pid = {}'.format(pid))
+                cmd = 'kill -9 {}'.format(pid)
+                sh_in, sh_out, sh_error = self.ssh_handler.execute(cmd)
+                if not sh_error:
+                    print("Appium Process Killed Successfully. cmd = {}".format(cmd))
+                else:
+                    assert False, "Failed to kill currently running appium. " \
+                                  "Please kill the process manually and restart execution. cmd output: {}".format(
+                        sh_out)
+                    break
+
+    def kill_remote_appium_server_1(self):
+        sh_in, sh_out, sh_error = self.ssh_handler.execute("ps -a")
         pid = ''
         for line in sh_out:
             if 'node' in line:
@@ -125,7 +171,9 @@ class NewBaseDriver:
             print("No running appium process. ")
 
     def start_remote_appium_server(self, ip_addr, port_num):
-        appium_server_logs = "appium_server_logs_{}".format(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
+        tt = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
+        print("start_remote_appium_server. time = {}".format(tt))
+        appium_server_logs = "appium_server_logs_{}".format(tt)
         start_server_cmd = 'appium -a {} -p {} --relaxed-security > {}.txt &'.format(ip_addr, port_num,
                                                                                      appium_server_logs)
         sh_in, sh_out, sh_error = self.ssh_handler.execute(start_server_cmd)

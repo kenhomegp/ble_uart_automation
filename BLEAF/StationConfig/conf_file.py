@@ -6,10 +6,10 @@ from ..CommonSupportLib.StationDefines import DEVICE_NAME_K, PLATFORM_NAME_K, PL
 #dut_friendly_name = "BLE_UART_824B"
 #dut_friendly_name = "MBD_PERIPHERAL"
 dut_friendly_name = "Direct A"
-#com_port = "COM29"
-#baud_rate = "921600"
-com_port = '/dev/tty.usbmodem00159523561'
+com_port = "COM18"
 baud_rate = "115200"
+#com_port = '/dev/tty.usbmodem00159523561'
+#baud_rate = "115200"
 FW_Version = "0.9.0.6"
 ota_upgrade_fw_version = "1.2.0.7"
 ota_downgrade_fw_version = "1.2.0.6"
@@ -109,10 +109,11 @@ appium_config = {
     "appium_server_config": {
         #"appium_server_ip": "127.0.0.1",
         #"appium_server_ip":  "192.168.0.169",
-        "appium_server_ip": "172.20.10.6",
+        #"appium_server_ip": "172.20.10.6",
+        "appium_server_ip":  "10.160.56.74",
         "appium_server_port": "4723",
-        "use_remote_appium" : False,
-        "remote_appium_server_ip":  "10.160.54.60",
+        "use_remote_appium" : True,
+        "remote_appium_server_ip":  "10.160.54.65",
         "remote_appium_server_port": "4723",
         "remote_appium_username": "WSGAppDev",
         "remote_appium_pwd" : 'Amchp17217',
@@ -134,6 +135,11 @@ appium_config = {
                     PHONE_UDID_K : "00008101-0011645C3428801E",
                     PLATFORM_NAME_K : "iOS",
                     PLATFORM_VERSION_K : "18"
+        },
+        "iPadAir5": {DEVICE_NAME_K  : "iPad",
+                    PHONE_UDID_K : "00008103-0001583C2E63401E",
+                    PLATFORM_NAME_K : "iOS",
+                    PLATFORM_VERSION_K : "15.6"
         },
         "iPhone8": {DEVICE_NAME_K  : "iPhone8",
                     PHONE_UDID_K : "f7e49f0799d364921337d742842e3f3a0274fb6d",
@@ -380,13 +386,13 @@ appium_config = {
 }
 
 duts_to_use = {
-    MOBILE_TO_USE: "MyiPhone",
+    MOBILE_TO_USE: "iPadAir5",
     "server":"DUT1",
     "client":"DUT2"
 }
 
 multilink_phone_config = {
-    MOBILE_TO_USE: "MyiPhone"
+    MOBILE_TO_USE: "iPadAir5"
     #MOBILE_TO_USE: "Pixel7/SamsungS23/Pixel17217"
     #MOBILE_TO_USE: "SamsungA54/Pixel7/iPhone15/Pixel17217/SamsungS23"
 }
