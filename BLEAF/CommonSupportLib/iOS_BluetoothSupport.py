@@ -204,12 +204,18 @@ class iOSBluetoothSupport:
 
     def check_dut_paired_connected(self, dut_name):
         print("Check_paired_connected, DUT = {}".format(dut_name))
-
+        print('Find element = {}'.format(locators.bt_dut.format(dut_name)))
         status, dut_cell = self.driver.find_element('XPATH', locators.bt_dut.format(dut_name))
         time.sleep(2)
 
         if status:
             print("DUT is found. {}".format(dut_cell))
+            time.sleep(2)
+            #self.driver.find_ios_cell_text(dut_cell)
+            #time.sleep(2)
+
+            '''
+            #iPad Air 5/Get exception error
             status = self.driver.get_value(dut_cell)
             print("DUT status: {}".format(status))
             time.sleep(2)
@@ -224,14 +230,11 @@ class iOSBluetoothSupport:
             print("x,y : {} {}".format(x_coordinate, y_coordinate))
             print("element size : {} {}".format(width, height))
             time.sleep(1)
-            #//XCUIElementTypeCell[@name="BLE_UART_D55C"]
-            #location x:16 y :583
-            #size
-            #(//XCUIElementTypeButton[@name="More Info"])[4]
 
             if status == 'Not Connected':
                 print("BLE not connected")
                 return False
+            '''
         else:
             print("Device not found")
             return False

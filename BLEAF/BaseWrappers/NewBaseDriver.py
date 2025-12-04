@@ -78,6 +78,7 @@ class NewBaseDriver:
             desired_caps['df: saveVideo'] = True
             desired_caps['appium:udid'] = udid
         elif "ios" in platform_name.lower():
+            '''
             desired_caps['deviceName'] = 'iPhone'
             desired_caps['automationName'] = "XCUITest"
             desired_caps['bundleId'] = app_package
@@ -88,6 +89,7 @@ class NewBaseDriver:
             desired_caps['showXcodeLog'] = True
             desired_caps['udid'] = udid
             '''
+
             desired_caps['showXcodeLog'] = True
             desired_caps['automationName'] = "XCUITest"
             desired_caps['bundleId'] = app_package
@@ -95,7 +97,7 @@ class NewBaseDriver:
             desired_caps['wdaLocalPort'] = localport_start
             desired_caps['appium: usePreinstalledWDA'] = True
             desired_caps['appium:udid'] = udid
-            '''
+
         elif "mac" in platform_name.lower():
             desired_caps['automationName'] = "Mac2"
             desired_caps['bundleId'] = app_package
@@ -172,7 +174,7 @@ class NewBaseDriver:
 
     def start_remote_appium_server(self, ip_addr, port_num):
         tt = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
-        print("start_remote_appium_server. time = {}".format(tt))
+        print("start_remote_appium_server. ip = {}, port = {}, time = {}".format(ip_addr, port_num, tt))
         appium_server_logs = "appium_server_logs_{}".format(tt)
         start_server_cmd = 'appium -a {} -p {} --relaxed-security > {}.txt &'.format(ip_addr, port_num,
                                                                                      appium_server_logs)
@@ -614,6 +616,13 @@ class NewBaseDriver:
             if len(all_ui_text) == 2:
                 for j in range(len(all_ui_text)):
                     print("ui_text_{} = {}".format(j, all_ui_text[j].text))
+
+    def find_ios_cell_text(self, cell):
+        print('find_ios_cell_details')
+        all_ui_text = cell.find_elements(AppiumBy.CLASS_NAME, "XCUIElementTypeStaticText")
+        if len(all_ui_text) == 2:
+            for j in range(len(all_ui_text)):
+                print("ui_text_{} = {}".format(j, all_ui_text[j].text))
 
     def find_collection_view_cell(self, by, locator, timeout=30):
         #self.find_ios_collection_view_element()

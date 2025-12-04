@@ -1,7 +1,7 @@
 import pytest
 import time
 from datetime import datetime
-
+import sys
 
 from ...CommonSupportLib.BleUARTPairingFeatureSupport import BLEUartPairingSupport
 from ...CommonSupportLib.BLEUARTFeatureSupportiOS import BLEUARTFeatureSupportiOS
@@ -82,7 +82,7 @@ def default_class_fixture(request):
                                 mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
                                 sd.config.app_package, sd.config.app_activity, remote_appium=sd.config.use_remote_appium)
         else:
-            print("platform = Android lightblue:{}, {}".format(sd.config.lightblue_app_package, sd.config.lightblue_app_activity))
+            print("platform = Android MBD:{}, {}".format(sd.config.app_package, sd.config.app_activity))
             driver = NewBaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
                                 mobile_to_use.get(PHONE_UDID_K),
                                 mobile_to_use.get(PLATFORM_NAME_K),
@@ -128,14 +128,24 @@ def default_class_fixture(request):
                 phone_name = phone_info_dic['phone']
                 print("phone_name = {}.Close MBD app".format(phone_name))
                 mobile_driver = phone_info_dic['driver']
-                if "iphone" in phone_name.lower() or "mymac" in phone_name.lower():
+                iDevice = False
+                if "iphone" in phone_name.lower():
+                    iDevice = True
+                elif "mymac" in phone_name.lower():
+                    iDevice = True
+                elif "ipad" in phone_name.lower():
+                    iDevice = True
+
+                #if "iphone" in phone_name.lower() or "mymac" in phone_name.lower():
+                if iDevice:
                     app_package = mobile_driver.get_capability('bundleId')
                 else:
                     app_package = mobile_driver.get_capability('appPackage')
                 time.sleep(3)
                 #pid = mobile_driver.get_android_app_pid('R5CW321G69K')
 
-                if "iphone" in phone_name.lower() or "mymac" in phone_name.lower():
+                #if "iphone" in phone_name.lower() or "mymac" in phone_name.lower():
+                if iDevice:
                     print("[iPhone]Get adb log. not supported")
                 else:
                     mobile_info = sd.config.mobile_data_config.get(phone_name)
@@ -153,14 +163,19 @@ def default_class_fixture(request):
                 #if not sd.remote_mac_server:
                 print(mobile_driver)
                 if not remote_appium:
-                    if mobile_driver.appium_service is not None:
-                        print("kill local appium server")
-                        mobile_driver.appium_service.stop()
+                    if sys.platform.startswith('darwin'):
+                        if mobile_driver.appium_service is not None:
+                            print("[MacOS]kill local appium server")
+                            mobile_driver.appium_service.stop()
+                    else:
+                        print("[Windows]kill local appium server")
+                        mobile_driver.kill_appium_server()
                 else:
                     if mobile_driver.ssh_handler is not None:
-                        for udid in android_udid_list:
-                            mobile_driver.get_android_adb_log(udid)
-                            time.sleep(15)
+                        #for udid in android_udid_list:
+                        #    mobile_driver.get_android_adb_log(udid)
+                        #    time.sleep(15)
+                        print("[MacOS]kill remote appium server")
                         sd.mobile_driver.kill_remote_appium_server()
         else:
             if sd.mobile_platform == "Android":

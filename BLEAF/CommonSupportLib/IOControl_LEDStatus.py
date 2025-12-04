@@ -73,3 +73,36 @@ class IOControlLEDStatus:
             print("In Loop 2")
             print("Set GPIO {0} failed".format(io_pin))
             return False
+
+    def Zephyr_InitMCP2200(self, baudrate, mcu):
+        if not mcu.IsConnected():
+            print("The MCP2200 is disconnected")
+            return False
+
+        #                            I/O,Baudrate,RxLED,TxLED,Flow Control,ULOAD,SSPND
+        #  if not mcu.ConfigureMCP2200((0xFF, baudrate_, 0, 0, flowctrl, False, False)):
+        if not mcu.ConfigureMCP2200(0xFF, baudrate, 0, 0, Flow=False, Uload=False, SSPND=False, Invert=False):
+            print("Configure MCP2200 failed")
+            return False
+
+        # set gp2,gp4 as output
+        if not mcu.ConfigureIO(0xEB):
+            print("Configure GPIO failed")
+            return False
+        else:
+            print("Configure MCP2200 successfully")
+        return True
+
+    def Zephyr_IOCtrl(self, mcu, io_pin, press_t):
+        #mcu = Mcp2200()
+        #if not self.Zephyr_InitMCP2200('115200', mcu):
+        #    sys.exit()
+        if not mcu.ClearPin(io_pin) or mcu.ReadPinValue(io_pin) != 0:
+            print("In Loop 1")
+            print("Set GPIO {0} failed".format(io_pin))
+            return False
+        time.sleep(press_t)
+        if not mcu.SetPin(io_pin) or mcu.ReadPinValue(io_pin) != 1:
+            print("In Loop 2")
+            print("Set GPIO {0} failed".format(io_pin))
+            return False

@@ -5,7 +5,8 @@ import platform
 class Mcp2200:
     def __init__(self):
         self.vid = 0x04d8
-        self.pid = 0x00df
+        #self.pid = 0x00df
+        self.pid = 0x00da
 
         self.checkOS = platform.system()
 

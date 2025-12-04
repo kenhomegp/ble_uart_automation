@@ -113,10 +113,12 @@ appium_config = {
         "appium_server_ip":  "10.160.56.74",
         "appium_server_port": "4723",
         "use_remote_appium" : True,
-        "remote_appium_server_ip":  "10.160.54.65",
+        "remote_appium_server_ip":  "10.160.59.65",
         "remote_appium_server_port": "4723",
-        "remote_appium_username": "WSGAppDev",
-        "remote_appium_pwd" : 'Amchp17217',
+        #"remote_appium_username": "WSGAppDev",
+        #"remote_appium_pwd" : 'Amchp17217',
+        "remote_appium_username": "Minglung",
+        "remote_appium_pwd" : 'a6j3939b',
         "usb_hubs" : ['20-2.1','20-2.2']
     },
 
@@ -386,13 +388,13 @@ appium_config = {
 }
 
 duts_to_use = {
-    MOBILE_TO_USE: "iPadAir5",
+    MOBILE_TO_USE: "MyiPhone",
     "server":"DUT1",
     "client":"DUT2"
 }
 
 multilink_phone_config = {
-    MOBILE_TO_USE: "iPadAir5"
+    MOBILE_TO_USE: "MyiPhone"
     #MOBILE_TO_USE: "Pixel7/SamsungS23/Pixel17217"
     #MOBILE_TO_USE: "SamsungA54/Pixel7/iPhone15/Pixel17217/SamsungS23"
 }

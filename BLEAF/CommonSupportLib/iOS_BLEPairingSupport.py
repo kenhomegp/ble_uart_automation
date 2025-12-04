@@ -130,11 +130,12 @@ class iOSBLEPairingSupport:
         dut_cleared = False
         connection_status = self.get_connection_status(dut_name)
         print("Status is ",connection_status)
-        if connection_status is False:
+        #assert connection_status, 'DUT not found'
 
+        if connection_status is False:
             print("DUT not found so Forgetting not Required")
             dut_cleared = True
-            return  dut_cleared
+            return dut_cleared
 
         if connection_status is None:
             print("Forgetting not required")
@@ -189,7 +190,7 @@ class iOSBLEPairingSupport:
         assert bt_open, "Failed to Open Bluetooth page"
         time.sleep(3)
 
-        print("Checking and forgetting previous pairings")
+        print("Checking and forgetting previous pairings. {}".format(dut_name))
         status = self.check_and_forget(dut_name)
 
 
