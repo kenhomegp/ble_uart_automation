@@ -66,7 +66,26 @@ class iOSBLEPairingSupport:
         print("elementstatus : ",status)
         if status:
             status = self.driver.get_value(bt_icon)
-            print(status)
+            #print(status)
+            print("ble status = {}".format(status))
+
+            '''
+            time.sleep(1)
+            connected_element = '(//XCUIElementTypeStaticText[@name="Connected"])[1]'
+            status, connection_1 = self.driver.find_element('XPATH','(//XCUIElementTypeStaticText[@name="Connected"])[1]')
+            if status is False:
+                print('element font found. {}'.format(connected_element))
+            else:
+                print("ble_status : Connected")
+
+            time.sleep(1)
+            not_connected_element = '(//XCUIElementTypeStaticText[@name="Not Connected"])[1]'
+            status, connection_2 = self.driver.find_element('XPATH','(//XCUIElementTypeStaticText[@name="Not Connected"])[1]')
+            if status is False:
+                print('element font found. {}'.format(not_connected_element))
+            else:
+                print("ble_status : Not Connected")
+            '''
         else:
             error_msg = "Unable to find DUT"
         return status
@@ -100,7 +119,7 @@ class iOSBLEPairingSupport:
                 # more_loc=more_info.location
                 # more_loc_x=more_loc["x"]
                 # status=self.driver.click_by_coordinates(more_loc_x,dut_loc_y)
-                status=self.driver.click_element(more_info)
+                status = self.driver.click_element(more_info)
             else:
                 error_msg = "Unable to find More info button"
         else:
@@ -159,7 +178,7 @@ class iOSBLEPairingSupport:
 
         if connection_status is "Connected":
             print("Forgetting the old pairings")
-            status= self.click_dut(dut_name)
+            status = self.click_dut(dut_name)
             time.sleep(3)
             if status:
                 status,error_msg = self.forget_network()
@@ -193,7 +212,6 @@ class iOSBLEPairingSupport:
         print("Checking and forgetting previous pairings. {}".format(dut_name))
         status = self.check_and_forget(dut_name)
 
-
     def pair_device_ios(self):
         self.driver.update_respect_alerts()
         print("Checking if there is a pop up to confirm")
@@ -224,10 +242,11 @@ class iOSBLEPairingSupport:
 
         if status:
             print("DUT is found. {}".format(dut_cell))
-            status = self.driver.get_value(dut_cell)
-            print("DUT status: {}".format(status))
+            connection_status = self.driver.get_value(dut_cell)
+            print("DUT ble status: {}".format(connection_status))
             time.sleep(2)
 
+            '''
             element_location = dut_cell.location
             x_coordinate = element_location['x']
             y_coordinate = element_location['y']
@@ -238,31 +257,29 @@ class iOSBLEPairingSupport:
             print("x,y : {} {}".format(x_coordinate, y_coordinate))
             print("element size : {} {}".format(width, height))
             time.sleep(1)
-            #//XCUIElementTypeCell[@name="BLE_UART_D55C"]
-            #location x:16 y :583
-            #size
-            #(//XCUIElementTypeButton[@name="More Info"])[4]
-
+            
             if status == 'Not Connected':
                 print("BLE not connected")
                 return False
+            '''
         else:
+            connection_status = 'DUT not found'
             print("Device not found")
-            return False
 
         #print("Check more icon. BLE_UART_D55C")
         #status, more_info = self.driver.find_element('XPATH', locators.more_info_icon)
         status, more_info = self.driver.find_element('XPATH', '(//XCUIElementTypeButton[@name="More Info"])[1]')
         if status:
             print("More info button found")
-            #time.sleep(1)
+            time.sleep(1)
             #status = self.driver.click_element(more_info)
             #print("More Info clicked")
         else:
             error_msg = "Unable to find more info button"
             print(error_msg)
-            return False
-        return True
+            connection_status = error_msg
+
+        return connection_status
 
     def CloseSerialPort(self, ser):
         print("CloseSerialPort")

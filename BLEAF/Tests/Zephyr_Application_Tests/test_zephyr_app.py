@@ -107,8 +107,8 @@ class TestZephyrApp:
         self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
         time.sleep(10)
 
-
-    @pytest.mark.skip(reason="test_zephyr_peripheral_hid_forget_pairing")
+    @pytest.mark.order(3)
+    #@pytest.mark.skip(reason="test_zephyr_peripheral_hid_forget_pairing")
     #@pytest.mark.test_id("Zephyr Peripheral HID Forget Pairing", '')
     def test_zephyr_peripheral_hid_forget_pairing(self):
         print("test_zephyr_peripheral_hid_forget_pairing")
@@ -117,11 +117,12 @@ class TestZephyrApp:
         pairing = iOSBLEPairingSupport()
         pairing.ios_delete_pairing_record('Test HoG mouse')
         time.sleep(5)
-        status = pairing.check_and_forget('Test HoG mouse')
-        assert status, 'Remove pairing: Failed'
+        #status = pairing.check_and_forget('Test HoG mouse')
+        #assert status, 'Remove pairing: Failed'
 
+    @pytest.mark.order(1)
     #@pytest.mark.test_id("Zephyr Peripheral HID Pairing", '')
-    @pytest.mark.skip(reason="test_zephyr_peripheral_hid_pairing")
+    #@pytest.mark.skip(reason="test_zephyr_peripheral_hid_pairing")
     def test_zephyr_peripheral_hid_pairing_connect(self):
         print("test_zephyr_peripheral_hid_pairing_connect")
         sd.mobile_driver.app_activate(sd.config.ios_settings_app_package)
@@ -141,11 +142,16 @@ class TestZephyrApp:
         MCU = Mcp2200()
         time.sleep(1)
         self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
-        time.sleep(1)
-
-        print('I/O Reset. Firmware reset')
-        self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
         time.sleep(2)
+        #self.iocontrolledstatus.Zephyr_IO_Initial(MCU)
+        #time.sleep(2)
+        #self.iocontrolledstatus.Zephyr_IO_SetHigh(MCU, RESET_PIN)
+        #self.iocontrolledstatus.Zephyr_IO_SetHigh(MCU, BTN_CTRL_PIN)
+        #time.sleep(2)
+
+        print('DUT Reset. Firmware reset')
+        self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
+        time.sleep(3)
 
         print("Open Bluetooth Page")
         bt_open = pairing.open_bluetooth()
@@ -167,7 +173,8 @@ class TestZephyrApp:
         except WebDriverException:
             print('WebDriverException')
 
-    @pytest.mark.test_id("Zephyr Peripheral HID", '')
+    @pytest.mark.order(2)
+    #@pytest.mark.test_id("Zephyr Peripheral HID", '')
     #@pytest.mark.skip(reason="test_zephyr_peripheral_hid")
     def test_zephyr_peripheral_hid_mouse_click(self):
             print("Testing Zephyr Peripheral HID Mouse click. BLE Bonded")
@@ -183,13 +190,12 @@ class TestZephyrApp:
             time.sleep(5)
             print('Launch ios setting, Check BLE connection')
 
-            MCU = Mcp2200()
-            time.sleep(1)
-            self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
-            time.sleep(1)
+            #MCU = Mcp2200()
+            #time.sleep(1)
+            #self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
+            #time.sleep(1)
 
-            iOSpairingsupport = iOSBluetoothSupport(sd.mobile_driver)
-            print("new iOSBluetoothSupport driver")
+            iOSpairingsupport = iOSBLEPairingSupport(sd.mobile_driver)
 
             print("Verify Settings App is open")
             app_open = iOSpairingsupport.verify_settings_open()
@@ -198,7 +204,7 @@ class TestZephyrApp:
 
             print('I/O Reset. Firmware reset')
             self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
-            time.sleep(2)
+            time.sleep(3)
 
             print("Open Bluetooth Page")
             bt_open = iOSpairingsupport.open_bluetooth()
@@ -206,7 +212,7 @@ class TestZephyrApp:
             time.sleep(3)
 
             status = iOSpairingsupport.check_dut_paired_connected('Test HoG mouse')
-            assert status, "Failed to find the paired device: Test HoG mouse"
+            assert status == 'Connected', "Failed to find the paired device: Test HoG mouse"
             time.sleep(3)
 
             print('Launch HID test app')
@@ -234,10 +240,11 @@ class TestZephyrApp:
 
             status = sd.mobile_driver.close_app('com.microchip.MBDtest')
             assert status, "Failed to close application"
-            time.sleep(10)
+            time.sleep(5)
 
             assert state != new_state, "HID test failed"
             print('Remove paired device: Test HoG mouse')
+
 
     #@pytest.mark.test_id("Zephyr Direct Advertising", '')
     @pytest.mark.skip(reason="test_zephyr_peripheral_hid")

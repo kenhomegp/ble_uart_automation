@@ -50,7 +50,7 @@ class iOSBluetoothSupport:
         error_msg = ""
         time.sleep(30)
         status, bt_icon = self.driver.find_element('XPATH', locators.bt_dut.format(dut_name))
-        print("elementstatus : ",status)
+        print("elementstatus : ", status)
         if status:
             status = self.driver.get_value(bt_icon)
             print(status)
@@ -209,8 +209,19 @@ class iOSBluetoothSupport:
         time.sleep(2)
 
         if status:
+            print("Only one paired device..")
             print("DUT is found. {}".format(dut_cell))
             time.sleep(2)
+
+            status = self.driver.get_value(dut_cell)
+            print("DUT ble status: {}".format(status))
+            time.sleep(2)
+
+            #connected_element = '(//XCUIElementTypeStaticText[@name="Connected"])[1]'
+            #status, connection = self.driver.find_element('XPATH', '(//XCUIElementTypeStaticText[@name="Connected"])[1]')
+            #if status is False:
+            #    print('element font found. {}'.format(connected_element))
+
             #self.driver.find_ios_cell_text(dut_cell)
             #time.sleep(2)
 
