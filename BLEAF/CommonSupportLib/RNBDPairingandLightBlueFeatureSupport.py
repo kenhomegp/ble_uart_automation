@@ -575,7 +575,7 @@ class RNBDvsPhoneFeatureSupport:
 
     def google_pixel_pair_cancel(self):
         status, pair_device = self.driver.find_element('XPATH', locators.device_cancel_pair,timeout=10)
-        if  not status:
+        if not status:
             if "Vivo" not in sd.platform:
                 print("scroll notification bar")
                 status = self.driver.scroll_notification_bar()
@@ -1107,13 +1107,14 @@ class RNBDvsPhoneFeatureSupport:
         assert status, "Failed to find the textfield"
         self.driver.send_keys(text_field, name)
 
-    def ble_smart_filter_peripherals(self, name):
+    def ble_smart_filter_peripherals(self, name, search_icon=False):
         print('ble_smart_filter_peripherals')
-        status, search_icon = self.driver.find_element('XPATH', locators.search_icon)
-        assert status, "Failed to find the search icon"
-        time.sleep(2)
-        search_icon.click()
-        time.sleep(2)
+        if search_icon:
+            status, search_icon = self.driver.find_element('XPATH', locators.search_icon)
+            assert status, "Failed to find the search icon"
+            time.sleep(2)
+            search_icon.click()
+            time.sleep(2)
         status, search_field = self.driver.find_element('XPATH', locators.search_field)
         assert status, "Failed to find the search field"
         self.driver.send_keys(search_field, name)
@@ -1262,11 +1263,62 @@ class RNBDvsPhoneFeatureSupport:
         #//android.widget.EditText[@resource-id="com.microchip.bluetooth.data:id/characteristic_write"]
         status, text_field = self.driver.find_element('XPATH', '//android.widget.EditText[@resource-id="com.microchip.bluetooth.data:id/characteristic_write"]')
         assert status, "Failed to find the text field"
-        self.driver.send_keys(text_field, '11')
+        self.driver.send_keys(text_field, '12345678')
         time.sleep(2)
         status, write_button = self.driver.find_element('XPATH','//android.widget.Button[@resource-id="com.microchip.bluetooth.data:id/characteristic_write_button"]')
         assert status, "Failed to find the text field"
         write_button.click()
+
+    def ble_smart_characteristic_read(self, service_uuid, char_uuid):
+        print('ble_smart_characteristic_write')
+        locator = '//android.widget.TextView[@resource-id="android:id/text2" and @text="{}"]'
+        #12345678-1234-5678-1234-56789abcdef2
+        status, char = self.driver.find_element('XPATH', locator.format(char_uuid))
+        assert status, "Failed to find the characteristic"
+        char.click()
+        time.sleep(3)
+        #//android.widget.EditText[@resource-id="com.microchip.bluetooth.data:id/characteristic_write"]
+        status, char_read = self.driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/characteristic_read"]')
+        assert status, "Failed to find the text"
+        text = self.driver.get_text(char_read)
+        return text
+
+    def ble_smart_pairing_google_phone(self, dut_name, action):
+        print('ble_smart_pairing_google_phone,action: {}'.format(action))
+        global flagReadSerialData
+        serial_recv = ''
+        flagReadSerialData = True
+
+        serial_port = self.serialdriver.ComportSet(comport, baudrate)
+
+        def handle_pairing():
+            if action == 'timeout':
+                print("pairing timeout")
+            elif action == 'cancel':
+                self.google_pixel_pair_cancel()
+            elif action == 'accept':
+                self.google_pixel_pair_device()
+
+        t0 = threading.Thread(target=self.read_serial_data, args=(serial_port, serial_recv))
+        t0.start()
+        t1 = threading.Thread(target=handle_pairing, args=())
+        t1.start()
+        t1.join()
+        print('work thread complete')
+        if action == 'timeout' or action == 'accept':
+            t0.join(60)
+        else:
+            t0.join(10)
+
+        print('time = {}'.format(datetime.now().strftime("%d-%m-%Y_%I-%M-%S")))
+        self.CloseSerialPort(serial_port)
+
+        if t0.is_alive():
+            print('Read serial data: Unknown data.')
+            return False
+        else:
+            print("serial thread complete.serial_recv = {}".format(serial_recv))
+            return True
 
     def ble_smart_pairing(self, dut_name, action):
         print('ble_smart_pairing,action: {}'.format(action))
@@ -1298,6 +1350,25 @@ class RNBDvsPhoneFeatureSupport:
         else:
             print("serial thread complete.serial_recv = {}".format(serial_recv))
             return True
+
+    def ble_smart_go_back(self):
+        print('ble_smart_go_back')
+        status, back_button = self.driver.find_element('XPATH', '//android.widget.ImageView[@resource-id="android:id/up"]')
+        assert status, "Failed to find the back button"
+        time.sleep(1)
+        back_button.click()
+        print('click backbutton')
+
+    def ble_smart_scan_start_stop(self):
+        print('ble_smart_scan_start_stop')
+        locator = '//android.widget.Button[@resource-id="com.microchip.bluetooth.data:id/menu_scan"]'
+        status, button = self.driver.find_element('XPATH', locator)
+        assert status, "Failed to find the button"
+        time.sleep(1)
+        button_text = self.driver.get_text(button)
+        print('state = {}'.format(button_text))
+        button.click()
+        print('click button')
 
     def read_serial_data(self, ser, received_data):
         global flagReadSerialData
@@ -1338,12 +1409,33 @@ class RNBDvsPhoneFeatureSupport:
                                 flagReadSerialData = False
                                 end_index = start_index + len(search_substring)
                                 result = reading[start_index:end_index]
+                                reading = ''
                                 print("Read serial data: {}".format('Rebooting in 5 seconds...' + result))
+
                         #print("Receive serial data: {}".format(reading))
                         #flagReadSerialData = False
 
         print("read_serial_data.complete. serial data = {}".format(reading))
         return reading
+
+    def ble_lightblue_Bonded(self, dut_name):
+        print('ble_lightblue_Bonded. dut = {}'.format(dut_name))
+        dut_locator = "//android.widget.TextView[@text='{}']"
+        status, Bonded_icon = self.driver.find_element('XPATH', '//android.widget.TextView[@text="Bonded"]')
+        assert status, "Failed to find the Bonded_icon"
+        time.sleep(1)
+        Bonded_icon.click()
+        print('click Bonded')
+        time.sleep(3)
+        status, Bonded_List = self.driver.find_element('XPATH', '//android.widget.TextView[@text="Bonded Devices"]')
+        assert status, "Failed to find the Bonded Devices"
+        time.sleep(3)
+        status, Bonded_dut = self.driver.find_element('XPATH', dut_locator.format(dut_name))
+        assert status, "Failed to find the Bonded device"
+        print('{} is bonded'.format(dut_name))
+
+
+
 
 
 

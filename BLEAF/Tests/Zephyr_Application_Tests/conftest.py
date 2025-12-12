@@ -89,6 +89,7 @@ def default_class_fixture(request):
                                 mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
                                 sd.config.app_package, sd.config.app_activity)
             '''
+            print("platform = Android lightblue:{}, {}".format(sd.config.lightblue_app_package, sd.config.lightblue_app_activity))
             #Lightblue app
             driver = NewBaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
                                 mobile_to_use.get(PHONE_UDID_K),
@@ -126,7 +127,7 @@ def default_class_fixture(request):
             android_udid_list = []
             for phone_info_dic in sd.multilink_mobile_driver:
                 phone_name = phone_info_dic['phone']
-                print("phone_name = {}.Close MBD app".format(phone_name))
+                print("phone_name = {}.Close test app".format(phone_name))
                 mobile_driver = phone_info_dic['driver']
                 iDevice = False
                 if "iphone" in phone_name.lower():

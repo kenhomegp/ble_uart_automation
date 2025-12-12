@@ -13,6 +13,9 @@ from . import android_locators as locators
 from . import ios_locators as ioslocators
 from .StationData import stationData
 
+from ..CommonSupportLib.Serial_Implementaiton import SerialSuppport
+from ..StationConfig import conf_file
+
 # Text for result strings for each mode
 checksum_comparepass_text = "[TX] - Compare checksum : PASS"
 loopback_comparepass_text = "Compare data: PASS"
@@ -26,8 +29,10 @@ text_UART = "Uplink: 500004 bytes"
 
 # Move to config file
 #com_port = 'COM62'
-com_port = '/dev/tty.usbmodem00098255751'
-baud_rate = '921600'
+#com_port = '/dev/tty.usbmodem00098255751'
+#baud_rate = '921600'
+baud_rate = conf_file.baud_rate
+com_port = conf_file.com_port
 block_size = '4096'
 #text_file = '500k'
 text_file = '1k'
@@ -46,6 +51,7 @@ result_str = ""
 
 dut_friendly_name = "BLE_UART_0BC6"
 
+passkey = ''
 
 class BLEUARTFeatureSupportiOS:
     def __init__(self, driver=sd.mobile_driver):
@@ -1479,20 +1485,67 @@ class BLEUARTFeatureSupportiOS:
         assert status, "Failed to find the textfield"
         self.driver.send_keys(text_field, name)
 
+    def lightblue_pairing_connect(self, dut_name):
+        global passkey
+        print('lightblue_pairing_connect.dut = {}'.format(dut_name))
+        serial_driver = SerialSuppport()
+        print("Initial serial port. {},{}".format(com_port, baud_rate))
+        serial_port = serial_driver.ComportSet(com_port, baud_rate)
+        dut_locator = "//XCUIElementTypeStaticText[@name='{}']"
+        status, peripheral = self.driver.find_element('XPATH', dut_locator.format(dut_name))
+        assert status, 'Device not found'
+        time.sleep(1)
+
+        def click_connect():
+            status, connect_button = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@name="Connect"]')
+            assert status, "Failed to find the connect button"
+            status = self.driver.click_element(connect_button)
+            assert status, "Unable to click connect button"
+            print('click connect')
+
+        passkey = ''
+        t0 = threading.Thread(target=self.read_serial_data, args=(serial_port, passkey,))
+        t0.start()
+        t1 = threading.Thread(target=click_connect, args=())
+        t1.start()
+        t1.join()
+        print('work thread complete')
+
+        t0.join(15)
+        self.CloseSerialPort(serial_port)
+        time.sleep(1)
+
+        if not t0.is_alive():
+            print('***** Passkey_string: {},data len = {}'.format(passkey, len(passkey)))
+
+        if len(passkey) > 8:
+            passkey_str = passkey[-8:-2]
+            print("Last 6 char password: {}".format(passkey_str))
+            if passkey_str.isdigit():
+                print("passkey is {}".format(passkey_str))
+                return passkey_str
+        return ''
+
     def lightblue_connect(self, dut_name):
         print('lightblue_connect: {}'.format(dut_name))
-        #ioslocators.dut_name.format(dut_friendly_name)
-        #status, peripheral = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@label="BLE_UART_CDDF_H"]')
-        status, peripheral = self.driver.find_element('XPATH', ioslocators.dut_name.format(dut_name))
-        #assert status, "Failed to find the peripheral"
+
+        if sd.mobile_platform == 'mac':
+            dut_locator = "//XCUIElementTypeStaticText[@label='{}']"
+        else:
+            dut_locator = "//XCUIElementTypeStaticText[@name='{}']"
+        #status, peripheral = self.driver.find_element('XPATH', ioslocators.dut_name.format(dut_name))
+        status, peripheral = self.driver.find_element('XPATH', dut_locator.format(dut_name))
+
         if not status:
             print("Failed to find the peripheral.Fail retry.")
-            if dut_name == 'Direct A':
-                new_dut_name = 'Direct Adv'
-            else:
-                new_dut_name = 'Direct A'
-            status, peripheral = self.driver.find_element('XPATH', ioslocators.dut_name.format(new_dut_name))
-            assert status, "Failed to find the peripheral"
+            return
+            #if dut_name == 'Direct A':
+            #    new_dut_name = 'Direct Adv'
+            #else:
+            #    new_dut_name = 'Direct A'
+            #status, peripheral = self.driver.find_element('XPATH', ioslocators.dut_name.format(new_dut_name))
+            #status, peripheral = self.driver.find_element('XPATH', dut_locator.format(new_dut_name))
+            #assert status, "Failed to find the peripheral"
         if sd.mobile_platform == 'mac':
             status, connect_button = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@label="Connect"]')
         else:
@@ -1679,6 +1732,30 @@ class BLEUARTFeatureSupportiOS:
         print('lightblue_pairing')
         #self.driver.find_pairing_alert1()
         self.driver.find_pairing_alert2()
+
+    def read_serial_data(self, ser, rec_passkey):
+        global flagReadSerialData
+        global passkey
+
+        reading = ''
+        print("read_serial_data")
+        while flagReadSerialData:
+            while ser.inWaiting():
+                if ser.inWaiting() > 0:
+                    reading += ser.readline(ser.inWaiting()).decode()
+                    #received_data.append(ser.read(ser.inWaiting()))
+                    rec_passkey += ser.readline(ser.inWaiting()).decode()
+                    #if 'Passkey' in reading:
+                        #reading = ''
+                    #    print("Passkey found")
+
+        print("read_serial_data.complete. serial data = {}".format(reading))
+        passkey = reading
+        return reading
+
+    def pairing_alert_sendkey(self, dut_name, p_passkey):
+        print("pairing_alert_sendkey. {}".format(passkey))
+        self.driver.handle_pairing_alert(dut_name, 'accept', p_passkey)
 
 
 

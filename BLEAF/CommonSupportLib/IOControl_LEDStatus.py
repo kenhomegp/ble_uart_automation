@@ -92,8 +92,24 @@ class IOControlLEDStatus:
         else:
             return False
 
+    def Zephyr_IO_Default(self, mcu):
+        RESET_PIN = 0x02
+        BTN_CTRL_PIN = 0x04
+        if not mcu.SetPin(RESET_PIN):
+            print("Set GPIO {0} failed".format(RESET_PIN))
+            return False
+        if not mcu.SetPin(BTN_CTRL_PIN):
+            print("Set GPIO {0} failed".format(BTN_CTRL_PIN))
+            return False
+        if not mcu.ConfigureIO(0xFF):
+            print("Configure GPIO failed")
+            return False
+        else:
+            print("Set Zephyr_IO_Default. Success")
+            return True
+
     def Zephyr_IO_Initial(self, mcu):
-        print('Zephyr_IO_Initial.')
+        print('Zephyr_IO_Initial.IOMap:0xEB')
         # set gp2,gp4 as output
         if not mcu.ConfigureIO(0xEB):
             print("Configure GPIO failed")
