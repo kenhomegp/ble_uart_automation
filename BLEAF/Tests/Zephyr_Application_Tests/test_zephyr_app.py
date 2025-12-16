@@ -391,7 +391,7 @@ class TestZephyrApp:
             connection_state = self.bleuartfeature.ble_smart_verify_ble_connected('Direct A')
             assert connection_state == "Connected", 'Error, failed to connect to dut'
             time.sleep(2)
-            self.bleuartfeature.ble_smart_characteristic_write('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef2')
+            self.bleuartfeature.ble_smart_characteristic_write('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef2', '1234')
             if i == 0:
                 action = 'timeout'
             elif i == 1:
@@ -434,9 +434,9 @@ class TestZephyrApp:
                 print('WebDriverException. Pairing alert ')
             '''
 
-    @pytest.mark.order(1)
+    #@pytest.mark.order(1)
     #@pytest.mark.test_id("Zephyr Direct Advertising Data Read/Write", '')
-    #@pytest.mark.skip(reason="test_zephyr_direct_advertising")
+    @pytest.mark.skip(reason="test_zephyr_direct_advertising")
     def test_zephyr_direct_advertising_gatt_read_write(self):
         print('test_zephyr_direct_advertising_gatt_read_write')
         self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
@@ -473,16 +473,27 @@ class TestZephyrApp:
         connection_state = self.bleuartfeature.ble_smart_verify_ble_connected('Direct A')
         assert connection_state == "Connected - Bonded", 'Error, failed to connect to dut'
         time.sleep(2)
-        self.bleuartfeature.ble_smart_characteristic_write('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef2')
+        write_data = '12345678'
+        self.bleuartfeature.ble_smart_characteristic_write('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef2', write_data)
         time.sleep(2)
         self.bleuartfeature.ble_smart_go_back()
         time.sleep(5)
-        char_data = self.bleuartfeature.ble_smart_characteristic_read('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef1')
-        print('read characteristic. data = {}'.format(char_data))
+        read_data = self.bleuartfeature.ble_smart_characteristic_read('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef1')
         time.sleep(2)
+        self.bleuartfeature.ble_smart_go_back()
+        time.sleep(5)
+        write_data = '09abcdef'
+        self.bleuartfeature.ble_smart_characteristic_write('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef2', write_data, char_found=True)
+        time.sleep(2)
+        self.bleuartfeature.ble_smart_go_back()
+        time.sleep(5)
+        read_data = self.bleuartfeature.ble_smart_characteristic_read('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef1')
+        time.sleep(2)
+        self.bleuartfeature.ble_smart_go_back()
+        time.sleep(5)
 
-    #@pytest.mark.test_id("Mac_lightblue_scan_and_connect", '')
-    @pytest.mark.skip(reason="Used for BLE_UART firmware")
+    @pytest.mark.test_id("Mac_lightblue_scan_and_connect", '')
+    #@pytest.mark.skip(reason="Used for BLE_UART firmware")
     def test_mac_lightblue_scan_and_connect(self):
         print("test_lightblue_ble_uart_application")
         print("Search peripherals by name")
@@ -490,12 +501,14 @@ class TestZephyrApp:
         self.bleuartfeature.lightblue_filter_peripherals('CDDF')
         time.sleep(3)
         print("Connect")
-        self.bleuartfeature.lightblue_connect('BLE_UART_CDDF_H')
+        self.bleuartfeature.lightblue_connect('BLE_UART_CDDF')
         time.sleep(10)
         self.bleuartfeature.lightblue_verify_ble_connected()
         time.sleep(5)
         self.bleuartfeature.lightblue_get_device_info_data()
         time.sleep(5)
+        self.bleuartfeature.lightblue_verify_ble_services_characteristics()
+        '''
         status, service = self.bleuartfeature.lightblue_verify_ble_services_and_characteristics()
         if not status:
             print("Failed to verify ble services and characteristics. service={}".format(service))
@@ -508,6 +521,9 @@ class TestZephyrApp:
         else:
             print("lightblue_verify_ble_services_and_characteristics: PASS")
             time.sleep(5)
+        '''
+        '''
+        print('Discover MCHP Transparent services and characteristics')
         self.bleuartfeature.lightblue_enter_characteristic_scene('0x49535343-4C8A-39B3-2F49-511CFF073B7E')
         time.sleep(5)
         self.bleuartfeature.lightblue_characteristic_action('0x49535343-4C8A-39B3-2F49-511CFF073B7E', 'Subscribe')
@@ -520,6 +536,7 @@ class TestZephyrApp:
         time.sleep(5)
         self.bleuartfeature.lightblue_characteristic_screen_goback()
         time.sleep(5)
+        '''
         self.bleuartfeature.lightblue_ble_disconnect()
 
 

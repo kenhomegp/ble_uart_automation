@@ -50,6 +50,9 @@ def default_class_fixture(request):
     platform = mobile_to_use.get(PLATFORM_NAME_K)
     sd.mobile_platform = platform
 
+    ios_test_app_package = sd.config.ios_lightblue_app_package
+    #ios_test_app_package = sd.config.ios_mbda_app_package
+
     if platform == "mac":
         print("Platform: Mac ")
         #Lightblue app
@@ -57,7 +60,7 @@ def default_class_fixture(request):
                             mobile_to_use.get(PHONE_UDID_K),
                             mobile_to_use.get(PLATFORM_NAME_K),
                             mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
-                            sd.config.ios_lightblue_app_package, sd.config.app_activity)
+                            ios_test_app_package, sd.config.app_activity)
     elif platform == 'iOS':
         #sd.config.app_package = sd.config.ios_mbda_app_package
         print("platform = iOS. app package={}".format(sd.config.ios_mbda_app_package))
@@ -66,13 +69,13 @@ def default_class_fixture(request):
                                 mobile_to_use.get(PHONE_UDID_K),
                                 mobile_to_use.get(PLATFORM_NAME_K),
                                 mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
-                                sd.config.ios_mbda_app_package, sd.config.app_activity, remote_appium=sd.config.use_remote_appium)
+                                ios_test_app_package, sd.config.app_activity, remote_appium=sd.config.use_remote_appium)
         else:
             driver = NewBaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
                                 mobile_to_use.get(PHONE_UDID_K),
                                 mobile_to_use.get(PLATFORM_NAME_K),
                                 mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
-                                sd.config.ios_lightblue_app_package, sd.config.app_activity)
+                                ios_test_app_package, sd.config.app_activity)
     else:
         if remote_appium:
             print("platform = Android. Use Remote appium")

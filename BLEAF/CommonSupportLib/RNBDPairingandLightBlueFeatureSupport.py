@@ -1246,31 +1246,37 @@ class RNBDvsPhoneFeatureSupport:
             self.CloseSerialPort(serial_port)
             return ble_state
 
-    def ble_smart_characteristic_write(self, service_uuid, char_uuid):
-        print('ble_smart_characteristic_write')
+    def ble_smart_characteristic_write(self, service_uuid, char_uuid, data, char_found=False):
+        print('ble_smart_characteristic_write data: {}'.format(data))
         locator = '//android.widget.TextView[@resource-id="android:id/text2" and @text="{}"]'
         #12345678-1234-5678-1234-56789abcdef0
         #status, service = self.driver.find_element('XPATH','//android.widget.TextView[@resource-id="android:id/text2" and @text="12345678-1234-5678-1234-56789abcdef0"]')
-        status, service = self.driver.find_element('XPATH',locator.format(service_uuid))
+        status, service = self.driver.find_element('XPATH', locator.format(service_uuid))
         assert status, "Failed to find the service"
-        service.click()
-        time.sleep(2)
+        time.sleep(1)
+        if not char_found:
+            service.click()
+            print('Tap service uuid')
+            time.sleep(3)
         #12345678-1234-5678-1234-56789abcdef2
         status, char = self.driver.find_element('XPATH', locator.format(char_uuid))
         assert status, "Failed to find the characteristic"
+        #print('characteristic uuid found')
         char.click()
+        print('Tap characteristic uuid')
         time.sleep(3)
         #//android.widget.EditText[@resource-id="com.microchip.bluetooth.data:id/characteristic_write"]
         status, text_field = self.driver.find_element('XPATH', '//android.widget.EditText[@resource-id="com.microchip.bluetooth.data:id/characteristic_write"]')
         assert status, "Failed to find the text field"
-        self.driver.send_keys(text_field, '12345678')
+        #self.driver.send_keys(text_field, '12345678')
+        self.driver.send_keys(text_field, data)
         time.sleep(2)
         status, write_button = self.driver.find_element('XPATH','//android.widget.Button[@resource-id="com.microchip.bluetooth.data:id/characteristic_write_button"]')
         assert status, "Failed to find the text field"
         write_button.click()
 
     def ble_smart_characteristic_read(self, service_uuid, char_uuid):
-        print('ble_smart_characteristic_write')
+        print('ble_smart_characteristic_read')
         locator = '//android.widget.TextView[@resource-id="android:id/text2" and @text="{}"]'
         #12345678-1234-5678-1234-56789abcdef2
         status, char = self.driver.find_element('XPATH', locator.format(char_uuid))
@@ -1281,6 +1287,7 @@ class RNBDvsPhoneFeatureSupport:
         status, char_read = self.driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/characteristic_read"]')
         assert status, "Failed to find the text"
         text = self.driver.get_text(char_read)
+        print('read characteristic: {}'.format(text))
         return text
 
     def ble_smart_pairing_google_phone(self, dut_name, action):

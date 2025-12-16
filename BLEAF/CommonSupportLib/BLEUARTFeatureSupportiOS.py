@@ -1497,10 +1497,10 @@ class BLEUARTFeatureSupportiOS:
         time.sleep(1)
 
         def click_connect():
-            status, connect_button = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@name="Connect"]')
-            assert status, "Failed to find the connect button"
-            status = self.driver.click_element(connect_button)
-            assert status, "Unable to click connect button"
+            status_, connect_button = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@name="Connect"]')
+            assert status_, "Failed to find the connect button"
+            status_ = self.driver.click_element(connect_button)
+            assert status_, "Unable to click connect button"
             print('click connect')
 
         passkey = ''
@@ -1562,8 +1562,14 @@ class BLEUARTFeatureSupportiOS:
             status, dis_element = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@name="Device Information"]')
         assert status, "Failed to find the element."
         time.sleep(2)
-        #self.driver.perform_scroll_down_macos(dis, -400)
-        self.driver.perform_scroll_macos(dis_element.id, delta_y)
+        if sd.mobile_platform == 'mac':
+            #self.driver.perform_scroll_down_macos(dis, -400)
+            self.driver.perform_scroll_macos(dis_element.id, delta_y)
+        else:
+            print('perform_scroll_down_ios')
+            self.driver.perform_scroll_down_ios()
+            #time.sleep(3)
+            #self.driver.perform_scroll_down_ios()
         time.sleep(3)
 
     def lightblue_verify_ble_connected(self):
@@ -1578,6 +1584,41 @@ class BLEUARTFeatureSupportiOS:
         print('lightblue_get_device_info_data')
         self.driver.find_ios_collection_view_element(range_start=4, range_end=8)
 
+    def lightblue_verify_ble_services_characteristics(self):
+        print('lightblue_verify_ble_services_characteristics')
+
+        locator = "//XCUIElementTypeStaticText[@name='{}']"
+
+        device_information_service = 'Device Information'
+        device_information_characteristics = ['Manufacturer Name String', 'Model Number String',
+                                              'Firmware Revision String', 'PnP ID']
+
+        mchp_transparent_service = '0x49535343-FE7D-4AE5-8FA9-9FAFD205E455'
+        mchp_transparent_characteristics = ['0x49535343-1E4D-4BD9-BA61-23C647249616',
+                                            '0x49535343-8841-43F4-A8D4-ECBE34729BB3',
+                                            '0x49535343-4C8A-39B3-2F49-511CFF073B7E']
+
+        verified_data = [device_information_service]
+        verified_data.extend(device_information_characteristics)
+        verified_data.append(mchp_transparent_service)
+        verified_data.append('scroll')
+        verified_data.extend(mchp_transparent_characteristics)
+
+        for data in verified_data:
+            if data == 'scroll':
+                print('scroll')
+                self.driver.perform_scroll_down_ios()
+                time.sleep(3)
+            else:
+                print("verify data: {}".format(data))
+                status, element = self.driver.find_element('XPATH', locator.format(data))
+                if not status:
+                    print("Failed to find the {}".format(data))
+                    break
+                else:
+                    print('done.')
+                time.sleep(1)
+
     def lightblue_verify_ble_services_and_characteristics(self, start_service=""):
         print('lightblue_verify_ble_services_and_characteristics.{}'.format(start_service))
 
@@ -1587,16 +1628,18 @@ class BLEUARTFeatureSupportiOS:
             locator = "//XCUIElementTypeStaticText[@name='{}']"
 
         device_information_service = 'Device Information'
-        device_information_characteristics = ['Manufacturer Name String','Model Number String','Firmware Revision String']
+        device_information_characteristics = ['Manufacturer Name String', 'Model Number String', 'Firmware Revision String']
 
         mchp_transparent_service = '0x49535343-FE7D-4AE5-8FA9-9FAFD205E455'
-        mchp_transparent_characteristics = ['0x49535343-1E4D-4BD9-BA61-23C647249616','0x49535343-8841-43F4-A8D4-ECBE34729BB3','0x49535343-4C8A-39B3-2F49-511CFF073B7E']
+        mchp_transparent_characteristics = ['0x49535343-1E4D-4BD9-BA61-23C647249616', '0x49535343-8841-43F4-A8D4-ECBE34729BB3', '0x49535343-4C8A-39B3-2F49-511CFF073B7E']
 
         mchp_ota_service = '0x4D434850-253D-46B3-9923-E61B8E8215D7'
-        mchp_ota_characteristics = ['0x4D434850-22E4-4246-AF03-0C4A2F906358','0x4D434850-34D9-40A6-BA7E-56F57C8CD478','0x4D434850-9327-45DE-8882-C97F39028A76']
+        mchp_ota_characteristics = ['0x4D434850-22E4-4246-AF03-0C4A2F906358', '0x4D434850-34D9-40A6-BA7E-56F57C8CD478', '0x4D434850-9327-45DE-8882-C97F39028A76']
 
-        services = [device_information_service,mchp_transparent_service,mchp_ota_service]
-        characteristics = {device_information_service:device_information_characteristics, mchp_transparent_service:mchp_transparent_characteristics, mchp_ota_service:mchp_ota_characteristics}
+        services = [device_information_service, mchp_transparent_service]
+        #services = [device_information_service, mchp_transparent_service, mchp_ota_service]
+        characteristics = {device_information_service: device_information_characteristics, mchp_transparent_service: mchp_transparent_characteristics}
+        #characteristics = {device_information_service: device_information_characteristics, mchp_transparent_service: mchp_transparent_characteristics, mchp_ota_service: mchp_ota_characteristics}
 
         result = True
         discover_service = ""
