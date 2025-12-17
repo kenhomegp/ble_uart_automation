@@ -107,18 +107,20 @@ HB_DUTS = {
 
 appium_config = {
     "appium_server_config": {
-        #"appium_server_ip": "127.0.0.1",
+        "appium_server_ip": "127.0.0.1",
         #"appium_server_ip":  "192.168.0.169",
         #"appium_server_ip": "172.20.10.6",
-        "appium_server_ip":  "10.160.56.74",
+        #"appium_server_ip":  "10.160.56.74",
         "appium_server_port": "4723",
         "use_remote_appium" : True,
-        "remote_appium_server_ip":  "10.160.59.63",
+        "remote_appium_server_ip":  "10.160.59.65",
         "remote_appium_server_port": "4723",
         #"remote_appium_username": "WSGAppDev",
         #"remote_appium_pwd" : 'Amchp17217',
         "remote_appium_username": "Minglung",
         "remote_appium_pwd" : 'a6j3939b',
+        #"remote_appium_username": "MCHP",
+        #"remote_appium_pwd" : 'mchp',
         "usb_hubs" : ['20-2.1','20-2.2']
     },
 
@@ -167,6 +169,11 @@ appium_config = {
                     PHONE_UDID_K : "00008120-00084D3E2261A01E",
                     PLATFORM_NAME_K : "iOS",
                     PLATFORM_VERSION_K : "18.1.1"
+        },
+        "iPhone 16": {DEVICE_NAME_K  : "iPhone 16",
+                    PHONE_UDID_K : "00008140-00165DDE3E2B001C",
+                    PLATFORM_NAME_K : "iOS",
+                    PLATFORM_VERSION_K : "26"
         },
         "iPhone XR": {DEVICE_NAME_K  : "iPhone XR",
                     PHONE_UDID_K : "00008020-001658643485002E",
@@ -268,6 +275,12 @@ appium_config = {
                        PLATFORM_NAME_K: "Android",
                        PLATFORM_VERSION_K: "11",
                        },
+        "Pixel 7": {DEVICE_NAME_K: "Pixel 7",
+                      PHONE_UDID_K: "28101FDH2005ML",
+                      PLATFORM_NAME_K: "Android",
+                      PLATFORM_VERSION_K: "14",
+                      PHONE_BT_ADDRESS_K: "A8798DA59882",
+                      },
         "Xiaomi12Pro": {DEVICE_NAME_K: "Xiaomi12Pro",
                        PHONE_UDID_K: "be16c1a7",
                        PLATFORM_NAME_K: "Android",
@@ -388,13 +401,13 @@ appium_config = {
 }
 
 duts_to_use = {
-    MOBILE_TO_USE: "MyiPhone",
+    MOBILE_TO_USE: "MyMac",
     "server":"DUT1",
     "client":"DUT2"
 }
 
 multilink_phone_config = {
-    MOBILE_TO_USE: "MyiPhone"
+    MOBILE_TO_USE: "MyMac"
     #MOBILE_TO_USE: "Pixel7/SamsungS23/Pixel17217"
     #MOBILE_TO_USE: "SamsungA54/Pixel7/iPhone15/Pixel17217/SamsungS23"
 }

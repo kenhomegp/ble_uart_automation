@@ -1554,23 +1554,47 @@ class BLEUARTFeatureSupportiOS:
         status = self.driver.click_element(connect_button)
         assert status, "Unable to click connect button"
 
-    def lightblue_scroll_gesture(self, delta_y):
-        print('lightblue_scroll_gesture.{}'.format(delta_y))
+    def lightblue_scroll_gesture(self, delta_y, element=''):
+        print('lightblue_scroll_gesture.{}.{}'.format(element, delta_y))
         if sd.mobile_platform == 'mac':
-            status, dis_element = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@label="Device Information"]')
+            locator = "//XCUIElementTypeStaticText[@label='{}']"
+            if element != '':
+                status, element = self.driver.find_element('XPATH', locator.format(element))
+            else:
+                status, element = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@label="Device Information"]')
         else:
-            status, dis_element = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@name="Device Information"]')
-        assert status, "Failed to find the element."
+            locator = "//XCUIElementTypeStaticText[@name='{}']"
+            status, element = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@name="Device Information"]')
+        assert status, "Failed to find the element:{}".format(element)
         time.sleep(2)
         if sd.mobile_platform == 'mac':
             #self.driver.perform_scroll_down_macos(dis, -400)
-            self.driver.perform_scroll_macos(dis_element.id, delta_y)
+            self.driver.perform_scroll_macos(element.id, delta_y)
         else:
             print('perform_scroll_down_ios')
             self.driver.perform_scroll_down_ios()
             #time.sleep(3)
             #self.driver.perform_scroll_down_ios()
         time.sleep(3)
+
+    def lightblue_scroll_test2(self):
+        print('lightblue_scroll_test2')
+        self.driver.perform_scroll_to_element()
+
+    def lightblue_scroll_test1(self):
+        print('lightblue_scroll_test1')
+
+        locator = "//XCUIElementTypeStaticText[@name='{}']"
+        #status, element = self.driver.find_element('XPATH', locator.format('Device Information'))
+        status, element = self.driver.find_element('XPATH', locator.format('Current Time Service'))
+        if status:
+            dir = 'down'
+            print('perform_scroll_with_element(Current Time Service). dir = {}'.format(dir))
+            self.driver.perform_scroll_with_element(element, dir)
+            time.sleep(5)
+            #print('perform_scroll_up_ios')
+            #self.driver.perform_scroll_up_ios()
+            #time.sleep(5)
 
     def lightblue_verify_ble_connected(self):
         print('lightblue_verify_ble_connected')
@@ -1582,13 +1606,46 @@ class BLEUARTFeatureSupportiOS:
 
     def lightblue_get_device_info_data(self):
         print('lightblue_get_device_info_data')
-        self.driver.find_ios_collection_view_element(range_start=4, range_end=8)
+        self.driver.find_ios_collection_view_element(range_start=8, range_end=11, require_scroll=True, scroll_index=8)
+        time.sleep(2)
+        print('perform_scroll_up')
+        self.driver.perform_scroll_up_ios()
+        time.sleep(3)
+        #self.driver.perform_scroll_up_ios()
+        #time.sleep(3)
+        #BLE_UART_CDDF
+        #self.driver.find_ios_collection_view_element(range_start=4, range_end=8)
 
     def lightblue_verify_ble_services_characteristics(self):
         print('lightblue_verify_ble_services_characteristics')
 
-        locator = "//XCUIElementTypeStaticText[@name='{}']"
+        if sd.mobile_platform == 'mac':
+            locator = "//XCUIElementTypeStaticText[@label='{}']"
+        else:
+            locator = "//XCUIElementTypeStaticText[@name='{}']"
 
+        battery_service_char = ['Battery Service', 'Battery Level']
+
+        current_time_service_char = ['Current Time Service', 'Current Time']
+
+        device_information_service = 'Device Information'
+        device_information_characteristics = ['Manufacturer Name String', 'Model Number String',
+                                              'PnP ID']
+
+        heart_rate_service_char = ['Heart Rate', 'Heart Rate Measurement', 'Body Sensor Location', 'Heart Rate Control Point']
+
+        Immediate_alert_service_char = ['Immediate Alert', 'Alert Level']
+
+        Custom_service_char = ['0x12345678-1234-5678-1234-56789ABCDEF0',
+                               '0x12345678-1234-5678-1234-56789ABCDEF1',
+                               '0x12345678-1234-5678-1234-56789ABCDEF2',
+                               'scroll',
+                               '0x12345678-1234-5678-1234-56789ABCDEF3',
+                               '0x13345678-1234-5678-1334-56789ABCDEF3',
+                               '0x12345678-1234-5678-1234-56789ABCDEF4']
+
+        '''
+        #BLE_UART_CDDF
         device_information_service = 'Device Information'
         device_information_characteristics = ['Manufacturer Name String', 'Model Number String',
                                               'Firmware Revision String', 'PnP ID']
@@ -1597,17 +1654,21 @@ class BLEUARTFeatureSupportiOS:
         mchp_transparent_characteristics = ['0x49535343-1E4D-4BD9-BA61-23C647249616',
                                             '0x49535343-8841-43F4-A8D4-ECBE34729BB3',
                                             '0x49535343-4C8A-39B3-2F49-511CFF073B7E']
-
-        verified_data = [device_information_service]
+        '''
+        verified_data = battery_service_char
+        verified_data.extend(current_time_service_char)
+        verified_data.append(device_information_service)
         verified_data.extend(device_information_characteristics)
-        verified_data.append(mchp_transparent_service)
         verified_data.append('scroll')
-        verified_data.extend(mchp_transparent_characteristics)
+        verified_data.extend(heart_rate_service_char)
+        verified_data.extend(Immediate_alert_service_char)
+        verified_data.extend(Custom_service_char)
 
         for data in verified_data:
             if data == 'scroll':
                 print('scroll')
-                self.driver.perform_scroll_down_ios()
+                #self.driver.perform_scroll_down_ios()
+                self.lightblue_scroll_gesture('-500', 'Heart Rate')
                 time.sleep(3)
             else:
                 print("verify data: {}".format(data))

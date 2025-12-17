@@ -55,12 +55,18 @@ def default_class_fixture(request):
 
     if platform == "mac":
         print("Platform: Mac ")
-        #Lightblue app
-        driver = NewBaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
+        use_remote_appium = False
+        if remote_appium:
+            appium_ip = sd.config.remote_appium_server_ip
+            use_remote_appium = True
+        else:
+            appium_ip = sd.config.appium_server_ip
+
+        driver = NewBaseDriver(appium_ip, sd.config.appium_server_port,
                             mobile_to_use.get(PHONE_UDID_K),
                             mobile_to_use.get(PLATFORM_NAME_K),
                             mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
-                            ios_test_app_package, sd.config.app_activity)
+                            ios_test_app_package, sd.config.app_activity, remote_appium=use_remote_appium)
     elif platform == 'iOS':
         #sd.config.app_package = sd.config.ios_mbda_app_package
         print("platform = iOS. app package={}".format(sd.config.ios_mbda_app_package))

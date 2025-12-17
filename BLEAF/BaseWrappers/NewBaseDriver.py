@@ -580,6 +580,19 @@ class NewBaseDriver:
     def perform_scroll_down_ios(self):
         self.driver.execute_script('mobile: scroll', {'direction': 'down'});
 
+    def perform_scroll_with_element(self, element, dir):
+        self.driver.execute_script('mobile: scroll', {'element': element.id, 'direction': dir});
+
+    def perform_scroll_to_element(self):
+        container_element = self.driver.find_element(AppiumBy.XPATH, '//XCUIElementTypeCollectionView')
+
+        args = {
+            "element": container_element.id,
+            #"predicateString": "label == 'Device Information'"
+            "direction": "down"}
+
+        self.driver.execute_script('mobile: scroll', args);
+
     def perform_scroll_up_ios(self):
         self.driver.execute_script('mobile: scroll', {'direction': 'up'});
 
@@ -591,7 +604,7 @@ class NewBaseDriver:
         }
         self.driver.execute_script('macos: scroll', scroll_object)
 
-    def find_ios_collection_view_element(self, range_start=0, range_end=0):
+    def find_ios_collection_view_element(self, range_start=0, range_end=0, require_scroll=False, scroll_index=0):
         print('find_ios_collection_view_element')   #The cell contains two static text
         element = self.driver.find_element(AppiumBy.XPATH, '//XCUIElementTypeCollectionView')
         time.sleep(2)
@@ -616,6 +629,11 @@ class NewBaseDriver:
             if len(all_ui_text) == 2:
                 for j in range(len(all_ui_text)):
                     print("ui_text_{} = {}".format(j, all_ui_text[j].text))
+            if require_scroll:
+                if i == scroll_index:
+                    print('scroll.cell_index={}'.format(scroll_index))
+                    self.perform_scroll_down_ios()
+                    time.sleep(3)
 
     def find_ios_cell_text(self, cell):
         print('find_ios_cell_details')

@@ -79,7 +79,7 @@ def local_function_fixture(request):
     def function_finalizer():
         print("Local function finalizer")
         # print("Close App")
-        if sd.mobile_platform == "iOS":
+        if sd.mobile_platform == "iOS" or sd.mobile_platform == 'mac':
             if test_func_name == "test_zephyr_peripheral_hid_ble_bonded":
                 sd.mobile_driver.close_app(sd.config.ios_lightblue_app_package)
         else:
@@ -492,8 +492,37 @@ class TestZephyrApp:
         self.bleuartfeature.ble_smart_go_back()
         time.sleep(5)
 
-    @pytest.mark.test_id("Mac_lightblue_scan_and_connect", '')
-    #@pytest.mark.skip(reason="Used for BLE_UART firmware")
+    #@pytest.mark.order(1)
+    @pytest.mark.test_id("Zephyr peripheral v1 rc5", '')
+    #@pytest.mark.skip(reason="test_zephyr_peripheral_rc5")
+    def test_zephyr_peripheral(self):
+        print('test_zephyr_peripheral_v1_rc5')
+        self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
+        time.sleep(1)
+        print('I/O Reset. Firmware reset')
+        self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
+        time.sleep(3)
+        print("Search peripherals by name")
+        time.sleep(3)
+        self.bleuartfeature.lightblue_filter_peripherals('Zephyr Peripheral')
+        time.sleep(3)
+        print("Connect")
+        self.bleuartfeature.lightblue_connect('Zephyr Peripheral Sample Long')
+        #self.bleuartfeature.lightblue_connect('Zephyr Peripheral Sample Long Name')
+        time.sleep(10)
+        self.bleuartfeature.lightblue_verify_ble_connected()
+        time.sleep(5)
+        #self.bleuartfeature.lightblue_scroll_gesture(-500)
+        #self.bleuartfeature.lightblue_scroll_test2()
+        #time.sleep(5)
+        #self.bleuartfeature.lightblue_get_device_info_data()
+        #time.sleep(5)
+        self.bleuartfeature.lightblue_verify_ble_services_characteristics()
+        time.sleep(5)
+
+
+    #@pytest.mark.test_id("Mac_lightblue_scan_and_connect", '')
+    @pytest.mark.skip(reason="Used for BLE_UART firmware")
     def test_mac_lightblue_scan_and_connect(self):
         print("test_lightblue_ble_uart_application")
         print("Search peripherals by name")
@@ -505,9 +534,10 @@ class TestZephyrApp:
         time.sleep(10)
         self.bleuartfeature.lightblue_verify_ble_connected()
         time.sleep(5)
-        self.bleuartfeature.lightblue_get_device_info_data()
-        time.sleep(5)
+        #self.bleuartfeature.lightblue_get_device_info_data()
+        #time.sleep(5)
         self.bleuartfeature.lightblue_verify_ble_services_characteristics()
+        time.sleep(5)
         '''
         status, service = self.bleuartfeature.lightblue_verify_ble_services_and_characteristics()
         if not status:
