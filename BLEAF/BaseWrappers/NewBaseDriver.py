@@ -583,6 +583,9 @@ class NewBaseDriver:
     def perform_scroll_with_element(self, element, dir):
         self.driver.execute_script('mobile: scroll', {'element': element.id, 'direction': dir});
 
+    def perform_swipe_with_element(self, element, dir):
+        self.driver.execute_script('mobile: swipe', {'elementId': element.id, 'direction': dir});
+
     def perform_scroll_to_element(self):
         container_element = self.driver.find_element(AppiumBy.XPATH, '//XCUIElementTypeCollectionView')
 

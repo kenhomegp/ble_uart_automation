@@ -1554,44 +1554,52 @@ class BLEUARTFeatureSupportiOS:
         status = self.driver.click_element(connect_button)
         assert status, "Unable to click connect button"
 
-    def lightblue_scroll_gesture(self, delta_y, element=''):
-        print('lightblue_scroll_gesture.{}.{}'.format(element, delta_y))
+    def lightblue_scroll_gesture(self, delta_y, scroll_element='', direction='up'):
+        print('lightblue_scroll_gesture.{}.{}'.format(scroll_element, delta_y))
         if sd.mobile_platform == 'mac':
             locator = "//XCUIElementTypeStaticText[@label='{}']"
-            if element != '':
-                status, element = self.driver.find_element('XPATH', locator.format(element))
+            if scroll_element != '':
+                status, element = self.driver.find_element('XPATH', locator.format(scroll_element))
             else:
                 status, element = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@label="Device Information"]')
         else:
             locator = "//XCUIElementTypeStaticText[@name='{}']"
-            status, element = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@name="Device Information"]')
+            if scroll_element != '':
+                status, element = self.driver.find_element('XPATH', locator.format(scroll_element))
+            else:
+                status, element = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@label="Device Information"]')
         assert status, "Failed to find the element:{}".format(element)
         time.sleep(2)
         if sd.mobile_platform == 'mac':
             #self.driver.perform_scroll_down_macos(dis, -400)
             self.driver.perform_scroll_macos(element.id, delta_y)
         else:
-            print('perform_scroll_down_ios')
-            self.driver.perform_scroll_down_ios()
+            print('perform_swipe_with_element')
+            self.driver.perform_swipe_with_element(element, direction)
+            #print('perform_scroll_down_ios')
+            #self.driver.perform_scroll_down_ios()
             #time.sleep(3)
             #self.driver.perform_scroll_down_ios()
-        time.sleep(3)
+            #time.sleep(3)
 
     def lightblue_scroll_test2(self):
         print('lightblue_scroll_test2')
         self.driver.perform_scroll_to_element()
 
-    def lightblue_scroll_test1(self):
+    def lightblue_scroll_test1(self, direction):
         print('lightblue_scroll_test1')
 
         locator = "//XCUIElementTypeStaticText[@name='{}']"
-        #status, element = self.driver.find_element('XPATH', locator.format('Device Information'))
-        status, element = self.driver.find_element('XPATH', locator.format('Current Time Service'))
+        status, element = self.driver.find_element('XPATH', locator.format('Device Information'))
+        #status, element = self.driver.find_element('XPATH', locator.format('Current Time Service'))
         if status:
-            dir = 'down'
-            print('perform_scroll_with_element(Current Time Service). dir = {}'.format(dir))
-            self.driver.perform_scroll_with_element(element, dir)
-            time.sleep(5)
+            #dir = 'down'
+            dir = direction
+            #print('perform_scroll_with_element(Current Time Service). dir = {}'.format(dir))
+            #self.driver.perform_scroll_with_element(element, dir)
+            print('perform_swipe_with_element(Device Information). dir = {}'.format(dir))
+            self.driver.perform_swipe_with_element(element, dir)
+            #time.sleep(5)
             #print('perform_scroll_up_ios')
             #self.driver.perform_scroll_up_ios()
             #time.sleep(5)
@@ -1606,11 +1614,12 @@ class BLEUARTFeatureSupportiOS:
 
     def lightblue_get_device_info_data(self):
         print('lightblue_get_device_info_data')
-        self.driver.find_ios_collection_view_element(range_start=8, range_end=11, require_scroll=True, scroll_index=8)
-        time.sleep(2)
-        print('perform_scroll_up')
-        self.driver.perform_scroll_up_ios()
-        time.sleep(3)
+        self.driver.find_ios_collection_view_element(range_start=8, range_end=11)
+        #self.driver.find_ios_collection_view_element(range_start=8, range_end=11, require_scroll=True, scroll_index=8)
+        #time.sleep(2)
+        #print('perform_scroll_up')
+        #self.driver.perform_scroll_up_ios()
+        #time.sleep(3)
         #self.driver.perform_scroll_up_ios()
         #time.sleep(3)
         #BLE_UART_CDDF
@@ -1629,37 +1638,23 @@ class BLEUARTFeatureSupportiOS:
         current_time_service_char = ['Current Time Service', 'Current Time']
 
         device_information_service = 'Device Information'
-        device_information_characteristics = ['Manufacturer Name String', 'Model Number String',
-                                              'PnP ID']
+        device_information_characteristics = ['Manufacturer Name String', 'Model Number String', 'scroll', 'PnP ID']
 
         heart_rate_service_char = ['Heart Rate', 'Heart Rate Measurement', 'Body Sensor Location', 'Heart Rate Control Point']
 
-        Immediate_alert_service_char = ['Immediate Alert', 'Alert Level']
+        Immediate_alert_service_char = ['Immediate Alert', 'scroll', 'Alert Level']
 
         Custom_service_char = ['0x12345678-1234-5678-1234-56789ABCDEF0',
                                '0x12345678-1234-5678-1234-56789ABCDEF1',
                                '0x12345678-1234-5678-1234-56789ABCDEF2',
-                               'scroll',
                                '0x12345678-1234-5678-1234-56789ABCDEF3',
                                '0x13345678-1234-5678-1334-56789ABCDEF3',
                                '0x12345678-1234-5678-1234-56789ABCDEF4']
 
-        '''
-        #BLE_UART_CDDF
-        device_information_service = 'Device Information'
-        device_information_characteristics = ['Manufacturer Name String', 'Model Number String',
-                                              'Firmware Revision String', 'PnP ID']
-
-        mchp_transparent_service = '0x49535343-FE7D-4AE5-8FA9-9FAFD205E455'
-        mchp_transparent_characteristics = ['0x49535343-1E4D-4BD9-BA61-23C647249616',
-                                            '0x49535343-8841-43F4-A8D4-ECBE34729BB3',
-                                            '0x49535343-4C8A-39B3-2F49-511CFF073B7E']
-        '''
         verified_data = battery_service_char
         verified_data.extend(current_time_service_char)
         verified_data.append(device_information_service)
         verified_data.extend(device_information_characteristics)
-        verified_data.append('scroll')
         verified_data.extend(heart_rate_service_char)
         verified_data.extend(Immediate_alert_service_char)
         verified_data.extend(Custom_service_char)
@@ -1668,7 +1663,8 @@ class BLEUARTFeatureSupportiOS:
             if data == 'scroll':
                 print('scroll')
                 #self.driver.perform_scroll_down_ios()
-                self.lightblue_scroll_gesture('-500', 'Heart Rate')
+                self.lightblue_scroll_gesture('0', scroll_element='Device Information')
+                #self.lightblue_scroll_test1('up')
                 time.sleep(3)
             else:
                 print("verify data: {}".format(data))
@@ -1860,6 +1856,31 @@ class BLEUARTFeatureSupportiOS:
     def pairing_alert_sendkey(self, dut_name, p_passkey):
         print("pairing_alert_sendkey. {}".format(passkey))
         self.driver.handle_pairing_alert(dut_name, 'accept', p_passkey)
+
+    def lightblue_set_filter(self, rssi):
+        print('lightblue_set_filter. rssi = {}'.format(rssi))
+        status, element = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@label="funnel_filled"]')
+        assert status, "Failed to find the button."
+        time.sleep(1)
+        element.click()
+        status, slider = self.driver.find_element('XPATH', '//XCUIElementTypeSlider')
+        assert status, "Failed to find the slider."
+        self.driver.send_keys(slider, rssi)
+        print('slider_send_key.')
+        time.sleep(3)
+        status, back = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@label="Back"]')
+        assert status, "Failed to find the back button."
+        time.sleep(1)
+        back.click()
+
+    def lightblue_rescan(self):
+        if sd.mobile_platform == 'mac':
+            print('lightblue_rescan')
+            status, scan = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@label="ArrowsClockwise"]')
+            assert status, "Failed to find the button."
+            time.sleep(1)
+            scan.click()
+
 
 
 
