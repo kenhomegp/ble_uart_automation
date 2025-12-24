@@ -1537,15 +1537,20 @@ class BLEUARTFeatureSupportiOS:
         status, peripheral = self.driver.find_element('XPATH', dut_locator.format(dut_name))
 
         if not status:
+            #print("Failed to find the peripheral.Fail retry.")
+            #return
             print("Failed to find the peripheral.Fail retry.")
-            return
-            #if dut_name == 'Direct A':
-            #    new_dut_name = 'Direct Adv'
-            #else:
-            #    new_dut_name = 'Direct A'
-            #status, peripheral = self.driver.find_element('XPATH', ioslocators.dut_name.format(new_dut_name))
-            #status, peripheral = self.driver.find_element('XPATH', dut_locator.format(new_dut_name))
-            #assert status, "Failed to find the peripheral"
+            if 'Direct A' in dut_name:
+                if dut_name == 'Direct A':
+                    new_dut_name = 'Direct Adv'
+                else:
+                    new_dut_name = 'Direct A'
+            else:
+                if dut_name == 'Zephyr Peripheral Sample Long':
+                    new_dut_name = 'Zephyr Peripheral Sample Long Name'
+            status, peripheral = self.driver.find_element('XPATH', ioslocators.dut_name.format(new_dut_name))
+            assert status, "Failed to find the peripheral.{}".format(new_dut_name)
+
         if sd.mobile_platform == 'mac':
             status, connect_button = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@label="Connect"]')
         else:
@@ -1614,16 +1619,11 @@ class BLEUARTFeatureSupportiOS:
 
     def lightblue_get_device_info_data(self):
         print('lightblue_get_device_info_data')
-        self.driver.find_ios_collection_view_element(range_start=8, range_end=11)
-        #self.driver.find_ios_collection_view_element(range_start=8, range_end=11, require_scroll=True, scroll_index=8)
-        #time.sleep(2)
-        #print('perform_scroll_up')
-        #self.driver.perform_scroll_up_ios()
-        #time.sleep(3)
-        #self.driver.perform_scroll_up_ios()
-        #time.sleep(3)
-        #BLE_UART_CDDF
-        #self.driver.find_ios_collection_view_element(range_start=4, range_end=8)
+        DIS = self.driver.find_ios_collection_view_element(range_start=8, range_end=11)
+        if len(DIS) != 0:
+            print("Device information:")
+            for key, value in DIS.items():
+                print("{}:{}".format(key, value))
 
     def lightblue_verify_ble_services_characteristics(self):
         print('lightblue_verify_ble_services_characteristics')
@@ -1757,10 +1757,13 @@ class BLEUARTFeatureSupportiOS:
 
     def lightblue_ble_disconnect(self):
         print('lightblue_ble_disconnect')
+        # button_name = Back (iPhone12/iOS 18)
+        # button_name = BackButton (iPhone16/iOS 26)
         if sd.mobile_platform == 'mac':
             status, element = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@label=\"Back\"]')
         else:
-            status, element = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@name=\"Back\"]')
+            status, element = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@name=\"BackButton\"]')
+            #status, element = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@name=\"Back\"]')
         assert status, "Failed to find the back button(ble disconnect)."
         time.sleep(2)
         element.click()

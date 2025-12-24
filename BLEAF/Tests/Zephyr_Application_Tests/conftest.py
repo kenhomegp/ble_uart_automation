@@ -45,12 +45,23 @@ def default_class_fixture(request):
         remote_appium = sd.remote_mac_server
     '''
 
+    app = request.config.getoption('--mobile_app')
+    if app is not None:
+        print('iOS test app option = {}'.format(app))
+        if app == 'lightblue':
+            ios_test_app_package = sd.config.ios_lightblue_app_package
+        else:
+            ios_test_app_package = sd.config.ios_mbda_app_package
+    else:
+        print('No test app option')
+        ios_test_app_package = sd.config.ios_mbda_app_package
+
     remote_appium = sd.config.use_remote_appium
 
     platform = mobile_to_use.get(PLATFORM_NAME_K)
     sd.mobile_platform = platform
 
-    ios_test_app_package = sd.config.ios_lightblue_app_package
+    #ios_test_app_package = sd.config.ios_lightblue_app_package
     #ios_test_app_package = sd.config.ios_mbda_app_package
 
     if platform == "mac":

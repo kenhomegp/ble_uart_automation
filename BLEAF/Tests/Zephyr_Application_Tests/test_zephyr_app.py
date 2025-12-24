@@ -32,9 +32,6 @@ from ...BaseWrappers.NewBaseDriver import NewBaseDriver
 sd = stationData()
 dut_friendly_name = conf_file.dut_friendly_name
 
-bleState = "Disconnected"
-operate_characteristic = ""
-
 RESET_PIN = 0x02
 BTN_CTRL_PIN = 0x04
 
@@ -91,6 +88,8 @@ def local_function_fixture(request):
     request.addfinalizer(function_finalizer)
 
 class TestZephyrApp:
+    bleState = "Disconnected"
+    operate_characteristic = ""
 
     @pytest.mark.skip(reason="Zephyr test reset")
     #@pytest.mark.test_id("Zephyr test reset", 'Putty')
@@ -109,8 +108,8 @@ class TestZephyrApp:
         self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
         time.sleep(10)
 
-    #@pytest.mark.order(3)
-    @pytest.mark.skip(reason="test_zephyr_peripheral_hid_forget_pairing")
+    @pytest.mark.order(3)
+    #@pytest.mark.skip(reason="test_zephyr_peripheral_hid_forget_pairing")
     #@pytest.mark.test_id("Zephyr Peripheral HID Forget Pairing", '')
     def test_zephyr_peripheral_hid_forget_pairing(self):
         print("test_zephyr_peripheral_hid_forget_pairing")
@@ -119,14 +118,15 @@ class TestZephyrApp:
         pairing = iOSBLEPairingSupport()
         pairing.ios_delete_pairing_record('Test HoG mouse')
         time.sleep(5)
-        self.iocontrolledstatus.Zephyr_IO_Default(MCU)
+        status = self.iocontrolledstatus.Zephyr_IO_Default(MCU)
+        assert status, "Failed to set MCP2200 I/O default"
         time.sleep(1)
         #status = pairing.check_and_forget('Test HoG mouse')
         #assert status, 'Remove pairing: Failed'
 
-    #@pytest.mark.order(1)
+    @pytest.mark.order(1)
     # @pytest.mark.test_id("Zephyr Peripheral HID Pairing", '')
-    @pytest.mark.skip(reason="test_zephyr_peripheral_hid_pairing")
+    #@pytest.mark.skip(reason="test_zephyr_peripheral_hid_pairing")
     def test_zephyr_peripheral_hid_pairing_connect(self):
         print("test_zephyr_peripheral_hid_pairing_connect")
         print('Active app = {}'.format(sd.config.ios_lightblue_app_package))
@@ -210,9 +210,9 @@ class TestZephyrApp:
         except WebDriverException:
             print('WebDriverException')
 
-    #@pytest.mark.order(2)
+    @pytest.mark.order(2)
     #@pytest.mark.test_id("Zephyr Peripheral HID", '')
-    @pytest.mark.skip(reason="test_zephyr_peripheral_hid")
+    #@pytest.mark.skip(reason="test_zephyr_peripheral_hid")
     def test_zephyr_peripheral_hid_mouse_click(self):
         print("Testing Zephyr Peripheral HID Mouse click. BLE Bonded")
         print("Make sure all of the paired devices are deleted")
@@ -352,15 +352,15 @@ class TestZephyrApp:
         time.sleep(5)
 
     #@pytest.mark.order(1)
-    #@pytest.mark.test_id("Zephyr Direct Advertising Scan Connect", '')
-    @pytest.mark.skip(reason="test_zephyr_direct_advertising")
+    #@pytest.mark.test_id("Zephyr Direct Advertising Pairing Connect", '')
+    @pytest.mark.skip(reason="test_zephyr_direct_advertising Pairing Connect")
     def test_zephyr_direct_advertising_pairing_connect(self):
         print("Testing Zephyr Direct Advertising Pairing Connect")
-        global bleState
-        global operate_characteristic
-        self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
+        print('ble state = {}'.format(TestZephyrApp.bleState))
+        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
+        assert status, "Failed to initialize the MCP2200"
         time.sleep(2)
-        # 3 option for pairing
+        # 3 option for pairing. (pairing timeout, pairing cancel, pairing accept)
         for i in range(3):
             if i in range(3):
                 app_package = sd.mobile_driver.get_capability('appPackage')
@@ -390,6 +390,7 @@ class TestZephyrApp:
             time.sleep(3)
             connection_state = self.bleuartfeature.ble_smart_verify_ble_connected('Direct A')
             assert connection_state == "Connected", 'Error, failed to connect to dut'
+            TestZephyrApp.bleState = connection_state
             time.sleep(2)
             self.bleuartfeature.ble_smart_characteristic_write('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef2', '1234')
             if i == 0:
@@ -398,11 +399,13 @@ class TestZephyrApp:
                 action = 'cancel'
             elif i == 2:
                 action = 'accept'
-            self.bleuartfeature.ble_smart_pairing_google_phone('Direct A', action)
+            result = self.bleuartfeature.ble_smart_pairing_google_phone('Direct A', action)
             if i == 2:
                 time.sleep(60)
+                assert result, "Pairing fail!"
+                TestZephyrApp.bleState = 'Pairing complete.Reset'
                 print('Pairing complete')
-
+                time.sleep(1)
 
             '''
             #These code doesn't work on Google Pixel
@@ -434,11 +437,14 @@ class TestZephyrApp:
                 print('WebDriverException. Pairing alert ')
             '''
 
-    #@pytest.mark.order(1)
+    #@pytest.mark.order(2)
     #@pytest.mark.test_id("Zephyr Direct Advertising Data Read/Write", '')
-    @pytest.mark.skip(reason="test_zephyr_direct_advertising")
+    @pytest.mark.skip(reason="test_zephyr_direct_advertising_gatt_read_write")
     def test_zephyr_direct_advertising_gatt_read_write(self):
-        print('test_zephyr_direct_advertising_gatt_read_write')
+        if TestZephyrApp.bleState != 'Pairing complete.Reset':
+            print("test_zephyr_direct_advertising_gatt_read_write. Unknown state:{}".format(TestZephyrApp.bleState))
+        else:
+            print('test_zephyr_direct_advertising_gatt_read_write')
         self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
         time.sleep(2)
         print('Activate lightblue app')
@@ -472,6 +478,8 @@ class TestZephyrApp:
         time.sleep(3)
         connection_state = self.bleuartfeature.ble_smart_verify_ble_connected('Direct A')
         assert connection_state == "Connected - Bonded", 'Error, failed to connect to dut'
+        TestZephyrApp.bleState = connection_state
+        print('state = {}'.format(TestZephyrApp.bleState))
         time.sleep(2)
         write_data = '12345678'
         self.bleuartfeature.ble_smart_characteristic_write('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef2', write_data)
@@ -491,39 +499,33 @@ class TestZephyrApp:
         time.sleep(2)
         self.bleuartfeature.ble_smart_go_back()
         time.sleep(5)
-
-    #@pytest.mark.test_id("Zephyr peripheral v1 rc5", '')
-    @pytest.mark.skip(reason="test_lightblue_peripheral_scroll")
-    def test_zephyr_peripheral_scroll_up(self):
-        print('test_zephyr_peripheral_scroll_up')
-        self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
+        TestZephyrApp.bleState = self.bleuartfeature.ble_smart_disconnect()
+        print('ble state = {}'.format(TestZephyrApp.bleState))
+        time.sleep(5)
+        if TestZephyrApp.bleState == 'Disconnected - Bonded':
+            print('test_zephyr_direct_advertising_unbond')
+            state = self.bleuartfeature.ble_smart_unbond()
+            print('ble state = {}'.format(state))
+            time.sleep(3)
+        else:
+            print('test_zephyr_direct_advertising_unbond. Unknown state: {}'.format(TestZephyrApp.bleState))
+            time.sleep(1)
+        status = self.iocontrolledstatus.Zephyr_IO_Default(MCU)
+        assert status, "[MCP2200 I/O state] Failed to restore to default"
         time.sleep(1)
-        print('I/O Reset. Firmware reset')
-        self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
-        time.sleep(3)
-        print("Search peripherals by name")
-        time.sleep(3)
-        self.bleuartfeature.lightblue_filter_peripherals('Zephyr Peripheral')
-        time.sleep(3)
-        print("Connect")
-        self.bleuartfeature.lightblue_connect('Zephyr Peripheral Sample Long')
-        # self.bleuartfeature.lightblue_connect('Zephyr Peripheral Sample Long Name')
-        time.sleep(10)
-        self.bleuartfeature.lightblue_verify_ble_connected()
-        time.sleep(3)
-
-        self.bleuartfeature.lightblue_scroll_test1('up')
-        time.sleep(5)
-
-        self.bleuartfeature.lightblue_scroll_test1('up')
-        time.sleep(5)
 
     #@pytest.mark.order(1)
-    @pytest.mark.test_id("Zephyr peripheral application v1 rc5", '')
-    #@pytest.mark.skip(reason="test_zephyr_peripheral_rc5")
+    #@pytest.mark.test_id("Zephyr peripheral application v1 rc5", '')
+    @pytest.mark.skip(reason="test_zephyr_peripheral_rc5")
     def test_zephyr_peripheral_application(self):
+        sd.mobile_driver.close_app(sd.config.ios_lightblue_app_package)
+        time.sleep(5)
+        print("Close app and launch again")
+        sd.mobile_driver.launch_app(sd.config.ios_lightblue_app_package)
+        time.sleep(5)
         print('test_zephyr_peripheral_application_v1_rc5')
-        self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
+        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
+        assert status, "Failed to initialize the MCP2200"
         time.sleep(1)
         print('I/O Reset. Firmware reset')
         self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
@@ -538,15 +540,20 @@ class TestZephyrApp:
         time.sleep(10)
         self.bleuartfeature.lightblue_verify_ble_connected()
         time.sleep(3)
-        self.bleuartfeature.lightblue_verify_ble_services_characteristics()
-        time.sleep(3)
-        self.bleuartfeature.lightblue_scroll_gesture('0', scroll_element='Immediate Alert', direction='down')
-        time.sleep(3)
-        self.bleuartfeature.lightblue_scroll_gesture('0', scroll_element='Device Information', direction='down')
-        time.sleep(3)
         self.bleuartfeature.lightblue_get_device_info_data()
         time.sleep(3)
+        self.bleuartfeature.lightblue_verify_ble_services_characteristics()
+        time.sleep(3)
+        #self.bleuartfeature.lightblue_scroll_gesture('0', scroll_element='Immediate Alert', direction='down')
+        #time.sleep(3)
+        #self.bleuartfeature.lightblue_scroll_gesture('0', scroll_element='Device Information', direction='down')
+        #time.sleep(3)
+        #self.bleuartfeature.lightblue_get_device_info_data()
+        #time.sleep(3)
         self.bleuartfeature.lightblue_ble_disconnect()
+        status = self.iocontrolledstatus.Zephyr_IO_Default(MCU)
+        assert status, "[MCP2200 I/O state] Failed to restore to default"
+        time.sleep(1)
 
     #@pytest.mark.test_id("Mac_lightblue_scan_and_connect", '')
     @pytest.mark.skip(reason="Used for BLE_UART firmware")

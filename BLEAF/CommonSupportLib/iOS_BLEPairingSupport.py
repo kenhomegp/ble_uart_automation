@@ -235,9 +235,11 @@ class iOSBLEPairingSupport:
         assert status, "Unable to cancel the pairing"
 
     def check_dut_paired_connected(self, dut_name):
-        print("Check_paired_connected, DUT = {}".format(dut_name))
+        print("Check_dut_paired_connected, DUT = {}".format(dut_name))
 
         status, dut_cell = self.driver.find_element('XPATH', locators.bt_dut.format(dut_name))
+        #IOP issue iPhone 16/iOS 26
+        #status, dut_cell = self.driver.find_element('IOS_PREDICATE', "label == 'Test HoG mouse' AND value == 'Connected'")
         time.sleep(2)
 
         if status:

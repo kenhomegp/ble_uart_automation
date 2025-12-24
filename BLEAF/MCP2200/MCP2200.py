@@ -11,10 +11,13 @@ class Mcp2200:
         self.checkOS = platform.system()
 
         if self.checkOS == "Windows":
-            #self.dll = ctypes.WinDLL(os.getcwd()+'\\MCP2200\\MCP2200.dll')
-            self.dll = ctypes.WinDLL(os.getcwd() + '\\BLEAF\\MCP2200\\MCP2200.dll')
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            print('Load MCP2200.dll. dir_path = {}'.format(dir_path))
+
+            #self.dll = ctypes.WinDLL(os.getcwd() + '\\BLEAF\\MCP2200\\MCP2200.dll')
+            self.dll = ctypes.WinDLL(dir_path + '\\MCP2200.dll')
             self.dll.InitMCP2200.argtype = [ctypes.c_uint,ctypes.c_uint]
-            self.dll.InitMCP2200(self.vid,self.pid)
+            self.dll.InitMCP2200(self.vid, self.pid)
 
     def IsConnected(self):
         if self.checkOS == "Windows":

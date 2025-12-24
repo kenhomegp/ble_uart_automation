@@ -249,7 +249,7 @@ class NewBaseDriver:
             start_time = time.time()
             while time.time() < start_time + timeout:
                 try:
-                    element = self.driver.find_element(AppiumBy.IOS_PREDICATE,locator)
+                    element = self.driver.find_element(AppiumBy.IOS_PREDICATE, locator)
                     if element:
                         found = True
                         break
@@ -623,20 +623,31 @@ class NewBaseDriver:
             cell_end = range_end
         print("range_start = {}, range_end = {}".format(range_start, range_end))
 
+        cell_dic = {}
+        cell_title = ''
+        cell_subtitle = ''
         for i in range(cell_start, cell_end):
             if range_start == 0 and range_end == 0:
                 print("XCUIElementTypeCell:{}".format(i))
             cell = all_cell[i]
             all_ui_text = cell.find_elements(AppiumBy.CLASS_NAME, "XCUIElementTypeStaticText")
             time.sleep(1)
+
             if len(all_ui_text) == 2:
                 for j in range(len(all_ui_text)):
                     print("ui_text_{} = {}".format(j, all_ui_text[j].text))
+                    if j == 0:
+                        cell_title = all_ui_text[j].text
+                    else:
+                        cell_subtitle = all_ui_text[j].text
+                cell_dic[cell_title] = cell_subtitle
+
             if require_scroll:
                 if i == scroll_index:
                     print('scroll.cell_index={}'.format(scroll_index))
                     self.perform_scroll_down_ios()
                     time.sleep(3)
+        return cell_dic
 
     def find_ios_cell_text(self, cell):
         print('find_ios_cell_details')

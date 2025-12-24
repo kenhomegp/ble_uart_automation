@@ -105,7 +105,7 @@ class IOControlLEDStatus:
             print("Configure GPIO failed")
             return False
         else:
-            print("Set Zephyr_IO_Default. Success")
+            print("[MCP2200] Restore_IO_Default. Success")
             return True
 
     def Zephyr_IO_Initial(self, mcu):

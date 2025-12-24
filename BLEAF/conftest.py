@@ -42,6 +42,13 @@ def pytest_addoption(parser):
         help="if y or yes in present, previously passed TC in the test plan will not be executed",
         default="no"
     )
+    parser.addoption(
+        "--mobile_app",
+        action="store",
+        metavar="Test mobile app",
+        help="New option for Zephyr test",
+        default="no"
+    )
 
 def pytest_configure(config):
     config.addinivalue_line("markers",

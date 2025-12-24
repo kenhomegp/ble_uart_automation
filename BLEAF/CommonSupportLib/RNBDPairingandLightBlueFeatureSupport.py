@@ -1318,13 +1318,15 @@ class RNBDvsPhoneFeatureSupport:
             t0.join(10)
 
         print('time = {}'.format(datetime.now().strftime("%d-%m-%Y_%I-%M-%S")))
-        self.CloseSerialPort(serial_port)
+        #self.CloseSerialPort(serial_port)
 
         if t0.is_alive():
             print('Read serial data: Unknown data.')
+            self.CloseSerialPort(serial_port)
             return False
         else:
             print("serial thread complete.serial_recv = {}".format(serial_recv))
+            self.CloseSerialPort(serial_port)
             return True
 
     def ble_smart_pairing(self, dut_name, action):
@@ -1376,6 +1378,45 @@ class RNBDvsPhoneFeatureSupport:
         print('state = {}'.format(button_text))
         button.click()
         print('click button')
+
+    def ble_smart_disconnect(self):
+        print('ble_smart_disconnect')
+        locator = '//android.widget.Button[@resource-id="com.microchip.bluetooth.data:id/menu_disconnect"]'
+        status, button = self.driver.find_element('XPATH', locator)
+        assert status, "Failed to find the button"
+        button.click()
+        time.sleep(5)
+        print('Disconnect. click')
+        status, state = self.driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/connection_state"]')
+        assert status, "Failed to find the connection state"
+        ble_state = state.get_attribute('text')
+        #print('ble_state = {}'.format(ble_state))
+        return ble_state
+
+    def ble_smart_unbond(self):
+        print('ble_smart_unbond')
+        locator = '//android.widget.Button[@resource-id="com.microchip.bluetooth.data:id/menu_more"]'
+        status, button = self.driver.find_element('XPATH', locator)
+        assert status, "Failed to find the button"
+        time.sleep(1)
+        button.click()
+        time.sleep(3)
+        status, bond = self.driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title"]')
+        assert status, "Failed to find the bond element"
+        text = self.driver.get_text(bond)
+        print('text = {}'.format(text))
+        time.sleep(1)
+        ble_state = 'Unknown state'
+        if text == 'UnBond':
+            bond.click()
+            print('click UnBond button')
+            time.sleep(5)
+            status, state = self.driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/connection_state"]')
+            assert status, "Failed to find the connection state"
+            ble_state = state.get_attribute('text')
+
+        return ble_state
+
 
     def read_serial_data(self, ser, received_data):
         global flagReadSerialData
