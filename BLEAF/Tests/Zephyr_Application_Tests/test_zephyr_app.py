@@ -8,6 +8,7 @@ import concurrent.futures
 import datetime
 
 import serial
+import logging
 
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -90,6 +91,7 @@ def local_function_fixture(request):
 class TestZephyrApp:
     bleState = "Disconnected"
     operate_characteristic = ""
+    HID_dut_namee = ""
 
     @pytest.mark.skip(reason="Zephyr test reset")
     #@pytest.mark.test_id("Zephyr test reset", 'Putty')
@@ -108,15 +110,17 @@ class TestZephyrApp:
         self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
         time.sleep(10)
 
-    @pytest.mark.order(3)
-    #@pytest.mark.skip(reason="test_zephyr_peripheral_hid_forget_pairing")
+    #@pytest.mark.order(3)
+    @pytest.mark.skip(reason="test_zephyr_peripheral_hid_forget_pairing")
     #@pytest.mark.test_id("Zephyr Peripheral HID Forget Pairing", '')
     def test_zephyr_peripheral_hid_forget_pairing(self):
         print("test_zephyr_peripheral_hid_forget_pairing")
         sd.mobile_driver.app_activate(sd.config.ios_settings_app_package)
         time.sleep(5)
         pairing = iOSBLEPairingSupport()
-        pairing.ios_delete_pairing_record('Test HoG mouse')
+        #pairing.ios_delete_pairing_record('Test HoG mouse')
+        print('HID dut = {}'.format(TestZephyrApp.HID_dut_namee))
+        pairing.check_dut_is_paired_connected(TestZephyrApp.HID_dut_namee, delete=True)
         time.sleep(5)
         status = self.iocontrolledstatus.Zephyr_IO_Default(MCU)
         assert status, "Failed to set MCP2200 I/O default"
@@ -124,9 +128,9 @@ class TestZephyrApp:
         #status = pairing.check_and_forget('Test HoG mouse')
         #assert status, 'Remove pairing: Failed'
 
-    @pytest.mark.order(1)
+    #@pytest.mark.order(1)
     # @pytest.mark.test_id("Zephyr Peripheral HID Pairing", '')
-    #@pytest.mark.skip(reason="test_zephyr_peripheral_hid_pairing")
+    @pytest.mark.skip(reason="test_zephyr_peripheral_hid_pairing")
     def test_zephyr_peripheral_hid_pairing_connect(self):
         print("test_zephyr_peripheral_hid_pairing_connect")
         print('Active app = {}'.format(sd.config.ios_lightblue_app_package))
@@ -138,6 +142,7 @@ class TestZephyrApp:
         scan_time = 6
         time.sleep(scan_time)
         print('scan time = {}'.format(scan_time))
+        TestZephyrApp.HID_dut_namee = 'Test HoG mouse'
         self.bleuartfeature.lightblue_filter_peripherals('Test HoG mouse')
         time.sleep(3)
         print("Connect")
@@ -210,9 +215,9 @@ class TestZephyrApp:
         except WebDriverException:
             print('WebDriverException')
 
-    @pytest.mark.order(2)
+    #@pytest.mark.order(2)
     #@pytest.mark.test_id("Zephyr Peripheral HID", '')
-    #@pytest.mark.skip(reason="test_zephyr_peripheral_hid")
+    @pytest.mark.skip(reason="test_zephyr_peripheral_hid")
     def test_zephyr_peripheral_hid_mouse_click(self):
         print("Testing Zephyr Peripheral HID Mouse click. BLE Bonded")
         print("Make sure all of the paired devices are deleted")
@@ -248,8 +253,9 @@ class TestZephyrApp:
         assert bt_open, "Failed to Open Bluetooth page"
         time.sleep(3)
 
-        status = iOSpairingsupport.check_dut_paired_connected('Test HoG mouse')
-        assert status == 'Connected', "Failed to find the paired device: Test HoG mouse"
+        iOSpairingsupport.check_dut_is_paired_connected(TestZephyrApp.HID_dut_namee)
+        #status = iOSpairingsupport.check_dut_paired_connected('Test HoG mouse')
+        #assert status == 'Connected', "Failed to find the paired device: Test HoG mouse"
         time.sleep(3)
 
         print('Launch HID test app')
@@ -603,6 +609,56 @@ class TestZephyrApp:
         '''
         self.bleuartfeature.lightblue_ble_disconnect()
 
+    @pytest.mark.skip(reason="test_appium_my_test")
+    #@pytest.mark.test_id("test_appium_function", '')
+    def test_appium_my_test(self):
+        print("test_appium_my_test")
+        if sd.mobile_platform == "iOS":
+            sd.mobile_driver.app_activate(sd.config.ios_settings_app_package)
+            time.sleep(5)
+            sd.mobile_driver.close_app(sd.config.ios_settings_app_package)
+            time.sleep(5)
+            sd.mobile_driver.launch_app(sd.config.ios_settings_app_package)
+        else:
+            print('Platform "Android" not supported')
+        time.sleep(5)
+        print('Launch ios setting, Check BLE connection')
+
+        iOSpairingsupport = iOSBLEPairingSupport(sd.mobile_driver)
+
+        print("Verify Settings App is open")
+        app_open = iOSpairingsupport.verify_settings_open()
+        assert app_open, "Failed to open Settings application"
+        time.sleep(5)
+
+        print("Open Bluetooth Page")
+        bt_open = iOSpairingsupport.open_bluetooth()
+        assert bt_open, "Failed to Open Bluetooth page"
+        time.sleep(3)
+
+        status = iOSpairingsupport.check_dut_is_paired_connected('ADDON APOLLO 2.0', delete=True)
+        #status = iOSpairingsupport.check_dut_is_paired_connected('ADDON APOLLO 2.0')
+        #assert status == 'Connected', "Failed to find paired device"
+        time.sleep(30)
+
+    #@pytest.mark.skip(reason="test_remote_mcp2200_feature")
+    @pytest.mark.test_id("test_remote_mcp2200_feature", '')
+    def test_remote_mcp2200_feature(self):
+        print("test_remote_mcp2200_feature")
+        time.sleep(3)
+        self.mcp2200manager.run()
+        print('mcp2200manager. Running')
+        time.sleep(5)
+        #time.sleep(30)
+        #print("Wait 30 seconds")
+        #self.mcp2200manager.stop()
+        print('Send data to server')
+        self.mcp2200manager.send_to_server("Hello mcp2200")
+        time.sleep(5)
+        self.mcp2200manager.send_to_server("stop")
+        time.sleep(5)
+        #self.mcp2200manager.shutdown()
+        #time.sleep(5)
 
 
 

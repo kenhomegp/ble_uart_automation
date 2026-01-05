@@ -35,7 +35,12 @@ class iOSBLEPairingSupport:
 
     def verify_settings_open(self):
         status = False
-        status, settings_icon = self.driver.find_element('XPATH', locators.settings_icon)
+        #status, settings_icon = self.driver.find_element('XPATH', locators.settings_icon)  #iOS_18
+        #general_locator = "//XCUIElementTypeStaticText[@name=\"General\"]" #iOS_26
+        locator = "type == 'XCUIElementTypeStaticText' AND name IN {'General', 'Settings'}"
+        #status, settings_icon = self.driver.find_element('XPATH', general_locator)
+        status, settings_icon = self.driver.find_element('IOS_PREDICATE', locator)
+
         if status:
             status = self.driver.is_visible(settings_icon)
             print("Settings Application opened.")
@@ -129,7 +134,10 @@ class iOSBLEPairingSupport:
 
     def forget_network(self):
         error_msg = ""
-        status,network_forget = self.driver.find_element('XPATH',locators.forget_button)
+        locator = "type IN {'XCUIElementTypeStaticText', 'XCUIElementTypeButton'} AND name == 'FORGET_BUTTON'"
+        print(f"ios predicate locator = {locator}")
+        #status,network_forget = self.driver.find_element('XPATH',locators.forget_button)
+        status,network_forget = self.driver.find_element('IOS_PREDICATE', locator)
         if status:
             status = self.driver.click_element(network_forget)
             if status:
@@ -233,6 +241,27 @@ class iOSBLEPairingSupport:
             print("Pairing pop up not shown")
             status = False
         assert status, "Unable to cancel the pairing"
+
+    def check_dut_is_paired_connected(self, dut_name, delete=False):
+        print("check_dut_is_paired_connected. dut = {}".format(dut_name))
+        #locator = "label == '{}' AND value == 'Connected'"
+        #locator = "name == '{}' AND value == 'Connected'"
+        #status, dut_cell = self.driver.find_element('IOS_PREDICATE', "label == 'Test HoG mouse' AND value == 'Connected'")
+        locator1 = "label == '{}'".format(dut_name)
+        locator2 = " AND value IN {'Connected', 'Not Connected'}"
+        print("Locator: {}".format(locator1 + locator2))
+        #status, dut_cell = self.driver.find_element('IOS_PREDICATE', locator.format(dut_name))
+        status, dut_cell = self.driver.find_element('IOS_PREDICATE', locator1.format(dut_name) + locator2)
+        assert status, "Failed to find paired device"
+        print("dut is paired")
+        time.sleep(1)
+        status, more_info = self.driver.find_element('XPATH', '(//XCUIElementTypeButton[@name="More Info"])[1]')
+        assert status, "Failed to find more info button"
+        if delete:
+            more_info.click()
+            time.sleep(3)
+            print('Forget this device')
+            self.forget_network()
 
     def check_dut_paired_connected(self, dut_name):
         print("Check_dut_paired_connected, DUT = {}".format(dut_name))

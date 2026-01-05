@@ -18,6 +18,8 @@ from ...BaseWrappers.SSHSupport import ShellHandler
 
 from ...BaseWrappers.NewBaseDriver import NewBaseDriver
 
+from ...CommonSupportLib.RemoteMCP2200FeatureSupport import WebSocketManager
+
 sd = stationData()
 
 @pytest.fixture(scope="class", autouse=True)
@@ -53,7 +55,7 @@ def default_class_fixture(request):
         else:
             ios_test_app_package = sd.config.ios_mbda_app_package
     else:
-        print('No test app option')
+        print('mobile app option: none')
         ios_test_app_package = sd.config.ios_mbda_app_package
 
     remote_appium = sd.config.use_remote_appium
@@ -93,7 +95,7 @@ def default_class_fixture(request):
                                 mobile_to_use.get(PLATFORM_NAME_K),
                                 mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
                                 ios_test_app_package, sd.config.app_activity)
-    else:
+    elif platform == 'Android':
         if remote_appium:
             print("platform = Android. Use Remote appium")
             driver = NewBaseDriver(sd.config.remote_appium_server_ip, sd.config.remote_appium_server_port,
@@ -108,15 +110,9 @@ def default_class_fixture(request):
                                 mobile_to_use.get(PLATFORM_NAME_K),
                                 mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
                                 sd.config.app_package, sd.config.app_activity)
-            '''
-            print("platform = Android lightblue:{}, {}".format(sd.config.lightblue_app_package, sd.config.lightblue_app_activity))
-            #Lightblue app
-            driver = NewBaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
-                                mobile_to_use.get(PHONE_UDID_K),
-                                mobile_to_use.get(PLATFORM_NAME_K),
-                                mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
-                                sd.config.lightblue_app_package, sd.config.lightblue_app_activity)
-            '''
+    else:
+        print('Unknown platform: {}'.format(platform))
+
     mobile_data_dic = {}
     dev_name = mobile_to_use.get(DEVICE_NAME_K)
     mobile_data_dic['driver'] = driver
@@ -127,6 +123,7 @@ def default_class_fixture(request):
     request.cls.scanandconnect = ScanningandConnection()
     if platform == 'iOS' or platform == 'mac':
         request.cls.bleuartfeature = BLEUARTFeatureSupportiOS()
+        request.cls.mcp2200manager = WebSocketManager("127.0.0.1", 8101)
     else:
         #request.cls.bleuartfeature = BLEUARTFeatureSupport()
         request.cls.bleuartfeature = RNBDvsPhoneFeatureSupport()

@@ -107,12 +107,12 @@ HB_DUTS = {
 
 appium_config = {
     "appium_server_config": {
-        "appium_server_ip": "127.0.0.1",
-        #"appium_server_ip":  "192.168.0.169",
+        #"appium_server_ip": "127.0.0.1",
+        "appium_server_ip":  "10.160.59.64",
         #"appium_server_ip": "172.20.10.6",
         #"appium_server_ip":  "10.160.56.74",
         "appium_server_port": "4723",
-        "use_remote_appium" : True,
+        "use_remote_appium" : False,
         "remote_appium_server_ip":  "10.160.59.58",
         "remote_appium_server_port": "4723",
         #"remote_appium_username": "WSGAppDev",
