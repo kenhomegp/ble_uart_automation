@@ -5,15 +5,18 @@ from websocket_server import WebsocketServer  # pip install websocket-server
 import websockets.sync.client as ws_client
 
 class WebSocketManager:
-    def __init__(self, host="127.0.0.1", port=8111):
+    def __init__(self, host="127.0.0.1", port=8111, role="both"):
         self.host = host
         self.port = port
+        self.role = role.lower()
         self.server = None
         self.server_thread = None
         self.websocket = None  # Client websocket instance
         self.client_thread = None
         self._connected = threading.Event()
-        print("WebSocketManager init")
+        if self.role not in ['server', 'client', 'both']:
+            raise ValueError("role must be 'server', 'client', or 'both'")
+        print(f"WebSocketManager initialized as {self.role} role")
 
     def new_client(self, client, peer):
         print(f"New client connected: {peer}")
@@ -77,16 +80,19 @@ class WebSocketManager:
 
     def run(self):
         """Modified: Non-blocking daemon threads for persistent connection."""
-        print("Starting persistent WebSocket connection...")
-        # Server daemon thread
-        self.server_thread = threading.Thread(target=self.start_server, daemon=True)
-        self.server_thread.start()
-        time.sleep(1)
-        # Client daemon thread
-        self.client_thread = threading.Thread(target=self.client_loop, daemon=True)
-        self.client_thread.start()
-        self._connected.wait(timeout=10)  # Wait for connection
-        print("Connection established and kept alive.")
+        print(f"Starting {self.role} role...")
+
+        if self.role in ['server', 'both']:
+            self.server_thread = threading.Thread(target=self.start_server, daemon=True)
+            self.server_thread.start()
+            time.sleep(1)
+
+        if self.role in ['client', 'both']:
+            self.client_thread = threading.Thread(target=self.client_loop, daemon=True)
+            self.client_thread.start()
+            if self.role == 'client':
+                self._connected.wait(timeout=10)  # Wait for connection
+        print("Connection ready.")
 
     def shutdown(self):
         """Graceful shutdown."""
@@ -101,14 +107,14 @@ class WebSocketManager:
         print("complete.")
 
 if __name__ == "__main__":
-    manager = WebSocketManager("127.0.0.1", 8101)
+    manager = WebSocketManager("127.0.0.1", 8101, 'both')
     manager.run()  # Establishes and keeps connection
 
     # Keep main thread alive for external access
     try:
         for i in range(5):
             time.sleep(3)
-            manager.send_to_server("Keepalive.")
+            manager.send_to_server(f"Keepalive. i = {i+1}")
         time.sleep(3)
         manager.shutdown()
     except KeyboardInterrupt:
