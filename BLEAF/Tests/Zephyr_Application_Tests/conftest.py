@@ -49,11 +49,13 @@ def default_class_fixture(request):
 
     app = request.config.getoption('--mobile_app')
     if app is not None:
-        print('iOS test app option = {}'.format(app))
+        print('mobile app option = {}'.format(app))
         if app == 'lightblue':
             ios_test_app_package = sd.config.ios_lightblue_app_package
-        else:
+        elif app == 'mbd':
             ios_test_app_package = sd.config.ios_mbda_app_package
+        elif app == 'zephyr_hid':
+            print('Zephyr HID test')
     else:
         print('mobile app option: none')
         ios_test_app_package = sd.config.ios_mbda_app_package
@@ -96,13 +98,26 @@ def default_class_fixture(request):
                                 mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
                                 ios_test_app_package, sd.config.app_activity)
     elif platform == 'Android':
+        if app == 'zephyr_hid':
+            app_package = 'com.microchip.zephyrtest'
+            app_activity = 'com.microchip.zephyrtest.MainActivity'
+        else:
+            app_package = sd.config.app_package
+            app_activity = sd.config.app_activity
+
         if remote_appium:
             print("platform = Android. Use Remote appium")
             driver = NewBaseDriver(sd.config.remote_appium_server_ip, sd.config.remote_appium_server_port,
-                                mobile_to_use.get(PHONE_UDID_K),
-                                mobile_to_use.get(PLATFORM_NAME_K),
-                                mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
-                                sd.config.app_package, sd.config.app_activity, remote_appium=sd.config.use_remote_appium)
+                                   mobile_to_use.get(PHONE_UDID_K),
+                                   mobile_to_use.get(PLATFORM_NAME_K),
+                                   mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
+                                   app_package, app_activity,
+                                   remote_appium=sd.config.use_remote_appium)
+            #driver = NewBaseDriver(sd.config.remote_appium_server_ip, sd.config.remote_appium_server_port,
+            #                    mobile_to_use.get(PHONE_UDID_K),
+            #                    mobile_to_use.get(PLATFORM_NAME_K),
+            #                    mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
+            #                    sd.config.app_package, sd.config.app_activity, remote_appium=sd.config.use_remote_appium)
         else:
             print("platform = Android MBD:{}, {}".format(sd.config.app_package, sd.config.app_activity))
             driver = NewBaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
@@ -123,7 +138,7 @@ def default_class_fixture(request):
     request.cls.scanandconnect = ScanningandConnection()
     if platform == 'iOS' or platform == 'mac':
         request.cls.bleuartfeature = BLEUARTFeatureSupportiOS()
-        request.cls.mcp2200manager = WebSocketManager("127.0.0.1", 8101)
+        #request.cls.mcp2200manager = WebSocketManager("127.0.0.1", 8101)
     else:
         #request.cls.bleuartfeature = BLEUARTFeatureSupport()
         request.cls.bleuartfeature = RNBDvsPhoneFeatureSupport()

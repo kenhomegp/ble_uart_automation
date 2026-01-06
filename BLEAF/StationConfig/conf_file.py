@@ -112,8 +112,8 @@ appium_config = {
         #"appium_server_ip": "172.20.10.6",
         #"appium_server_ip":  "10.160.56.74",
         "appium_server_port": "4723",
-        "use_remote_appium" : False,
-        "remote_appium_server_ip":  "10.160.59.58",
+        "use_remote_appium" : True,
+        "remote_appium_server_ip":  "10.160.59.64",
         "remote_appium_server_port": "4723",
         #"remote_appium_username": "WSGAppDev",
         #"remote_appium_pwd" : 'Amchp17217',
@@ -401,13 +401,13 @@ appium_config = {
 }
 
 duts_to_use = {
-    MOBILE_TO_USE: "iPhone 16",
+    MOBILE_TO_USE: "Pixel 7",
     "server":"DUT1",
     "client":"DUT2"
 }
 
 multilink_phone_config = {
-    MOBILE_TO_USE: "iPhone 16"
+    MOBILE_TO_USE: "Pixel 7"
     #MOBILE_TO_USE: "Pixel7/SamsungS23/Pixel17217"
     #MOBILE_TO_USE: "SamsungA54/Pixel7/iPhone15/Pixel17217/SamsungS23"
 }

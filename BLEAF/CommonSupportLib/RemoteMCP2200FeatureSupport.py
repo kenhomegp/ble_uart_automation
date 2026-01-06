@@ -26,9 +26,9 @@ class WebSocketManager:
 
     def message_received(self, client, peer, message):
         print(f"Server Received from {peer}: {message}")
-        #if message.lower() == "stop":
-        #    print("Stop received; shutting down.")
-        #    self.shutdown()
+        if message.lower() == "stop":
+            print("Stop received; shutting down.")
+            self.shutdown()
         #    return
         print(f"[Server Echo]: {message}")
         self.server.send_message(client, message)
@@ -107,15 +107,19 @@ class WebSocketManager:
         print("complete.")
 
 if __name__ == "__main__":
-    manager = WebSocketManager("127.0.0.1", 8101, 'both')
+    manager = WebSocketManager("10.160.59.56", 8101, 'server')
     manager.run()  # Establishes and keeps connection
 
     # Keep main thread alive for external access
     try:
+        while True:
+            time.sleep(1)
+        '''
         for i in range(5):
             time.sleep(3)
             manager.send_to_server(f"Keepalive. i = {i+1}")
         time.sleep(3)
         manager.shutdown()
+        '''
     except KeyboardInterrupt:
         manager.shutdown()

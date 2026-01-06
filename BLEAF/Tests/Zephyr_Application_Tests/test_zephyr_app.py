@@ -288,6 +288,74 @@ class TestZephyrApp:
         assert state != new_state, "HID test failed"
         print('Remove paired device: Test HoG mouse')
 
+    # @pytest.mark.order(1)
+    @pytest.mark.test_id("Zephyr Peripheral Android HID Pairing", '')
+    #@pytest.mark.skip(reason="test_zephyr_peripheral_android_hid_pairing")
+    def test_zephyr_peripheral_android_hid_pairing_connect(self):
+        print('test_zephyr_peripheral_android_hid_pairing_connect')
+        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
+        assert status, "Failed to initialize the MCP2200"
+        time.sleep(2)
+        app_package = sd.mobile_driver.get_capability('appPackage')
+        print("app package= {}".format(app_package))
+        sd.mobile_driver.close_app(app_package)
+        time.sleep(5)
+        print("Launch app")
+        sd.mobile_driver.launch_app(app_package)
+        time.sleep(5)
+        self.scanandconnect.verify_app_open()
+        time.sleep(3)
+        print('DUT Reset. Firmware reset')
+        self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
+        print("open_ble_smart_scanner")
+        self.scanandconnect.open_ble_smart_scanner()
+        time.sleep(10)
+        self.bleuartfeature.ble_smart_filter_peripherals('Test HoG', search_icon=True)
+        time.sleep(2)
+        self.bleuartfeature.ble_smart_connect('Test HoG mouse')
+        print('Ble connecting..')
+        time.sleep(3)
+        self.bleuartfeature.ble_smart_pairing_google_phone_with_passkey('Test HoG mouse')
+        time.sleep(60)
+
+    #@pytest.mark.test_id("Zephyr Peripheral HID Android", '')
+    @pytest.mark.skip(reason="test_zephyr_peripheral_hid")
+    def test_zephyr_peripheral_android_hid_mouse_click(self):
+        print("Testing Zephyr Peripheral Android HID Mouse click. BLE Bonded")
+
+        self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
+        time.sleep(1)
+
+        print('I/O Reset. Firmware reset')
+        self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
+        time.sleep(3)
+
+        print('Launch HID test app')
+        sd.mobile_driver.app_activate('com.microchip.zephyrtest')
+        #sd.mobile_driver.launch_app('com.microchip.zephyrtest')
+        time.sleep(5)
+
+        print('Test HoG mouse. click test')
+
+        status, click_button = sd.mobile_driver.find_element('id', 'zephyr_hid_test')
+        assert status, "Failed to find the element id"
+        time.sleep(1)
+        state = sd.mobile_driver.get_text(click_button)
+        print("Test HoG mouse state: {}".format(state))
+        time.sleep(1)
+
+        print('Click button 3 times.')
+        self.iocontrolledstatus.Zephyr_IOCtrl(MCU, BTN_CTRL_PIN, 0.3)
+        time.sleep(3)
+        self.iocontrolledstatus.Zephyr_IOCtrl(MCU, BTN_CTRL_PIN, 0.3)
+        time.sleep(3)
+        self.iocontrolledstatus.Zephyr_IOCtrl(MCU, BTN_CTRL_PIN, 0.3)
+        time.sleep(3)
+
+        new_state = sd.mobile_driver.get_text(click_button)
+        print("Test HoG mouse state: {}".format(new_state))
+        time.sleep(10)
+
     #@pytest.mark.test_id("Zephyr Direct Advertising", '')
     @pytest.mark.skip(reason="test_zephyr_peripheral_hid")
     def test_zephyr_peripheral_hid_1(self):
@@ -641,8 +709,8 @@ class TestZephyrApp:
         #assert status == 'Connected', "Failed to find paired device"
         time.sleep(30)
 
-    #@pytest.mark.skip(reason="test_remote_mcp2200_feature")
-    @pytest.mark.test_id("test_remote_mcp2200_feature", '')
+    @pytest.mark.skip(reason="test_remote_mcp2200_feature")
+    #@pytest.mark.test_id("test_remote_mcp2200_feature", '')
     def test_remote_mcp2200_feature(self):
         print("test_remote_mcp2200_feature")
         time.sleep(3)
