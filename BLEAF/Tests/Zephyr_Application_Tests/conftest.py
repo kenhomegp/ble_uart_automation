@@ -101,6 +101,9 @@ def default_class_fixture(request):
         if app == 'zephyr_hid':
             app_package = 'com.microchip.zephyrtest'
             app_activity = 'com.microchip.zephyrtest.MainActivity'
+        elif app == 'setting':
+            app_package = 'com.android.settings'
+            app_activity = 'com.android.settings.Settings'
         else:
             app_package = sd.config.app_package
             app_activity = sd.config.app_activity
