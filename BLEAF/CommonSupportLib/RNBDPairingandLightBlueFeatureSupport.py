@@ -19,6 +19,7 @@ baudrate = conf_file.baud_rate
 comport = conf_file.com_port
 
 flagReadSerialData = True
+passkey = ""
 
 class RNBDvsPhoneFeatureSupport:
     def __init__(self, driver=sd.mobile_driver):
@@ -879,7 +880,7 @@ class RNBDvsPhoneFeatureSupport:
         v_cmd = str(v_cmd).encode()
 
         serialPort = self.serialdriver.ComportSet(comport, baudrate)
-        serialPort.write(cmd)
+        serialPort.write(bond_cmd)
         serial_read = serialPort.readlines()
         print(serial_read)
 
@@ -1290,48 +1291,6 @@ class RNBDvsPhoneFeatureSupport:
         print('read characteristic: {}'.format(text))
         return text
 
-    def ble_smart_pairing_google_phone_with_passkey(self, dut_name):
-        print('ble_smart_pairing_google_phone_with_passkey')
-        global flagReadSerialData
-        serial_recv = ''
-        flagReadSerialData = True
-
-        def handle_pairing():
-            status1, connect_button = self.driver.find_element('XPATH', '//android.widget.Button[@resource-id="com.microchip.bluetooth.data:id/menu_connect"]')
-            assert status1, "Failed to find the connect button"
-            time.sleep(1)
-            connect_button.click()
-            print('Click connect button')
-            time.sleep(2)
-            status = self.driver.scroll_notification_bar()
-            time.sleep(1)
-            bt_status, bt_text = self.driver.find_element('XPATH', locators.pixel3a_displayonly_pairing_req_text)
-            if bt_status:
-                status = self.driver.is_visible(bt_text)
-                print("Pairing pop up Displayed")
-            status, pair_and_connect = self.driver.find_element('XPATH', locators.pixel3a_displayonly_pairing_req_text)
-            print(status)
-            status = self.driver.click_element(pair_and_connect)
-            time.sleep(2)
-            print('find button. Pair & connect')
-            status, pair_device = self.driver.find_element('XPATH', "//android.widget.Button[@text='Pair' or @text='Pair & connect']")
-            assert status, "Pair icon not found"
-            time.sleep(1)
-            print('click button')
-            status = self.driver.click_element(pair_device)
-            time.sleep(2)
-
-        serial_port = self.serialdriver.ComportSet(comport, baudrate)
-        t0 = threading.Thread(target=self.read_pairing_passkey, args=(serial_port, serial_recv))
-        t0.start()
-        t1 = threading.Thread(target=handle_pairing, args=())
-        t1.start()
-        t1.join()
-        print('work thread complete')
-        t0.join(60)
-        print("serial thread complete.serial_recv = {}".format(serial_recv))
-        self.CloseSerialPort(serial_port)
-
     def ble_smart_pairing_google_phone(self, dut_name, action):
         print('ble_smart_pairing_google_phone,action: {}'.format(action))
         global flagReadSerialData
@@ -1508,8 +1467,41 @@ class RNBDvsPhoneFeatureSupport:
         print("read_serial_data.complete. serial data = {}".format(reading))
         return reading
 
-    def read_pairing_passkey(self, ser, received_data):
+    def get_serial_data_passkey(self, dut_element):
         global flagReadSerialData
+        global passkey
+
+        def click_dut():
+            dut_element.click()
+            print('time = {}'.format(datetime.now().strftime("%d-%m-%Y_%I-%M-%S")))
+
+        fail_retry = 0
+        passkey = ""
+        serial_port = self.serialdriver.ComportSet(comport, baudrate)
+
+        while passkey == "" and fail_retry < 3:
+            flagReadSerialData = True
+            t0 = threading.Thread(target=self.read_pairing_passkey, args=(serial_port,))
+            t0.start()
+            t1 = threading.Thread(target=click_dut, args=())
+            t1.start()
+            t1.join()
+            print('Click dut: Test Hog mouse')
+            t0.join(3)
+            if t0.is_alive():
+                print('Read serial data: 15 seconds timeout')
+                flagReadSerialData = False
+                fail_retry += 1
+
+            print(f"Read serial thread complete. passkey={passkey}")
+
+        self.CloseSerialPort(serial_port)
+        print('Get passkey, time = {}'.format(datetime.now().strftime("%d-%m-%Y_%I-%M-%S")))
+        return passkey
+
+    def read_pairing_passkey(self, ser):
+        global flagReadSerialData
+        global passkey
 
         reading = ''
         print("start read_serial_data")
@@ -1517,12 +1509,21 @@ class RNBDvsPhoneFeatureSupport:
             while ser.inWaiting():
                 if ser.inWaiting() > 0:
                     reading += ser.readline(ser.inWaiting()).decode()
-                    received_data += reading
                     if 'Passkey for' in reading:
                         reading = ''
+                        #passkey = 'Passkey for'
+                    if len(reading) > 8:
+                        passkey_str = reading[-8:-2]
+                        if passkey_str.isdigit():
+                            print(f'The 6 digit number is {passkey_str}')
+                            reading = ''
+                            flagReadSerialData = False
+                            passkey = passkey_str
 
-        print("read_serial_data.complete. serial data = {}".format(reading))
-        return reading
+        print("read_passkey.complete")
+        #passkey_str = reading[-8:-2]
+        #passkey += reading
+        #return passkey
 
     def ble_lightblue_Bonded(self, dut_name):
         print('ble_lightblue_Bonded. dut = {}'.format(dut_name))

@@ -112,9 +112,9 @@ class TestZephyrApp:
 
     #@pytest.mark.order(3)
     @pytest.mark.skip(reason="test_zephyr_peripheral_hid_forget_pairing")
-    #@pytest.mark.test_id("Zephyr Peripheral HID Forget Pairing", '')
-    def test_zephyr_peripheral_hid_forget_pairing(self):
-        print("test_zephyr_peripheral_hid_forget_pairing")
+    #@pytest.mark.test_id("Zephyr Peripheral HID Forget Device", '')
+    def test_zephyr_peripheral_hid_forget_device(self):
+        print("test_zephyr_peripheral_hid_forget_device")
         sd.mobile_driver.app_activate(sd.config.ios_settings_app_package)
         time.sleep(5)
         pairing = iOSBLEPairingSupport()
@@ -288,9 +288,9 @@ class TestZephyrApp:
         assert state != new_state, "HID test failed"
         print('Remove paired device: Test HoG mouse')
 
-    # @pytest.mark.order(1)
-    @pytest.mark.test_id("Zephyr Peripheral Android HID Pairing", '')
-    #@pytest.mark.skip(reason="test_zephyr_peripheral_android_hid_pairing")
+    #@pytest.mark.order(1)
+    #@pytest.mark.test_id("Zephyr Peripheral Android HID Pairing", '')
+    @pytest.mark.skip(reason="test_zephyr_peripheral_android_hid_pairing")
     def test_zephyr_peripheral_android_hid_pairing_connect(self):
         print('test_zephyr_peripheral_android_hid_pairing_connect')
         status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
@@ -298,46 +298,75 @@ class TestZephyrApp:
         time.sleep(2)
         sd.mobile_driver.close_app('com.android.settings')
         time.sleep(5)
-        print("Launch app")
+        print("Launch setting app")
         sd.mobile_driver.launch_app('com.android.settings')
         time.sleep(5)
         print('DUT Reset. Firmware reset')
         self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
         time.sleep(3)
+        print('Settings ==> Connected Devices')
         status, connected_device = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Connected devices"]')
         assert status, "Failed to find the element."
         connected_device.click()
         time.sleep(3)
+        status, id_1 = sd.mobile_driver.find_element('ID', 'Connected devices')
+        assert status, "Failed to find the ID:Connected devices"
+        print('Connected Devices ==> Pair new device')
         status, pair_device = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Pair new device"]')
         assert status, "Failed to find the element."
         pair_device.click()
-        time.sleep(3)
+        time.sleep(5)
+        status, id_2 = sd.mobile_driver.find_element('ID', 'Pair new device')
+        assert status, "Failed to find the ID:Pair new device"
+        print('Pair new device ==> Discover and connect')
         status, dut = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Test HoG mouse"]')
         assert status, "Failed to find the Test HoG mouse."
-        dut.click()
-        time.sleep(3)
+        passkey = self.bleuartfeature.get_serial_data_passkey(dut)
+        #print('Click. Test HoG mouse')
+        #dut.click()
+        time.sleep(1)
         status, alert = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.android.settings:id/alertTitle"]')
         assert status, "Failed to find the alert title."
-        print(f'alert title: {alert.text}')
-        time.sleep(1)
-        status, edit = sd.mobile_driver.find_element('XPATH', '//android.widget.EditText[@resource-id="com.android.settings:id/text"]')
-        assert status, "Failed to find the edit text."
-        edit.send_keys('123456')
-        print('Send passkey')
-        time.sleep(2)
-        status, ok_button = sd.mobile_driver.find_element('XPATH', '//android.widget.Button[@resource-id="android:id/button1"]')
+        if 'Pair with Test HoG mouse' in alert.text:
+            time.sleep(1)
+            assert len(passkey) == 6, 'Passkey error!'
+            print(f'Pairing. passkey={passkey}')
+            status, edit = sd.mobile_driver.find_element('XPATH', '//android.widget.EditText[@resource-id="com.android.settings:id/text"]')
+            assert status, "Failed to find the edit text."
+            edit.send_keys(passkey)
+            #edit.send_keys('727816')
+            #print('Send passkey:727816')
+            #edit.send_keys('123456')
+            #print('Send passkey:123456')
+            time.sleep(3)
+
+        status, button = sd.mobile_driver.find_element('XPATH', '//android.widget.Button[@resource-id="android:id/button1"]')
         assert status, "Failed to find the element."
-        print(f'button: {ok_button.text}')
-        ok_button.click()
+        if 'OK' in button.text:
+            print(f'press ok button')
+            button.click()
+            time.sleep(15)
+
+        #Check pairing success
+        status, id_1 = sd.mobile_driver.find_element('ID', 'Connected devices')
+        assert status, "Failed to find the ID:Connected devices"
+        print('Pair new device == > Connected Devices')
+        time.sleep(1)
+        status, paired_dut = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Test HoG mouse"]')
+        assert status, "Failed to find the Test HoG mouse."
+        print('Pairing success')
+        time.sleep(1)
+        sd.mobile_driver.close_app('com.android.settings')
         time.sleep(5)
 
+    #@pytest.mark.order(2)
     #@pytest.mark.test_id("Zephyr Peripheral HID Android", '')
     @pytest.mark.skip(reason="test_zephyr_android_peripheral_hid")
     def test_zephyr_peripheral_android_hid_mouse_click(self):
         print("Testing Zephyr Peripheral Android HID Mouse click. BLE Bonded")
 
-        self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
-        time.sleep(1)
+        #self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
+        #time.sleep(1)
 
         print('I/O Reset. Firmware reset')
         self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
@@ -353,6 +382,7 @@ class TestZephyrApp:
         status, click_button = sd.mobile_driver.find_element('id', 'zephyr_hid_test')
         assert status, "Failed to find the element id"
         time.sleep(1)
+
         state = sd.mobile_driver.get_text(click_button)
         print("Test HoG mouse state: {}".format(state))
         time.sleep(1)
@@ -367,7 +397,75 @@ class TestZephyrApp:
 
         new_state = sd.mobile_driver.get_text(click_button)
         print("Test HoG mouse state: {}".format(new_state))
-        time.sleep(10)
+        time.sleep(1)
+
+        assert state != new_state, "HID test failed"
+        print('Remove paired device: Test HoG mouse')
+
+        time.sleep(3)
+
+    #@pytest.mark.order(3)
+    @pytest.mark.skip(reason="test_zephyr_peripheral_android_hid_forget_device")
+    #@pytest.mark.test_id("Zephyr Peripheral HID Android Forget device", '')
+    def test_zephyr_peripheral_android_hid_forget_device(self):
+        print('test_zephyr_peripheral_android_hid_forget_device')
+
+        print('Activate settings app')
+        sd.mobile_driver.app_activate('com.android.settings')
+
+        print('I/O Reset. Firmware reset')
+        self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
+        time.sleep(3)
+
+        print('Settings ==> Connected Devices')
+        status, connected_device = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Connected devices"]')
+        assert status, "Failed to find the element."
+        connected_device.click()
+        time.sleep(3)
+
+        status, id = sd.mobile_driver.find_element('ID', 'Connected devices')
+        assert status, "Failed to find the ID:Connected devices"
+        print('Connected Devices')
+        time.sleep(1)
+
+        status, paired_dut = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Test HoG mouse"]')
+        assert status, "Failed to find the Test HoG mouse."
+        paired_dut.click()
+        time.sleep(3)
+
+        status, dev_details = sd.mobile_driver.find_element('ID', 'Device details')
+        assert status, "Failed to find the ID:Device details."
+        print(f"Connected Devices ==> {dev_details.text}")
+        time.sleep(2)
+
+        status, forget_button = sd.mobile_driver.find_element('XPATH', '//android.widget.Button[@resource-id="com.android.settings:id/button1"]')
+        assert status, "Failed to find the Forget button."
+        time.sleep(1)
+        #print(f'Find button: {forget_button.text}')
+        assert forget_button.text == 'Forget', 'Failed to find the Forget'
+        print(f'Find Forget button')
+        forget_button.click()
+        time.sleep(3)
+
+        #status, alert = sd.mobile_driver.find_element('ID', 'com.android.settings:id/alertTitle')
+        status, alert = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.android.settings:id/alertTitle"]')
+        assert status, "Failed to find the alert title."
+        time.sleep(1)
+        assert alert.text == 'Forget device?', "Alert title: Error"
+        time.sleep(1)
+
+        status, button = sd.mobile_driver.find_element('XPATH', '//android.widget.Button[@resource-id="android:id/button1"]')
+        assert status, "Failed to find the Alert Forget button."
+        time.sleep(1)
+        assert button.text == 'Forget device', "Alert Forget device not found"
+        time.sleep(1)
+        button.click()
+        print('Click Forget device button')
+        time.sleep(2)
+
+        status = self.iocontrolledstatus.Zephyr_IO_Default(MCU)
+        assert status, "Failed to set MCP2200 I/O default"
+        time.sleep(1)
 
     #@pytest.mark.test_id("Zephyr Direct Advertising", '')
     @pytest.mark.skip(reason="test_zephyr_peripheral_hid")

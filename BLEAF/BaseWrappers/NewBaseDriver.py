@@ -261,9 +261,6 @@ class NewBaseDriver:
                     datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
                 print("Failed to find matching elements{0}. Failed screenshot: {1}".format(locator, screenshot_file_name))
                 self.driver.save_screenshot(screenshot_file_name)
-
-
-
         return found, element
 
     def find_elements(self, by, locator, timeout=30):
