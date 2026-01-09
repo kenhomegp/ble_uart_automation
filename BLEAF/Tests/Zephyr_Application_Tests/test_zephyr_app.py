@@ -9,6 +9,7 @@ import datetime
 
 import serial
 import logging
+import re
 
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -29,6 +30,7 @@ from ...StationConfig import conf_file
 from ...CommonSupportLib.iOS_BluetoothSupport import iOSBluetoothSupport
 from ...CommonSupportLib.iOS_BLEPairingSupport import iOSBLEPairingSupport
 from ...BaseWrappers.NewBaseDriver import NewBaseDriver
+from ...BaseWrappers.SSHSupport import ShellHandler
 
 sd = stationData()
 dut_friendly_name = conf_file.dut_friendly_name
@@ -37,6 +39,8 @@ RESET_PIN = 0x02
 BTN_CTRL_PIN = 0x04
 
 MCU = Mcp2200()
+
+#phone_list = ["SamsungS21", "GooglePixel5", "OPPO Reno", "SamsungS10", "GooglePixel3A", "VivoV11"]
 
 @pytest.fixture(scope="class", autouse=True)
 def define_class_attributes(request, default_class_fixture):
@@ -59,20 +63,6 @@ def local_function_fixture(request):
 
     test_func_name = request.node.name
     print(f"Fixture {local_function_fixture.__name__} is being used by test: {test_func_name}")
-    if test_func_name == "test_zephyr_peripheral_hid_ble_bonded":
-        print("Fixture is being used by test_zephyr_peripheral_hid_ble_bonded")
-        '''
-        mobile_to_use = sd.config.mobile_data_config.get(sd.platform)
-        driver = NewBaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
-                            mobile_to_use.get(PHONE_UDID_K),
-                            mobile_to_use.get(PLATFORM_NAME_K),
-                            mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
-                            sd.config.ios_settings_app_package, fresh_env=False)
-        time.sleep(2)
-        iOSpairingsupport = iOSBluetoothSupport(driver)
-        print("new iOSBluetoothSupport driver")
-        '''
-
 
     def function_finalizer():
         print("Local function finalizer")
@@ -88,30 +78,81 @@ def local_function_fixture(request):
 
     request.addfinalizer(function_finalizer)
 
+@pytest.fixture
+def remote_appium_handler():
+    #assert len(sd.config.multilink_phone_list) > 1, 'Multilink mobile phones config error'
+    assert len(sd.config.multilink_phone_list) > 0, 'Multilink mobile phones config error'
+    print("ssh_handler fixture")
+    ssh_handler = ShellHandler(sd.config.remote_appium_server_ip, sd.config.remote_appium_username,
+                               sd.config.remote_appium_pwd)
+    tt = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
+    ip_addr = sd.config.remote_appium_server_ip
+    port_num = sd.config.remote_appium_server_port
+    print("start_remote_appium_server. ip = {}, port = {}, time = {}".format(ip_addr, port_num, tt))
+    appium_server_logs = "appium_server_logs_{}".format(tt)
+    start_server_cmd = 'appium -a {} -p {} --relaxed-security > {}.txt &'.format(ip_addr, port_num,
+                                                                                 appium_server_logs)
+    sh_in, sh_out, sh_error = ssh_handler.execute(start_server_cmd)
+    if not sh_error:
+        print("Remote appium server started successfully.")
+    else:
+        assert False, "Failed to start remote appium server. Command output: {}".format(sh_out)
+
+    yield ssh_handler
+
+    print('Kill remote appium server')
+    sh_in, sh_out, sh_error = ssh_handler.execute("ps -a")
+    pids = []
+    print("List process:")
+    for line in sh_out:
+        print(line)
+        if 'node' in line:
+            match = re.match(r'\s*(\d+)', line)
+            if match:
+                pid = match.group(1)
+                pids.append(pid)
+                print(f"PID: {pid}")
+            else:
+                print("PID not found.")
+
+    print("Appium server. PID.count = {}".format(len(pids)))
+
+    if len(pids) != 0:
+        for pid in pids:
+            print('killing appium process,pid = {}'.format(pid))
+            cmd = 'kill -9 {}'.format(pid)
+            sh_in, sh_out, sh_error = ssh_handler.execute(cmd)
+            if not sh_error:
+                print("Appium Process Killed Successfully. cmd = {}".format(cmd))
+            else:
+                assert False, "Failed to kill currently running appium. " \
+                              "Please kill the process manually and restart execution. cmd output: {}".format(sh_out)
+
+@pytest.fixture
+def multilink_mobile_drivers(remote_appium_handler):
+    print("Multilink_drivers")
+    time.sleep(15)
+    app_package = sd.config.app_package
+    app_activity = sd.config.app_activity
+    for phone in sd.config.multilink_phone_list:
+        print('mobile phone = {}'.format(phone))
+        mobile_to_use = sd.config.mobile_data_config.get(phone)
+        driver = NewBaseDriver(sd.config.remote_appium_server_ip, sd.config.remote_appium_server_port,
+                            mobile_to_use.get(PHONE_UDID_K),
+                            mobile_to_use.get(PLATFORM_NAME_K),
+                            mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
+                            app_package, app_activity,
+                            fresh_env=False)
+        sd.mobile_driver = driver
+    print("complete")
+
 class TestZephyrApp:
     bleState = "Disconnected"
     operate_characteristic = ""
     HID_dut_namee = ""
 
-    @pytest.mark.skip(reason="Zephyr test reset")
-    #@pytest.mark.test_id("Zephyr test reset", 'Putty')
-    def test_zephyr_reset(self):
-        print('test_zephyr_reset')
-        #MCU = Mcp2200()
-        #time.sleep(1)
-        self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
-        print('Open Putty')
-        time.sleep(20)
-
-        print('I/O Reset. Firmware reset')
-        self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
-        time.sleep(10)
-        print('I/O Reset. Firmware reset')
-        self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
-        time.sleep(10)
-
     #@pytest.mark.order(3)
-    @pytest.mark.skip(reason="test_zephyr_peripheral_hid_forget_pairing")
+    @pytest.mark.skip(reason="test_zephyr_peripheral_hid_forget_device")
     #@pytest.mark.test_id("Zephyr Peripheral HID Forget Device", '')
     def test_zephyr_peripheral_hid_forget_device(self):
         print("test_zephyr_peripheral_hid_forget_device")
@@ -466,10 +507,16 @@ class TestZephyrApp:
         status = self.iocontrolledstatus.Zephyr_IO_Default(MCU)
         assert status, "Failed to set MCP2200 I/O default"
         time.sleep(1)
+    #@pytest.mark.test_id("Zephyr peripheral identity", '')
+    @pytest.mark.skip(reason="test_zephyr_peripheral_identity")
+    def test_zephyr_peripheral_identity(self, multilink_mobile_drivers):
+        print('test_zephyr_peripheral_identity')
+        time.sleep(5)
 
-    #@pytest.mark.test_id("Zephyr Direct Advertising", '')
+
+    #@pytest.mark.test_id("Zephyr peripheral hid demo", '')
     @pytest.mark.skip(reason="test_zephyr_peripheral_hid")
-    def test_zephyr_peripheral_hid_1(self):
+    def test_zephyr_peripheral_hid_demo(self):
         print("Testing Zephyr Peripheral HID. BLE Bonded")
         print("Make sure all of the paired devices are deleted")
         if sd.mobile_platform == "iOS":
@@ -739,6 +786,26 @@ class TestZephyrApp:
         status = self.iocontrolledstatus.Zephyr_IO_Default(MCU)
         assert status, "[MCP2200 I/O state] Failed to restore to default"
         time.sleep(1)
+
+
+################################################################################################
+
+    @pytest.mark.skip(reason="Zephyr test reset")
+    # @pytest.mark.test_id("Zephyr test reset", 'Putty')
+    def test_zephyr_reset(self):
+        print('test_zephyr_reset')
+        # MCU = Mcp2200()
+        # time.sleep(1)
+        self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
+        print('Open Putty')
+        time.sleep(20)
+
+        print('I/O Reset. Firmware reset')
+        self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
+        time.sleep(10)
+        print('I/O Reset. Firmware reset')
+        self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
+        time.sleep(10)
 
     #@pytest.mark.test_id("Mac_lightblue_scan_and_connect", '')
     @pytest.mark.skip(reason="Used for BLE_UART firmware")

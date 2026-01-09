@@ -149,9 +149,7 @@ class NewBaseDriver:
                     print("Appium Process Killed Successfully. cmd = {}".format(cmd))
                 else:
                     assert False, "Failed to kill currently running appium. " \
-                                  "Please kill the process manually and restart execution. cmd output: {}".format(
-                        sh_out)
-                    break
+                                  "Please kill the process manually and restart execution. cmd output: {}".format(sh_out)
 
     def kill_remote_appium_server_1(self):
         sh_in, sh_out, sh_error = self.ssh_handler.execute("ps -a")

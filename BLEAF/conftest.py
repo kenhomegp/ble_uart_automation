@@ -46,6 +46,13 @@ def pytest_addoption(parser):
         "--mobile_app",
         action="store",
         metavar="Test mobile app",
+        help="Mobile app option",
+        default="no"
+    )
+    parser.addoption(
+        "--multilink",
+        action="store",
+        metavar="BLE link",
         help="New option for Zephyr test",
         default="no"
     )

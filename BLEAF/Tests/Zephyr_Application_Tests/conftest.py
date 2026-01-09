@@ -68,6 +68,11 @@ def default_class_fixture(request):
     #ios_test_app_package = sd.config.ios_lightblue_app_package
     #ios_test_app_package = sd.config.ios_mbda_app_package
 
+    multilink = request.config.getoption('--multilink')
+    if multilink is None:
+        platform = 'multilink'
+        sd.mobile_platform = 'multilink'
+
     if platform == "mac":
         print("Platform: Mac ")
         use_remote_appium = False
@@ -129,35 +134,32 @@ def default_class_fixture(request):
                                 mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
                                 sd.config.app_package, sd.config.app_activity)
     else:
-        print('Unknown platform: {}'.format(platform))
+        print('conftest.py: platform: {}'.format(platform))
 
-    mobile_data_dic = {}
-    dev_name = mobile_to_use.get(DEVICE_NAME_K)
-    mobile_data_dic['driver'] = driver
-    mobile_data_dic['phone'] = dev_name
-    sd.multilink_mobile_driver.append(mobile_data_dic)
+    if multilink is None:
+        mobile_data_dic = {}
+        dev_name = mobile_to_use.get(DEVICE_NAME_K)
+        mobile_data_dic['driver'] = driver
+        mobile_data_dic['phone'] = dev_name
+        sd.multilink_mobile_driver.append(mobile_data_dic)
+        sd.mobile_driver = driver
 
-    sd.mobile_driver = driver
-    request.cls.scanandconnect = ScanningandConnection()
-    if platform == 'iOS' or platform == 'mac':
-        request.cls.bleuartfeature = BLEUARTFeatureSupportiOS()
-        #request.cls.mcp2200manager = WebSocketManager("127.0.0.1", 8101)
-    else:
-        #request.cls.bleuartfeature = BLEUARTFeatureSupport()
-        request.cls.bleuartfeature = RNBDvsPhoneFeatureSupport()
-        #app_package = sd.mobile_driver.get_capability('appPackage')
-        #driver.launch_app(app_package)
+        request.cls.scanandconnect = ScanningandConnection()
+        if platform == 'iOS' or platform == 'mac':
+            request.cls.bleuartfeature = BLEUARTFeatureSupportiOS()
+        elif platform == 'Android':
+            request.cls.bleuartfeature = RNBDvsPhoneFeatureSupport()
 
-    request.cls.iocontrolledstatus = IOControlLEDStatus()
-    request.cls.bleuartpairingfeature = BLEUartPairingSupport()
-    time.sleep(3)
+        request.cls.iocontrolledstatus = IOControlLEDStatus()
+        request.cls.bleuartpairingfeature = BLEUartPairingSupport()
+        time.sleep(3)
 
     def class_finalizer():
         #sd.mobile_driver.kill_appium_server()
         #if sd.mobile_driver.platform == "Windows":
 
         if(len(sd.multilink_mobile_driver) >= 1):
-            print("[Multilink]Close app and kill appium server ")
+            print("Close app and kill appium server ")
 
             android_udid_list = []
             for phone_info_dic in sd.multilink_mobile_driver:
@@ -213,6 +215,7 @@ def default_class_fixture(request):
                         #    time.sleep(15)
                         print("[MacOS]kill remote appium server")
                         sd.mobile_driver.kill_remote_appium_server()
+        '''
         else:
             if sd.mobile_platform == "Android":
                 app_package = sd.mobile_driver.get_capability('appPackage')
@@ -227,7 +230,8 @@ def default_class_fixture(request):
             else:
                 sd.mobile_driver.appium_service.stop()
                 print("[MacOS]kill appium server")
-        time.sleep(3)
+        '''
+        #time.sleep(3)
     request.addfinalizer(class_finalizer)
 
 @pytest.fixture(scope="function")
