@@ -1108,6 +1108,12 @@ class RNBDvsPhoneFeatureSupport:
         assert status, "Failed to find the textfield"
         self.driver.send_keys(text_field, name)
 
+    def open_ble_smart_scanner(self):
+        status, ble_uart_icon = self.driver.find_element('XPATH', locators.bluetooth_smart_icon)
+        assert status, "BLE Smart Icon not found"
+        status = self.driver.click_element(ble_uart_icon)
+        assert status, "Failed to open BLE Smart page"
+
     def ble_smart_filter_peripherals(self, name, search_icon=False):
         print('ble_smart_filter_peripherals')
         if search_icon:
@@ -1172,6 +1178,48 @@ class RNBDvsPhoneFeatureSupport:
         assert status, "Failed to find the element. Connected"
         self.driver.perform_bottom_to_up_swipe()
         self.driver.perform_bottom_to_up_swipe()
+
+    def ble_smart_connect_and_get_info(self, dut_name, test_phone):
+        print(f'ble_smart_connect_and_get_info. test phone:{test_phone}')
+        ble_state = 'Disconnected'
+        bt_addr = ''
+        status, dut = self.driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/device_name"]')
+        assert status, "Failed to find the dut"
+        time.sleep(1)
+        assert self.driver.get_text(dut) == dut_name, 'Fail to find the dut'
+
+        status, state = self.driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/connection_state"]')
+        assert status, "Failed to find the connection state"
+
+        status, connect_button = self.driver.find_element('XPATH', '//android.widget.Button[@resource-id="com.microchip.bluetooth.data:id/menu_connect"]')
+        assert status, "Failed to find the connection state"
+
+        status, bt_address = self.driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/device_address"]')
+        assert status, "Failed to find the bt_address"
+
+        connect_fail_retry = 0
+        while ble_state == 'Disconnected' and connect_fail_retry < 3:
+            connect_button.click()
+            print('click connect button')
+            time.sleep(5)
+            ble_state = self.driver.get_text(state)
+            print('ble state = {}'.format(ble_state))
+            if ble_state == 'Disconnected':
+                connect_fail_retry += 1
+                print(f'Connect fail. retry = {connect_fail_retry}')
+                time.sleep(3)
+            else:
+                start_time = time.time()
+                while ble_state == 'Connected' and time.time() < start_time + 30:
+                    #print('Connected. get state')
+                    time.sleep(5)
+                    ble_state = self.driver.get_text(state)
+                    print(f"Get state: {ble_state}")
+                if ble_state == 'Connected':
+                    print('Connected for 30 sec')
+
+        bt_addr = self.driver.get_text(bt_address)
+        return ble_state, bt_addr
 
     def ble_smart_verify_ble_connected(self, dut_name):
         print('ble_smart_verify_ble_connected')

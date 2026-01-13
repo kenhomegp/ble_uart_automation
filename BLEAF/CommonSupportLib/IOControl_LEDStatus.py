@@ -15,7 +15,8 @@ baudrate = '921600'
 
 class IOControlLEDStatus:
     def __init__(self):
-        self.driver = sd.mobile_driver
+        #self.driver = sd.mobile_driver
+        print('IOControlLEDStatus.init')
 
     def InitMCP2200(self, baudrate, mcu):
         if not mcu.IsConnected():

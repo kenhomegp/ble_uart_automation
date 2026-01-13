@@ -25,9 +25,14 @@ sd = stationData()
 @pytest.fixture(scope="class", autouse=True)
 def default_class_fixture(request):
     print("BLE_UART_MBDA_Tests\conftest]")
-    mobile_to_use = sd.config.mobile_data_config.get(sd.platform)
-    print("Appium Server Config data:")
-    print(mobile_to_use)
+    multilink = request.config.getoption('--multilink')
+    print(f"multilink option = {multilink}")
+
+    if multilink is not None and multilink == 'no':
+        print(f"sd.platform = {sd.platform}")
+        mobile_to_use = sd.config.mobile_data_config.get(sd.platform)
+        print("Appium Server Config data:")
+        print(mobile_to_use)
 
     #print(sd.config.multilink_phone_config)
     #phone_list = sd.config.multilink_phone_config.split("/")
@@ -39,13 +44,6 @@ def default_class_fixture(request):
     #print(sd.config.ios_mbda_app_package)
     #print(sd.config.appium_server_ip)
     # Multiple drivers for mobiles
-
-    '''
-    if sd.config.appium_server_ip == '127.0.0.1':
-        remote_appium = False
-    else:
-        remote_appium = sd.remote_mac_server
-    '''
 
     app = request.config.getoption('--mobile_app')
     if app is not None:
@@ -62,16 +60,13 @@ def default_class_fixture(request):
 
     remote_appium = sd.config.use_remote_appium
 
-    platform = mobile_to_use.get(PLATFORM_NAME_K)
-    sd.mobile_platform = platform
-
-    #ios_test_app_package = sd.config.ios_lightblue_app_package
-    #ios_test_app_package = sd.config.ios_mbda_app_package
-
-    multilink = request.config.getoption('--multilink')
-    if multilink is None:
+    if multilink is not None and multilink != 'no':
         platform = 'multilink'
         sd.mobile_platform = 'multilink'
+        print(f'multilink = {multilink}')
+    else:
+        platform = mobile_to_use.get(PLATFORM_NAME_K)
+        sd.mobile_platform = platform
 
     if platform == "mac":
         print("Platform: Mac ")
@@ -136,7 +131,8 @@ def default_class_fixture(request):
     else:
         print('conftest.py: platform: {}'.format(platform))
 
-    if multilink is None:
+    #if multilink is None:
+    if multilink == 'no':
         mobile_data_dic = {}
         dev_name = mobile_to_use.get(DEVICE_NAME_K)
         mobile_data_dic['driver'] = driver
@@ -153,6 +149,9 @@ def default_class_fixture(request):
         request.cls.iocontrolledstatus = IOControlLEDStatus()
         request.cls.bleuartpairingfeature = BLEUartPairingSupport()
         time.sleep(3)
+    else:
+        request.cls.iocontrolledstatus = IOControlLEDStatus()
+        time.sleep(1)
 
     def class_finalizer():
         #sd.mobile_driver.kill_appium_server()
@@ -209,29 +208,11 @@ def default_class_fixture(request):
                         print("[Windows]kill local appium server")
                         mobile_driver.kill_appium_server()
                 else:
-                    if mobile_driver.ssh_handler is not None:
-                        #for udid in android_udid_list:
-                        #    mobile_driver.get_android_adb_log(udid)
-                        #    time.sleep(15)
-                        print("[MacOS]kill remote appium server")
-                        sd.mobile_driver.kill_remote_appium_server()
-        '''
-        else:
-            if sd.mobile_platform == "Android":
-                app_package = sd.mobile_driver.get_capability('appPackage')
-            else:
-                app_package = sd.mobile_driver.get_capability('bundleId')
-            time.sleep(3)
-            status = sd.mobile_driver.close_app(app_package)
-            time.sleep(3)
-            assert status, "Failed to close application"
-            if sd.remote_mac_server:
-                sd.mobile_driver.kill_remote_appium_server()
-            else:
-                sd.mobile_driver.appium_service.stop()
-                print("[MacOS]kill appium server")
-        '''
-        #time.sleep(3)
+                    if multilink == 'no':
+                        if mobile_driver.ssh_handler is not None:
+                            print("[MacOS]kill remote appium server")
+                            sd.mobile_driver.kill_remote_appium_server()
+
     request.addfinalizer(class_finalizer)
 
 @pytest.fixture(scope="function")

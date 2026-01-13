@@ -23,6 +23,7 @@ from ...CommonSupportLib.StationData import stationData
 from ...CommonSupportLib.StationDefines import DEVICE_NAME_K, PLATFORM_NAME_K, PLATFORM_VERSION_K, PHONE_UDID_K, \
     PHONE_BT_ADDRESS_K, COM_PORT_K, BAUD_RATE_K
 from ...CommonSupportLib.BLEUARTFeatureSupportiOS import BLEUARTFeatureSupportiOS
+from ...CommonSupportLib.RNBDPairingandLightBlueFeatureSupport import RNBDvsPhoneFeatureSupport
 
 from ...MCP2200.MCP2200 import Mcp2200
 from ...StationConfig import conf_file
@@ -71,10 +72,11 @@ def local_function_fixture(request):
             if test_func_name == "test_zephyr_peripheral_hid_ble_bonded":
                 sd.mobile_driver.close_app(sd.config.ios_lightblue_app_package)
         else:
-            app_package = sd.mobile_driver.get_capability('appPackage')
-            print("Close app")
-            sd.mobile_driver.close_app(app_package)
-        time.sleep(3)
+            if test_func_name != 'test_zephyr_peripheral_identity':
+                app_package = sd.mobile_driver.get_capability('appPackage')
+                print(f"Close app.{app_package}")
+                sd.mobile_driver.close_app(app_package)
+                time.sleep(3)
 
     request.addfinalizer(function_finalizer)
 
@@ -130,12 +132,12 @@ def remote_appium_handler():
 
 @pytest.fixture
 def multilink_mobile_drivers(remote_appium_handler):
-    print("Multilink_drivers")
+    print("Initial multilink_drivers")
     time.sleep(15)
     app_package = sd.config.app_package
     app_activity = sd.config.app_activity
     for phone in sd.config.multilink_phone_list:
-        print('mobile phone = {}'.format(phone))
+        #print('mobile phone = {}'.format(phone))
         mobile_to_use = sd.config.mobile_data_config.get(phone)
         driver = NewBaseDriver(sd.config.remote_appium_server_ip, sd.config.remote_appium_server_port,
                             mobile_to_use.get(PHONE_UDID_K),
@@ -143,8 +145,21 @@ def multilink_mobile_drivers(remote_appium_handler):
                             mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
                             app_package, app_activity,
                             fresh_env=False)
-        sd.mobile_driver = driver
-    print("complete")
+        print(f'Create driver for mobile phone:{phone}')
+        app_package = driver.get_capability('appPackage')
+        print("app_package: {0}".format(app_package))
+        driver.close_app(app_package)
+        time.sleep(5)
+        status = driver.launch_app(app_package)
+        time.sleep(3)
+        assert status, "Failed to launch application"
+        mobile_data_dic = {}
+        mobile_data_dic['driver'] = driver
+        mobile_data_dic['phone'] = phone
+        sd.multilink_mobile_driver.append(mobile_data_dic)
+    #sd.mobile_driver = driver
+    tt = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
+    print(f"complete.time = {tt}")
 
 class TestZephyrApp:
     bleState = "Disconnected"
@@ -507,11 +522,44 @@ class TestZephyrApp:
         status = self.iocontrolledstatus.Zephyr_IO_Default(MCU)
         assert status, "Failed to set MCP2200 I/O default"
         time.sleep(1)
-    #@pytest.mark.test_id("Zephyr peripheral identity", '')
-    @pytest.mark.skip(reason="test_zephyr_peripheral_identity")
+
+    @pytest.mark.test_id("Zephyr peripheral identity", '')
+    #@pytest.mark.skip(reason="test_zephyr_peripheral_identity")
     def test_zephyr_peripheral_identity(self, multilink_mobile_drivers):
         print('test_zephyr_peripheral_identity')
-        time.sleep(5)
+        assert len(sd.multilink_mobile_driver) == len(sd.config.multilink_phone_list), 'Fail to create drivers'
+        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
+        assert status, "Failed to initialize the MCP2200"
+        time.sleep(2)
+
+        test_result = {}
+        for index, dat in enumerate(sd.multilink_mobile_driver):
+            if index == 0:
+                print('I/O Reset. Firmware reset')
+                self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
+            m_driver = dat['driver']
+            m_phone = dat['phone']
+            mbd_ble_smart_featuresupport = RNBDvsPhoneFeatureSupport(driver=m_driver)
+            time.sleep(1)
+            mbd_ble_smart_featuresupport.open_ble_smart_scanner()
+            time.sleep(10)
+            mbd_ble_smart_featuresupport.ble_smart_filter_peripherals('Zephyr', search_icon=True)
+            time.sleep(2)
+            mbd_ble_smart_featuresupport.ble_smart_connect('Zephyr Peripheral')
+            print('Ble connecting..')
+            time.sleep(3)
+            connection, bt_address = mbd_ble_smart_featuresupport.ble_smart_connect_and_get_info('Zephyr Peripheral', m_phone)
+            print('test phone:{}, ble:{}, bt_address:{}'.format(m_phone, connection, bt_address))
+            test_result[m_phone] = connection + ',' + bt_address
+            time.sleep(2)
+        print(f'test result: {test_result}')
+        status = self.iocontrolledstatus.Zephyr_IO_Default(MCU)
+        assert status, "Failed to set MCP2200 I/O default"
+        time.sleep(1)
+        for index, dat in enumerate(sd.multilink_mobile_driver):
+            m_driver = dat['driver']
+            m_driver.quit_driver()
+        print('test complete')
 
 
     #@pytest.mark.test_id("Zephyr peripheral hid demo", '')
@@ -603,6 +651,7 @@ class TestZephyrApp:
                 sd.mobile_driver.launch_app(app_package)
                 time.sleep(5)
                 self.scanandconnect.verify_app_open()
+                assert status, 'MBD open fail'
                 time.sleep(3)
                 print('DUT Reset. Firmware reset')
                 self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
@@ -696,7 +745,8 @@ class TestZephyrApp:
         print('Activate MBD app')
         sd.mobile_driver.app_activate(sd.config.app_package)
         time.sleep(3)
-        self.scanandconnect.verify_app_open()
+        status = self.scanandconnect.verify_app_open()
+        assert status, "MBD open fail"
         time.sleep(3)
         print('DUT Reset. Firmware reset')
         self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
