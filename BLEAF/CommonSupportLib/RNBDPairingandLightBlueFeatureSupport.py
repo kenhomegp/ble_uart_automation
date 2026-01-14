@@ -1135,7 +1135,7 @@ class RNBDvsPhoneFeatureSupport:
         if button_text == 'STOP SCAN':
             scan_button.click()
             print("Stop scan")
-        time.sleep(2)
+        time.sleep(1)
         peripheral = None
         locator = '//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/device_name" and @text="{}"]'
         status, peripheral = self.driver.find_element('XPATH', locator.format(dut_name))
@@ -1148,7 +1148,7 @@ class RNBDvsPhoneFeatureSupport:
             time.sleep(2)
             status, peripheral = self.driver.find_element('XPATH', locator.format(new_dut_name))
         print("Find the peripheral")
-        time.sleep(2)
+        time.sleep(1)
         status = self.driver.click_element(peripheral)
         assert status, "Unable to click the dut"
 
@@ -1178,6 +1178,15 @@ class RNBDvsPhoneFeatureSupport:
         assert status, "Failed to find the element. Connected"
         self.driver.perform_bottom_to_up_swipe()
         self.driver.perform_bottom_to_up_swipe()
+
+    def ble_smart_connection_long_term_test(self, test_time):
+        print('ble_smart_connection_long_term_test')
+        status, state = self.driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/connection_state"]')
+        assert status, "Failed to find the connection state"
+        for i in range(test_time):
+            print(f'index: {i}')
+            ble_state = self.driver.get_text(state)
+            print('ble state = {}'.format(ble_state))
 
     def ble_smart_connect_and_get_info(self, dut_name, test_phone):
         print(f'ble_smart_connect_and_get_info. test phone:{test_phone}')
@@ -1399,14 +1408,18 @@ class RNBDvsPhoneFeatureSupport:
         else:
             t0.join(10)
 
-        print('time = {}'.format(datetime.now().strftime("%d-%m-%Y_%I-%M-%S")))
-        self.CloseSerialPort(serial_port)
+        #print('time = {}'.format(datetime.now().strftime("%d-%m-%Y_%I-%M-%S")))
+        #self.CloseSerialPort(serial_port)
 
         if t0.is_alive():
             print('Read serial data: Unknown data.')
+            print('time = {}'.format(datetime.now().strftime("%d-%m-%Y_%I-%M-%S")))
+            self.CloseSerialPort(serial_port)
             return False
         else:
             print("serial thread complete.serial_recv = {}".format(serial_recv))
+            print('time = {}'.format(datetime.now().strftime("%d-%m-%Y_%I-%M-%S")))
+            self.CloseSerialPort(serial_port)
             return True
 
     def ble_smart_go_back(self):
@@ -1484,11 +1497,11 @@ class RNBDvsPhoneFeatureSupport:
                         flagReadSerialData = False
                     elif 'pairing failed' in reading:
                         #print('Pairing failed')
-                        print("Read serial data: {}".format(reading))
+                        #print("Read serial data: {}".format(reading))
                         flagReadSerialData = False
                     elif 'SMP Timeout' in reading:
                         #print('SMP Timeout')
-                        print("Read serial data: {}".format(reading))
+                        #print("Read serial data: {}".format(reading))
                         flagReadSerialData = False
                     elif 'Pairing completed' in reading:
                         print("Read serial data: {}".format(reading))

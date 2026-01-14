@@ -27,7 +27,7 @@ global localport_start
 localport_start = 8100
 
 global android_systemPort_start
-android_systemPort_start = 8210
+android_systemPort_start = 8200
 
 import platform
 import re
@@ -35,7 +35,7 @@ import re
 class NewBaseDriver:
 
     def __init__(self, ip_addr, port_num, udid, platform_name, platform_version,
-                 device_name, app_package, app_activity=None, fresh_env=True, remote_appium=False):
+                 device_name, app_package, app_activity=None, fresh_env=True, remote_appium=False, multilink=False):
         global localport_start
         global android_systemPort_start
         if fresh_env:
@@ -73,7 +73,8 @@ class NewBaseDriver:
         #desired_caps['appium:udid'] = udid
 
         if "android" in platform_name.lower():
-            desired_caps['appium:systemPort'] = android_systemPort_start + 1
+            if multilink:
+                desired_caps['appium:systemPort'] = android_systemPort_start + 1
             desired_caps['appium:automationName'] = 'uiautomator2'
             desired_caps['appium:appPackage'] = app_package
             desired_caps['appium:appActivity'] = app_activity

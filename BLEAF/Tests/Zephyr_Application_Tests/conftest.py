@@ -160,7 +160,7 @@ def default_class_fixture(request):
         if(len(sd.multilink_mobile_driver) >= 1):
             print("Close app and kill appium server ")
 
-            android_udid_list = []
+            #android_udid_list = []
             for phone_info_dic in sd.multilink_mobile_driver:
                 phone_name = phone_info_dic['phone']
                 print("phone_name = {}.Close test app".format(phone_name))
@@ -182,12 +182,12 @@ def default_class_fixture(request):
                 #pid = mobile_driver.get_android_app_pid('R5CW321G69K')
 
                 #if "iphone" in phone_name.lower() or "mymac" in phone_name.lower():
-                if iDevice:
-                    print("[iPhone]Get adb log. not supported")
-                else:
-                    mobile_info = sd.config.mobile_data_config.get(phone_name)
-                    udid = mobile_info.get(PHONE_UDID_K)
-                    android_udid_list.append(udid)
+                #if iDevice:
+                #    print("[iPhone]Get adb log. not supported")
+                #else:
+                #    mobile_info = sd.config.mobile_data_config.get(phone_name)
+                #    udid = mobile_info.get(PHONE_UDID_K)
+                #    android_udid_list.append(udid)
 
                 #status = mobile_driver.close_app(app_package)
                 #time.sleep(3)
