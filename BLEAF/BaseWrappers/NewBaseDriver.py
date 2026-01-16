@@ -35,7 +35,7 @@ import re
 class NewBaseDriver:
 
     def __init__(self, ip_addr, port_num, udid, platform_name, platform_version,
-                 device_name, app_package, app_activity=None, fresh_env=True, remote_appium=False, multilink=False):
+                 device_name, app_package, app_activity=None, fresh_env=True, remote_appium=False, system_port=False):
         global localport_start
         global android_systemPort_start
         if fresh_env:
@@ -65,7 +65,8 @@ class NewBaseDriver:
                 self.kill_remote_appium_server()
                 self.start_remote_appium_server(sd.config.remote_appium_server_ip, sd.config.remote_appium_server_port)
                 time.sleep(20)
-        print(f'systemPort = {android_systemPort_start}')
+        if system_port:
+            print(f'systemPort = {android_systemPort_start}')
         desired_caps = {}
         desired_caps['platformName'] = platform_name
         desired_caps['platformVersion'] = platform_version
@@ -73,7 +74,7 @@ class NewBaseDriver:
         #desired_caps['appium:udid'] = udid
 
         if "android" in platform_name.lower():
-            if multilink:
+            if system_port:
                 desired_caps['appium:systemPort'] = android_systemPort_start + 1
             desired_caps['appium:automationName'] = 'uiautomator2'
             desired_caps['appium:appPackage'] = app_package
@@ -126,8 +127,9 @@ class NewBaseDriver:
             print("Unable to create WebDriver . Error: {}".format(e))
             assert False, "Failed to create appium driver object. Error: {}".format(e)
 
-        if "android" in platform_name.lower():
-            android_systemPort_start += 1
+        if system_port:
+            if "android" in platform_name.lower():
+                android_systemPort_start += 1
 
     def kill_remote_appium_server(self):
         sh_in, sh_out, sh_error = self.ssh_handler.execute("ps -a")

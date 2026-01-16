@@ -87,18 +87,37 @@ def remote_appium_handler():
     print("ssh_handler fixture")
     ssh_handler = ShellHandler(sd.config.remote_appium_server_ip, sd.config.remote_appium_username,
                                sd.config.remote_appium_pwd)
-    tt = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
-    ip_addr = sd.config.remote_appium_server_ip
-    port_num = sd.config.remote_appium_server_port
-    print("start_remote_appium_server. ip = {}, port = {}, time = {}".format(ip_addr, port_num, tt))
-    appium_server_logs = "appium_server_logs_{}".format(tt)
-    start_server_cmd = 'appium -a {} -p {} --relaxed-security > {}.txt &'.format(ip_addr, port_num,
-                                                                                 appium_server_logs)
-    sh_in, sh_out, sh_error = ssh_handler.execute(start_server_cmd)
-    if not sh_error:
-        print("Remote appium server started successfully.")
+
+    multiple_server = True
+    if multiple_server:
+        print('Running multiple appium server')
+        for i in range(sd.config.multilink_phone_list):
+            appium_server_logs = "appium_server_logs_{}_{}".format(sd.config.remote_appium_server_ip+i, datetime.datetime.now().strftime(
+                "%Y-%m-%d_%H_%M_%S"))
+            ip_addr = sd.config.remote_appium_server_ip
+            port_num = int(sd.config.remote_appium_server_port)
+            start_server_cmd = 'appium -a {} -p {} --relaxed-security > {}.txt &'.format(
+                ip_addr, str(port_num+i), appium_server_logs)
+            sh_in, sh_out, sh_error = ssh_handler.execute(start_server_cmd)
+            if not sh_error:
+                print("Remote appium server started successfully. cmd = {}".format(start_server_cmd))
+                time.sleep(2)
+            else:
+                assert False, "Failed to start remote appium server. Command output: {}".format(sh_out)
+
     else:
-        assert False, "Failed to start remote appium server. Command output: {}".format(sh_out)
+        tt = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
+        ip_addr = sd.config.remote_appium_server_ip
+        port_num = sd.config.remote_appium_server_port
+        print("start_remote_appium_server. ip = {}, port = {}, time = {}".format(ip_addr, port_num, tt))
+        appium_server_logs = "appium_server_logs_{}".format(tt)
+        start_server_cmd = 'appium -a {} -p {} --relaxed-security > {}.txt &'.format(ip_addr, port_num,
+                                                                                 appium_server_logs)
+        sh_in, sh_out, sh_error = ssh_handler.execute(start_server_cmd)
+        if not sh_error:
+            print("Remote appium server started successfully.")
+        else:
+            assert False, "Failed to start remote appium server. Command output: {}".format(sh_out)
 
     yield ssh_handler
 
@@ -136,15 +155,18 @@ def multilink_mobile_drivers(remote_appium_handler):
     time.sleep(15)
     app_package = sd.config.app_package
     app_activity = sd.config.app_activity
-    for phone in sd.config.multilink_phone_list:
+    #for phone in sd.config.multilink_phone_list:
+    for i in range(sd.config.multilink_phone_list):
         #print('mobile phone = {}'.format(phone))
+        phone = sd.config.multilink_phone_list[i]
         mobile_to_use = sd.config.mobile_data_config.get(phone)
-        driver = NewBaseDriver(sd.config.remote_appium_server_ip, sd.config.remote_appium_server_port,
+        port = sd.config.remote_appium_server_port
+        driver = NewBaseDriver(sd.config.remote_appium_server_ip, str(port+i),
                             mobile_to_use.get(PHONE_UDID_K),
                             mobile_to_use.get(PLATFORM_NAME_K),
                             mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
                             app_package, app_activity,
-                            fresh_env=False, multilink=True)
+                            fresh_env=False)
         print(f'Create driver for mobile phone:{phone}')
         app_package = driver.get_capability('appPackage')
         print("app_package: {0}".format(app_package))
