@@ -91,13 +91,14 @@ def remote_appium_handler():
     multiple_server = True
     if multiple_server:
         print('Running multiple appium server')
-        for i in range(sd.config.multilink_phone_list):
-            appium_server_logs = "appium_server_logs_{}_{}".format(sd.config.remote_appium_server_ip+i, datetime.datetime.now().strftime(
-                "%Y-%m-%d_%H_%M_%S"))
+        for i in range(len(sd.config.multilink_phone_list)):
             ip_addr = sd.config.remote_appium_server_ip
             port_num = int(sd.config.remote_appium_server_port)
+            appium_server_logs = "appium_server_logs_{}_{}".format(port_num+i, datetime.datetime.now().strftime(
+                "%Y-%m-%d_%H_%M_%S"))
             start_server_cmd = 'appium -a {} -p {} --relaxed-security > {}.txt &'.format(
                 ip_addr, str(port_num+i), appium_server_logs)
+            print("start_remote_appium_server. ip = {}, port = {}".format(ip_addr, port_num+i))
             sh_in, sh_out, sh_error = ssh_handler.execute(start_server_cmd)
             if not sh_error:
                 print("Remote appium server started successfully. cmd = {}".format(start_server_cmd))
@@ -153,14 +154,20 @@ def remote_appium_handler():
 def multilink_mobile_drivers(remote_appium_handler):
     print("Initial multilink_drivers")
     time.sleep(15)
+    #Android MBD
     app_package = sd.config.app_package
     app_activity = sd.config.app_activity
+
+    #Android lightblue
+    app_package = sd.config.lightblue_app_package
+    app_activity = sd.config.lightblue_app_activity
+
     #for phone in sd.config.multilink_phone_list:
-    for i in range(sd.config.multilink_phone_list):
+    for i in range(len(sd.config.multilink_phone_list)):
         #print('mobile phone = {}'.format(phone))
         phone = sd.config.multilink_phone_list[i]
         mobile_to_use = sd.config.mobile_data_config.get(phone)
-        port = sd.config.remote_appium_server_port
+        port = int(sd.config.remote_appium_server_port)
         driver = NewBaseDriver(sd.config.remote_appium_server_ip, str(port+i),
                             mobile_to_use.get(PHONE_UDID_K),
                             mobile_to_use.get(PLATFORM_NAME_K),
@@ -168,13 +175,13 @@ def multilink_mobile_drivers(remote_appium_handler):
                             app_package, app_activity,
                             fresh_env=False)
         print(f'Create driver for mobile phone:{phone}')
-        app_package = driver.get_capability('appPackage')
-        print("app_package: {0}".format(app_package))
-        driver.close_app(app_package)
-        time.sleep(5)
-        status = driver.launch_app(app_package)
-        time.sleep(3)
-        assert status, "Failed to launch application"
+        #app_package = driver.get_capability('appPackage')
+        #print("app_package: {0}".format(app_package))
+        #driver.close_app(app_package)
+        #time.sleep(5)
+        #status = driver.launch_app(app_package)
+        #time.sleep(3)
+        #assert status, "Failed to launch application"
         mobile_data_dic = {}
         mobile_data_dic['driver'] = driver
         mobile_data_dic['phone'] = phone
@@ -600,8 +607,9 @@ class TestZephyrApp:
         assert status, "Failed to initialize the MCP2200"
         time.sleep(2)
 
+        test_phones = []
         zephyr_test = []
-        test_result = {}
+        bt_address_arr = []
         for index, dat in enumerate(sd.multilink_mobile_driver):
             if index == 0:
                 print('I/O Reset. Firmware reset')
@@ -610,45 +618,63 @@ class TestZephyrApp:
             m_phone = dat['phone']
             mbd_ble_smart_featuresupport = RNBDvsPhoneFeatureSupport(driver=m_driver)
             time.sleep(1)
-            mbd_ble_smart_featuresupport.open_ble_smart_scanner()
-            time.sleep(6)
-            mbd_ble_smart_featuresupport.ble_smart_filter_peripherals('Zephyr', search_icon=True)
+            app_package = m_driver.get_capability('appPackage')
+            print("app_package: {0}".format(app_package))
+            m_driver.close_app(app_package)
+            print('app restart. close app')
+            time.sleep(5)
+            status = m_driver.launch_app(app_package)
+            print('app restart')
+            time.sleep(5)
+            assert status, "Failed to launch application"
             time.sleep(2)
-            mbd_ble_smart_featuresupport.ble_smart_connect('Zephyr Peripheral')
+
+            mbd_ble_smart_featuresupport.lightblue_filter_peripherals('Zephyr Peripheral')
+            time.sleep(2)
+
+            mbd_ble_smart_featuresupport.lightblue_connect('Zephyr Peripheral')
             print('Ble connecting..')
-            time.sleep(3)
-            connection, bt_address = mbd_ble_smart_featuresupport.ble_smart_connect_and_get_info('Zephyr Peripheral', m_phone)
-            print('test phone:{}, ble:{}, bt_address:{}'.format(m_phone, connection, bt_address))
-            assert connection == 'Connected', 'test phone {}. Failed to connect to the device'.format(m_phone)
-            test_result[m_phone] = connection + ',' + bt_address
+            time.sleep(5)
+
+            status = mbd_ble_smart_featuresupport.lightblue_verify_ble_connected()
+            if not status:
+                time.sleep(2)
+                mbd_ble_smart_featuresupport.lightblue_connect('Zephyr Peripheral')
+                print('Ble connecting..')
+                time.sleep(5)
+                status = mbd_ble_smart_featuresupport.lightblue_verify_ble_connected()
+                assert status, f'test phone: {m_phone}, connect fail'
+
+            bt_address = m_driver.android_get_textview_bt_address()
+            if bt_address != '':
+                print(f'BT address = {bt_address}')
+                bt_address_arr.append(bt_address)
+
             zephyr_test.append(mbd_ble_smart_featuresupport)
+            test_phones.append(m_phone)
             time.sleep(2)
-        print(f'test result: {test_result}')
+
+        assert len(bt_address_arr) == len(sd.config.multilink_phone_list), 'Fail to find the bt address'
+        assert len(bt_address_arr) == len(set(bt_address_arr)), print(f'Duplicate BT address')
+
         test_time = 60
         print(f'Long-term idle test. test time = {test_time}')
-
-        '''
-        app_drivers = []
-        elements = []
-        for i in range(len(sd.multilink_mobile_driver)):
-            phone_driver = sd.multilink_mobile_driver[i]
-            m_driver = phone_driver['driver']
-            app_drivers.append(m_driver)
-            #m_phone = phone_driver['phone']
-            status, state_element = m_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/connection_state"]')
-            assert status, "Failed to find the state_element"
-            elements.append(state_element)
-        print(f'Get driver.element. len = {len(app_drivers)}')
-
+        all_connected = True
         for i in range(test_time):
-            for j in range(len(app_drivers)):
-                app_driver = app_drivers[j]
-                element = elements[j]
-                state = app_driver.get_text(element)
-                print(f'time:{i}, app_index{j}, ble state: {state}')
+            print(f'Running test:{i}')
+            for j in range(len(zephyr_test)):
+                app_driver = zephyr_test[j]
+                status = app_driver.lightblue_verify_ble_connected()
+                print(f'app:{j}, verify_ble_connected')
+                if not status:
+                    print(f'app:{j}, disconnect')
+                    all_connected = False
+                    break
                 time.sleep(1)
+            if not all_connected:
+                break
         print('multilink long-term idle test complete')
-        '''
+
         status = self.iocontrolledstatus.Zephyr_IO_Default(MCU)
         assert status, "Failed to set MCP2200 I/O default"
         time.sleep(1)

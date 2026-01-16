@@ -1175,21 +1175,39 @@ class RNBDvsPhoneFeatureSupport:
     def lightblue_verify_ble_connected(self):
         print('lightblue_verify_ble_connected')
         status, element = self.driver.find_element('XPATH', "//android.widget.TextView[@text='Connected']")
-        assert status, "Failed to find the element. Connected"
-        self.driver.perform_bottom_to_up_swipe()
-        self.driver.perform_bottom_to_up_swipe()
+        #assert status, "Failed to find the element. Connected"
+        #return status
+        if not status:
+            status, element = self.driver.find_element('XPATH', "//android.widget.TextView[@text='Connection Alert']")
+            if status:
+                print('Connection Timeout')
+                status, ok_button = self.driver.find_element('XPATH', "//android.widget.Button[@text='OK']")
+                if status:
+                    ok_button.click()
+                    print('click ok button')
+                    time.sleep(1)
+                    return False
+        else:
+            return status
 
-    def ble_smart_connection_long_term_test(self, test_time):
-        print('ble_smart_connection_long_term_test')
+        #self.driver.perform_bottom_to_up_swipe()
+        #self.driver.perform_bottom_to_up_swipe()
+
+    def ble_smart_connection_long_term_test(self, test_time, test_phone):
+        print(f'ble_smart_connection_long_term_test. {test_phone}')
         status, state = self.driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/connection_state"]')
         assert status, "Failed to find the connection state"
-        for i in range(test_time):
-            print(f'index: {i}')
-            ble_state = self.driver.get_text(state)
-            print('ble state = {}'.format(ble_state))
+        #ble_state = self.driver.get_text(state)
+        ble_state = self.driver.get_value(state)
+        print('ble state = {}'.format(ble_state))
+        #for i in range(test_time):
+        #    print(f'index: {i}')
+        #    ble_state = self.driver.get_text(state)
+        #    print('ble state = {}'.format(ble_state))
 
     def ble_smart_connect_and_get_info(self, dut_name, test_phone):
         print(f'ble_smart_connect_and_get_info. test phone:{test_phone}')
+        self.driver.driver.implicitly_wait(5)
         ble_state = 'Disconnected'
         bt_addr = ''
         status, dut = self.driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/device_name"]')
@@ -1218,6 +1236,8 @@ class RNBDvsPhoneFeatureSupport:
                 print(f'Connect fail. retry = {connect_fail_retry}')
                 time.sleep(3)
             else:
+                print(f'ble state = {ble_state}')
+                '''
                 start_time = time.time()
                 while ble_state == 'Connected' and time.time() < start_time + 30:
                     #print('Connected. get state')
@@ -1226,9 +1246,9 @@ class RNBDvsPhoneFeatureSupport:
                     print(f"Get state: {ble_state}")
                 if ble_state == 'Connected':
                     print('Connected for 30 sec')
-
+                '''
         bt_addr = self.driver.get_text(bt_address)
-        return ble_state, bt_addr
+        return state, ble_state, bt_addr
 
     def ble_smart_verify_ble_connected(self, dut_name):
         print('ble_smart_verify_ble_connected')

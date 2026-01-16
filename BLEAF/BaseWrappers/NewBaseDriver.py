@@ -7,9 +7,10 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.remote import errorhandler
 from selenium.common.exceptions import WebDriverException
 from appium.common.exceptions import NoSuchContextException
+from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains                                                             
 from appium.options.android import UiAutomator2Options
@@ -768,3 +769,17 @@ class NewBaseDriver:
     def app_activate(self, app):
         print('app_activate.app = {}'.format(app))
         self.driver.activate_app(app)
+
+    def android_get_textview_bt_address(self):
+        bt_pattern = r'^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$'
+        print('android_get_textview_bt_address')
+
+        textviews = self.driver.find_elements(
+            AppiumBy.ANDROID_UIAUTOMATOR,
+            'new UiSelector().className("android.widget.TextView")'
+        )
+        # Check if any matches BT pattern
+        for tv in textviews:
+            if re.match(bt_pattern, tv.text):
+                return tv.text
+        return ''
