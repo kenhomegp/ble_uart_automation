@@ -10,6 +10,7 @@ import datetime
 import serial
 import logging
 import re
+import subprocess
 
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -81,7 +82,9 @@ def local_function_fixture(request):
     request.addfinalizer(function_finalizer)
 
 @pytest.fixture
-def remote_appium_handler():
+def remote_appium_handler(zephyr_flash_firmware):
+    assert zephyr_flash_firmware, 'Flashing test firmware : Failed'
+
     #assert len(sd.config.multilink_phone_list) > 1, 'Multilink mobile phones config error'
     assert len(sd.config.multilink_phone_list) > 0, 'Multilink mobile phones config error'
     print("ssh_handler fixture")
@@ -196,6 +199,42 @@ def multilink_mobile_drivers(remote_appium_handler):
     for index, dat in enumerate(sd.multilink_mobile_driver):
         m_driver = dat['driver']
         m_driver.quit_driver()
+
+@pytest.fixture
+def zephyr_flash_firmware(request):
+    #print(f'zephyr_flash_firmware.{os.getcwd()}')
+    print(f'zephyr_flash_firmware. test case : {request.node.name}')
+    ipecmd = sd.config.mplab_path
+    tool = '-TSWBZ653002198'
+    deviceid = '-P32WM_BZ6204'
+    erase = '-E'
+    flashtype = '-M'
+    reset = "-OL"
+    verifyprogrammemory = "-YP"
+    #flashfile = '-Fzephyr_signed.hex'
+    flashfile = '-F.\\Test firmware\\Zephyr\\Peripheral_identity\\zephyr_signed.hex'
+
+    #bool_ipecmd = subprocess.run([ipecmd, tool, deviceid, erase], cwd=ipecmd, capture_output=True)
+    bool_ipecmd_erase = subprocess.run([ipecmd, tool, deviceid, erase], capture_output=True)
+
+    if bool_ipecmd_erase.returncode != 0:
+        print(f'Erase fail:{str(bool_ipecmd_erase.stderr)}')
+        #message('e ' + str(bool_ipecmd.stderr))
+        return False
+    else:
+        print('Erase pass')
+        time.sleep(2)
+
+    bool_ipecmd_program = subprocess.run([ipecmd, tool, deviceid, flashtype, reset, flashfile], capture_output=True)
+
+    if bool_ipecmd_program.returncode != 0:
+        print(f'Program fail:{str(bool_ipecmd_program.stderr)}')
+        #message('e ' + str(bool_ipecmd.stderr))
+        return False
+    else:
+        print('Program pass')
+        time.sleep(2)
+        return True
 
 class TestZephyrApp:
     bleState = "Disconnected"
@@ -616,7 +655,7 @@ class TestZephyrApp:
                 self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
             m_driver = dat['driver']
             m_phone = dat['phone']
-            mbd_ble_smart_featuresupport = RNBDvsPhoneFeatureSupport(driver=m_driver)
+            lightblue_featuresupport = RNBDvsPhoneFeatureSupport(driver=m_driver)
             time.sleep(1)
             app_package = m_driver.get_capability('appPackage')
             print("app_package: {0}".format(app_package))
@@ -629,20 +668,20 @@ class TestZephyrApp:
             assert status, "Failed to launch application"
             time.sleep(2)
 
-            mbd_ble_smart_featuresupport.lightblue_filter_peripherals('Zephyr Peripheral')
+            lightblue_featuresupport.lightblue_filter_peripherals('Zephyr Peripheral')
             time.sleep(2)
 
-            mbd_ble_smart_featuresupport.lightblue_connect('Zephyr Peripheral')
+            lightblue_featuresupport.lightblue_connect('Zephyr Peripheral')
             print('Ble connecting..')
             time.sleep(5)
 
-            status = mbd_ble_smart_featuresupport.lightblue_verify_ble_connected()
+            status = lightblue_featuresupport.lightblue_verify_ble_connected()
             if not status:
                 time.sleep(2)
-                mbd_ble_smart_featuresupport.lightblue_connect('Zephyr Peripheral')
+                lightblue_featuresupport.lightblue_connect('Zephyr Peripheral')
                 print('Ble connecting..')
                 time.sleep(5)
-                status = mbd_ble_smart_featuresupport.lightblue_verify_ble_connected()
+                status = lightblue_featuresupport.lightblue_verify_ble_connected()
                 assert status, f'test phone: {m_phone}, connect fail'
 
             bt_address = m_driver.android_get_textview_bt_address()
@@ -650,17 +689,18 @@ class TestZephyrApp:
                 print(f'BT address = {bt_address}')
                 bt_address_arr.append(bt_address)
 
-            zephyr_test.append(mbd_ble_smart_featuresupport)
+            zephyr_test.append(lightblue_featuresupport)
             test_phones.append(m_phone)
             time.sleep(2)
 
         assert len(bt_address_arr) == len(sd.config.multilink_phone_list), 'Fail to find the bt address'
         assert len(bt_address_arr) == len(set(bt_address_arr)), print(f'Duplicate BT address')
 
-        test_time = 60
-        print(f'Long-term idle test. test time = {test_time}')
-        all_connected = True
-        for i in range(test_time):
+        t1 = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
+        test_loop = 60
+        print(f'Long-term idle test. test time = {t1}')
+        idle_test_connected = True
+        for i in range(test_loop):
             print(f'Running test:{i}')
             for j in range(len(zephyr_test)):
                 app_driver = zephyr_test[j]
@@ -668,22 +708,19 @@ class TestZephyrApp:
                 print(f'app:{j}, verify_ble_connected')
                 if not status:
                     print(f'app:{j}, disconnect')
-                    all_connected = False
+                    idle_test_connected = False
                     break
                 time.sleep(1)
-            if not all_connected:
+            if not idle_test_connected:
                 break
-        print('multilink long-term idle test complete')
+        t1 = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
+        print(f'multilink long-term idle test complete. time = {t1}')
 
         status = self.iocontrolledstatus.Zephyr_IO_Default(MCU)
         assert status, "Failed to set MCP2200 I/O default"
         time.sleep(1)
 
-        #for index, dat in enumerate(sd.multilink_mobile_driver):
-        #    m_driver = dat['driver']
-        #    m_driver.quit_driver()
-        print('test complete')
-
+        assert idle_test_connected, 'BLE idle long-term test: Fail'
 
     #@pytest.mark.test_id("Zephyr peripheral hid demo", '')
     @pytest.mark.skip(reason="test_zephyr_peripheral_hid")
@@ -968,6 +1005,12 @@ class TestZephyrApp:
 
 
 ################################################################################################
+
+    @pytest.mark.skip(reason="Zephyr test IPE")
+    #@pytest.mark.test_id("Zephyr test IPE", '')
+    def test_zephyr_flash_firmware(self, zephyr_flash_firmware):
+        print('test_zephyr_flash_firmware')
+        time.sleep(10)
 
     @pytest.mark.skip(reason="Zephyr test reset")
     # @pytest.mark.test_id("Zephyr test reset", 'Putty')

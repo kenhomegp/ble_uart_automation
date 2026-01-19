@@ -1161,10 +1161,13 @@ class RNBDvsPhoneFeatureSupport:
         #assert status, "Failed to find the peripheral"
         if not status:
             print("Failed to find the peripheral.Fail retry.")
-            if dut_name == 'Direct A':
-                new_dut_name = 'Direct Adv'
+            if 'Direct' in dut_name:
+                if dut_name == 'Direct A':
+                    new_dut_name = 'Direct Adv'
+                else:
+                    new_dut_name = 'Direct A'
             else:
-                new_dut_name = 'Direct A'
+                new_dut_name = dut_name
             status, peripheral = self.driver.find_element('XPATH', locator.format(new_dut_name))
             assert status, "Failed to find the peripheral"
         status, connect_button = self.driver.find_element('XPATH', "//android.widget.TextView[@text='Connect']")
@@ -1178,10 +1181,12 @@ class RNBDvsPhoneFeatureSupport:
         #assert status, "Failed to find the element. Connected"
         #return status
         if not status:
+            print('Check connection alert')
             status, element = self.driver.find_element('XPATH', "//android.widget.TextView[@text='Connection Alert']")
             if status:
                 print('Connection Timeout')
-                status, ok_button = self.driver.find_element('XPATH', "//android.widget.Button[@text='OK']")
+                #status, ok_button = self.driver.find_element('XPATH', "//android.widget.Button[@text='OK']")
+                status, ok_button = self.driver.find_element('XPATH', "//android.widget.TextView[@text='OK']")
                 if status:
                     ok_button.click()
                     print('click ok button')
