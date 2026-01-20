@@ -13,6 +13,7 @@ from ...CommonSupportLib.StationData import stationData
 from ...CommonSupportLib.StationDefines import DEVICE_NAME_K, PLATFORM_NAME_K, PLATFORM_VERSION_K, PHONE_UDID_K, \
     PHONE_BT_ADDRESS_K, COM_PORT_K, BAUD_RATE_K, DUT_ADD_K
 from ...CommonSupportLib.RNBDPairingandLightBlueFeatureSupport import RNBDvsPhoneFeatureSupport
+from ...CommonSupportLib.Serial_Implementaiton import SerialSuppport
 
 from ...BaseWrappers.SSHSupport import ShellHandler
 
@@ -151,6 +152,7 @@ def default_class_fixture(request):
         time.sleep(3)
     else:
         request.cls.iocontrolledstatus = IOControlLEDStatus()
+        request.cls.serialdriver = SerialSuppport()
         time.sleep(1)
 
     def class_finalizer():

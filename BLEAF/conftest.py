@@ -56,6 +56,12 @@ def pytest_addoption(parser):
         help="New option for Zephyr test",
         default="no"
     )
+    parser.addoption(
+        "--dfu",
+        action="store_true",
+        help="Device firmware upgrade",
+        default=False
+    )
 
 def pytest_configure(config):
     config.addinivalue_line("markers",

@@ -1,4 +1,5 @@
 import collections
+import threading
 from time import sleep
 
 import pytest
@@ -51,6 +52,38 @@ def define_class_attributes(request, default_class_fixture):
     # if (isinstance(request.cls.bleuartfeature, BLEUARTFeatureSupport)):
     #    print("Android: Init MCP2200")
     #    request.cls.bleuartfeature.initialize_com_port()
+
+    request.cls.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
+    baud_rate = conf_file.baud_rate
+    com_port = conf_file.com_port
+    serialPort = request.cls.serialdriver.ComportSet(com_port, baud_rate)
+    time.sleep(1)
+
+    def dut_reset():
+        print('DUT Reset. Firmware reset')
+        request.cls.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
+
+    def serial_read(ser):
+        reading = ''
+        #data = []
+        print(f'<===== start')
+        start_time = time.time()
+        while time.time() < start_time + 5.0:
+            if ser.inWaiting() > 0:
+                reading += ser.readline(ser.inWaiting()).decode()
+                #chunk = ser.read(ser.inWaiting)
+                #data.extend(chunk)
+            #time.sleep(0.01)
+        print(f'=====> serial data = {reading}')
+        ser.close()
+
+    t0 = threading.Thread(target=serial_read, args=(serialPort,))
+    t0.start()
+    t1 = threading.Thread(target=dut_reset, args=())
+    t1.start()
+    t1.join()
+    t0.join()
+    print('Get firmware version')
 
     def class_finalizer():
         print("Local Class finalizer")
@@ -158,18 +191,26 @@ def multilink_mobile_drivers(remote_appium_handler):
     print("Initial multilink_drivers")
     time.sleep(15)
     #Android MBD
-    app_package = sd.config.app_package
-    app_activity = sd.config.app_activity
+    #app_package = sd.config.app_package
+    #app_activity = sd.config.app_activity
 
     #Android lightblue
-    app_package = sd.config.lightblue_app_package
-    app_activity = sd.config.lightblue_app_activity
+    #app_package = sd.config.lightblue_app_package
+    #app_activity = sd.config.lightblue_app_activity
 
     #for phone in sd.config.multilink_phone_list:
     for i in range(len(sd.config.multilink_phone_list)):
         #print('mobile phone = {}'.format(phone))
         phone = sd.config.multilink_phone_list[i]
         mobile_to_use = sd.config.mobile_data_config.get(phone)
+        print('mobile_to_use = {}'.format(mobile_to_use))
+        platform = mobile_to_use.get(PLATFORM_NAME_K)
+        if platform == 'Android':
+            app_package = sd.config.lightblue_app_package
+            app_activity = sd.config.lightblue_app_activity
+        else:
+            app_package = sd.config.ios_lightblue_app_package
+            app_activity = sd.config.app_activity
         port = int(sd.config.remote_appium_server_port)
         driver = NewBaseDriver(sd.config.remote_appium_server_ip, str(port+i),
                             mobile_to_use.get(PHONE_UDID_K),
@@ -178,20 +219,12 @@ def multilink_mobile_drivers(remote_appium_handler):
                             app_package, app_activity,
                             fresh_env=False)
         print(f'Create driver for mobile phone:{phone}')
-        #app_package = driver.get_capability('appPackage')
-        #print("app_package: {0}".format(app_package))
-        #driver.close_app(app_package)
-        #time.sleep(5)
-        #status = driver.launch_app(app_package)
-        #time.sleep(3)
-        #assert status, "Failed to launch application"
-        mobile_data_dic = {}
-        mobile_data_dic['driver'] = driver
-        mobile_data_dic['phone'] = phone
+        mobile_data_dic = {'driver': driver, 'phone': phone + '_' + platform}
+
         sd.multilink_mobile_driver.append(mobile_data_dic)
-    #sd.mobile_driver = driver
-    tt = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
-    print(f"complete.time = {tt}")
+
+    t1 = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
+    print(f"complete.time = {t1}")
 
     yield sd.multilink_mobile_driver
 
@@ -203,37 +236,55 @@ def multilink_mobile_drivers(remote_appium_handler):
 @pytest.fixture
 def zephyr_flash_firmware(request):
     #print(f'zephyr_flash_firmware.{os.getcwd()}')
-    print(f'zephyr_flash_firmware. test case : {request.node.name}')
-    ipecmd = sd.config.mplab_path
-    tool = '-TSWBZ653002198'
-    deviceid = '-P32WM_BZ6204'
-    erase = '-E'
-    flashtype = '-M'
-    reset = "-OL"
-    verifyprogrammemory = "-YP"
-    #flashfile = '-Fzephyr_signed.hex'
-    flashfile = '-F.\\Test firmware\\Zephyr\\Peripheral_identity\\zephyr_signed.hex'
+    #print(f'zephyr_flash_firmware. test case : {request.node.name}')
 
-    #bool_ipecmd = subprocess.run([ipecmd, tool, deviceid, erase], cwd=ipecmd, capture_output=True)
-    bool_ipecmd_erase = subprocess.run([ipecmd, tool, deviceid, erase], capture_output=True)
+    dfu = request.config.getoption('--dfu')
+    fw_update = dfu
 
-    if bool_ipecmd_erase.returncode != 0:
-        print(f'Erase fail:{str(bool_ipecmd_erase.stderr)}')
-        #message('e ' + str(bool_ipecmd.stderr))
-        return False
+    if fw_update:
+        func_name = request.node.name
+        print(f'zephyr_flash_firmware. test case : {func_name}')
+        ipecmd = sd.config.mplab_path
+        tool = '-TSWBZ653002198'
+        deviceid = '-P32WM_BZ6204'
+        erase = '-E'
+        flashtype = '-M'
+        reset = "-OL"
+        verifyprogrammemory = "-YP"
+        #flashfile = '-Fzephyr_signed.hex'
+
+        if 'identity' in func_name.lower():
+            flashfile = '-F.\\Test firmware\\Zephyr\\Peripheral_identity\\zephyr_signed.hex'
+        elif 'hid_pairing' in func_name.lower():
+            flashfile = '-F.\\Test firmware\\Zephyr\\Peripheral_hid\\zephyr_signed.hex'
+        elif 'direct_advertising_pairing' in func_name.lower():
+            flashfile = '-F.\\Test firmware\\Zephyr\\Direct advertising\\zephyr_signed.hex'
+        elif 'peripheral_application' in func_name.lower():
+            flashfile = '-F.\\Test firmware\\Zephyr\\Peripheral_application\\zephyr_signed.hex'
+
+        #bool_ipecmd = subprocess.run([ipecmd, tool, deviceid, erase], cwd=ipecmd, capture_output=True)
+        bool_ipecmd_erase = subprocess.run([ipecmd, tool, deviceid, erase], capture_output=True)
+
+        if bool_ipecmd_erase.returncode != 0:
+            print(f'Erase fail:{str(bool_ipecmd_erase.stderr)}')
+            #message('e ' + str(bool_ipecmd.stderr))
+            return False
+        else:
+            print('Erase pass')
+            time.sleep(2)
+
+        bool_ipecmd_program = subprocess.run([ipecmd, tool, deviceid, flashtype, reset, flashfile], capture_output=True)
+
+        if bool_ipecmd_program.returncode != 0:
+            print(f'Program fail:{str(bool_ipecmd_program.stderr)}')
+            #message('e ' + str(bool_ipecmd.stderr))
+            return False
+        else:
+            print('Program pass')
+            time.sleep(2)
+            return True
     else:
-        print('Erase pass')
-        time.sleep(2)
-
-    bool_ipecmd_program = subprocess.run([ipecmd, tool, deviceid, flashtype, reset, flashfile], capture_output=True)
-
-    if bool_ipecmd_program.returncode != 0:
-        print(f'Program fail:{str(bool_ipecmd_program.stderr)}')
-        #message('e ' + str(bool_ipecmd.stderr))
-        return False
-    else:
-        print('Program pass')
-        time.sleep(2)
+        print(f'skip_flash_firmware. test case : {request.node.name}')
         return True
 
 class TestZephyrApp:
@@ -263,7 +314,7 @@ class TestZephyrApp:
     #@pytest.mark.order(1)
     # @pytest.mark.test_id("Zephyr Peripheral HID Pairing", '')
     @pytest.mark.skip(reason="test_zephyr_peripheral_hid_pairing")
-    def test_zephyr_peripheral_hid_pairing_connect(self):
+    def test_zephyr_peripheral_hid_pairing_connect(self, zephyr_flash_firmware):
         print("test_zephyr_peripheral_hid_pairing_connect")
         print('Active app = {}'.format(sd.config.ios_lightblue_app_package))
         self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
@@ -423,7 +474,7 @@ class TestZephyrApp:
     #@pytest.mark.order(1)
     #@pytest.mark.test_id("Zephyr Peripheral Android HID Pairing", '')
     @pytest.mark.skip(reason="test_zephyr_peripheral_android_hid_pairing")
-    def test_zephyr_peripheral_android_hid_pairing_connect(self):
+    def test_zephyr_peripheral_android_hid_pairing_connect(self, zephyr_flash_firmware):
         print('test_zephyr_peripheral_android_hid_pairing_connect')
         TestZephyrApp.test_procedure = ''
         status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
@@ -637,8 +688,8 @@ class TestZephyrApp:
         assert status, "Failed to set MCP2200 I/O default"
         time.sleep(1)
 
-    @pytest.mark.test_id("Zephyr peripheral identity", '')
-    #@pytest.mark.skip(reason="test_zephyr_peripheral_identity")
+    #@pytest.mark.test_id("Zephyr peripheral identity", '')
+    @pytest.mark.skip(reason="test_zephyr_peripheral_identity")
     def test_zephyr_peripheral_identity(self, multilink_mobile_drivers):
         print('test_zephyr_peripheral_identity')
         assert len(sd.multilink_mobile_driver) == len(sd.config.multilink_phone_list), 'Fail to create drivers'
@@ -655,14 +706,23 @@ class TestZephyrApp:
                 self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
             m_driver = dat['driver']
             m_phone = dat['phone']
-            lightblue_featuresupport = RNBDvsPhoneFeatureSupport(driver=m_driver)
-            time.sleep(1)
-            app_package = m_driver.get_capability('appPackage')
-            print("app_package: {0}".format(app_package))
-            m_driver.close_app(app_package)
+            if 'Android' in m_phone:
+                app = sd.config.lightblue_app_package
+                lightblue_featuresupport = RNBDvsPhoneFeatureSupport(driver=m_driver)
+                time.sleep(1)
+            else:
+                app = sd.config.ios_lightblue_app_package
+                lightblue_featuresupport = BLEUARTFeatureSupportiOS(driver=m_driver)
+                time.sleep(1)
+
+            #app_package = m_driver.get_capability('appPackage')
+            #print("app_package: {0}".format(app_package))
+            #m_driver.close_app(app_package)
+            m_driver.close_app(app)
             print('app restart. close app')
             time.sleep(5)
-            status = m_driver.launch_app(app_package)
+            #status = m_driver.launch_app(app_package)
+            status = m_driver.launch_app(app)
             print('app restart')
             time.sleep(5)
             assert status, "Failed to launch application"
@@ -679,15 +739,18 @@ class TestZephyrApp:
             if not status:
                 time.sleep(2)
                 lightblue_featuresupport.lightblue_connect('Zephyr Peripheral')
-                print('Ble connecting..')
+                print('Ble connecting..again')
                 time.sleep(5)
                 status = lightblue_featuresupport.lightblue_verify_ble_connected()
                 assert status, f'test phone: {m_phone}, connect fail'
 
-            bt_address = m_driver.android_get_textview_bt_address()
-            if bt_address != '':
-                print(f'BT address = {bt_address}')
-                bt_address_arr.append(bt_address)
+            if 'Android' in m_phone:
+                bt_address = m_driver.android_get_textview_bt_address()
+                if bt_address != '':
+                    print(f'BT address = {bt_address}')
+                    bt_address_arr.append(bt_address)
+            else:
+                bt_address_arr.append('XX:XX:XX:XX:XX:XX')
 
             zephyr_test.append(lightblue_featuresupport)
             test_phones.append(m_phone)
@@ -697,7 +760,8 @@ class TestZephyrApp:
         assert len(bt_address_arr) == len(set(bt_address_arr)), print(f'Duplicate BT address')
 
         t1 = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
-        test_loop = 60
+        test_loop = 60  #145 sec
+        #test_loop = 120  #294 sec
         print(f'Long-term idle test. test time = {t1}')
         idle_test_connected = True
         for i in range(test_loop):
@@ -794,7 +858,7 @@ class TestZephyrApp:
     #@pytest.mark.order(1)
     #@pytest.mark.test_id("Zephyr Direct Advertising Pairing Connect", '')
     @pytest.mark.skip(reason="test_zephyr_direct_advertising Pairing Connect")
-    def test_zephyr_direct_advertising_pairing_connect(self):
+    def test_zephyr_direct_advertising_pairing_connect(self, zephyr_flash_firmware):
         print("Testing Zephyr Direct Advertising Pairing Connect")
         assert sd.mobile_platform == "Android", 'Test test case is only or Android phones'
         TestZephyrApp.test_procedure = ''
@@ -965,7 +1029,7 @@ class TestZephyrApp:
     #@pytest.mark.order(1)
     #@pytest.mark.test_id("Zephyr peripheral application v1 rc5", '')
     @pytest.mark.skip(reason="test_zephyr_peripheral_rc5")
-    def test_zephyr_peripheral_application(self):
+    def test_zephyr_peripheral_application(self, zephyr_flash_firmware):
         sd.mobile_driver.close_app(sd.config.ios_lightblue_app_package)
         time.sleep(5)
         print("Close app and launch again")
@@ -1006,8 +1070,8 @@ class TestZephyrApp:
 
 ################################################################################################
 
-    @pytest.mark.skip(reason="Zephyr test IPE")
-    #@pytest.mark.test_id("Zephyr test IPE", '')
+    #@pytest.mark.skip(reason="Zephyr test IPE")
+    @pytest.mark.test_id("Zephyr test IPE", '')
     def test_zephyr_flash_firmware(self, zephyr_flash_firmware):
         print('test_zephyr_flash_firmware')
         time.sleep(10)
@@ -1038,9 +1102,9 @@ class TestZephyrApp:
         self.bleuartfeature.lightblue_filter_peripherals('CDDF')
         time.sleep(3)
         print("Connect")
-        self.bleuartfeature.lightblue_connect('BLE_UART_CDDF')
+        self.bleuartfeature.lightblue_connect_for_Mac('BLE_UART_CDDF')
         time.sleep(10)
-        self.bleuartfeature.lightblue_verify_ble_connected()
+        self.bleuartfeature.lightblue_verify_ble_connected_for_Mac()
         time.sleep(5)
         #self.bleuartfeature.lightblue_get_device_info_data()
         #time.sleep(5)

@@ -1529,10 +1529,36 @@ class BLEUARTFeatureSupportiOS:
     def lightblue_connect(self, dut_name):
         print('lightblue_connect: {}'.format(dut_name))
 
-        if sd.mobile_platform == 'mac':
-            dut_locator = "//XCUIElementTypeStaticText[@label='{}']"
-        else:
-            dut_locator = "//XCUIElementTypeStaticText[@name='{}']"
+        dut_locator = "//XCUIElementTypeStaticText[@name='{}']"
+        #status, peripheral = self.driver.find_element('XPATH', ioslocators.dut_name.format(dut_name))
+        status, peripheral = self.driver.find_element('XPATH', dut_locator.format(dut_name))
+
+        if not status:
+            #print("Failed to find the peripheral.Fail retry.")
+            #return
+            print("Failed to find the peripheral.Fail retry.")
+            if 'Direct A' in dut_name:
+                if dut_name == 'Direct A':
+                    new_dut_name = 'Direct Adv'
+                else:
+                    new_dut_name = 'Direct A'
+            else:
+                new_dut_name = dut_name
+                #if dut_name == 'Zephyr Peripheral Sample Long':
+                #    new_dut_name = 'Zephyr Peripheral Sample Long Name'
+            status, peripheral = self.driver.find_element('XPATH', ioslocators.dut_name.format(new_dut_name))
+            assert status, "Failed to find the peripheral.{}".format(new_dut_name)
+
+        status, connect_button = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@name="Connect"]')
+        assert status, "Failed to find the connect button"
+        status = self.driver.click_element(connect_button)
+        assert status, "Unable to click connect button"
+
+    def lightblue_connect_for_Mac(self, dut_name):
+        print('lightblue_connect_for_Mac: {}'.format(dut_name))
+
+        dut_locator = "//XCUIElementTypeStaticText[@label='{}']"
+
         #status, peripheral = self.driver.find_element('XPATH', ioslocators.dut_name.format(dut_name))
         status, peripheral = self.driver.find_element('XPATH', dut_locator.format(dut_name))
 
@@ -1551,10 +1577,7 @@ class BLEUARTFeatureSupportiOS:
             status, peripheral = self.driver.find_element('XPATH', ioslocators.dut_name.format(new_dut_name))
             assert status, "Failed to find the peripheral.{}".format(new_dut_name)
 
-        if sd.mobile_platform == 'mac':
-            status, connect_button = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@label="Connect"]')
-        else:
-            status, connect_button = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@name="Connect"]')
+        status, connect_button = self.driver.find_element('XPATH', '//XCUIElementTypeButton[@label="Connect"]')
         assert status, "Failed to find the connect button"
         status = self.driver.click_element(connect_button)
         assert status, "Unable to click connect button"
@@ -1611,10 +1634,12 @@ class BLEUARTFeatureSupportiOS:
 
     def lightblue_verify_ble_connected(self):
         print('lightblue_verify_ble_connected')
-        if sd.mobile_platform == 'mac':
-            status, element = self.driver.find_element('XPATH','//XCUIElementTypeStaticText[@label="Connected"]')
-        else:
-            status, element = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@name="Connected"]')
+        status, element = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@name="Connected"]')
+        assert status, "Failed to find the element. Connected"
+
+    def lightblue_verify_ble_connected_for_Mac(self):
+        print('lightblue_verify_ble_connected_for_Mac')
+        status, element = self.driver.find_element('XPATH','//XCUIElementTypeStaticText[@label="Connected"]')
         assert status, "Failed to find the element. Connected"
 
     def lightblue_get_device_info_data(self):
