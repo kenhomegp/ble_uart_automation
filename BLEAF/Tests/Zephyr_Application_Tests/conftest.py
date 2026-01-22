@@ -50,6 +50,7 @@ def default_class_fixture(request):
     if app is not None:
         print('mobile app option = {}'.format(app))
         if app == 'lightblue':
+            # ios_perioheral_hid
             ios_test_app_package = sd.config.ios_lightblue_app_package
         elif app == 'mbd':
             ios_test_app_package = sd.config.ios_mbda_app_package
@@ -85,7 +86,8 @@ def default_class_fixture(request):
                             ios_test_app_package, sd.config.app_activity, remote_appium=use_remote_appium)
     elif platform == 'iOS':
         #sd.config.app_package = sd.config.ios_mbda_app_package
-        print("platform = iOS. app package={}".format(sd.config.ios_mbda_app_package))
+        #print("platform = iOS. app package={}".format(sd.config.ios_mbda_app_package))
+        print("platform = iOS. app package={}".format(ios_test_app_package))
         if remote_appium:
             driver = NewBaseDriver(sd.config.remote_appium_server_ip, sd.config.remote_appium_server_port,
                                 mobile_to_use.get(PHONE_UDID_K),
@@ -149,6 +151,7 @@ def default_class_fixture(request):
 
         request.cls.iocontrolledstatus = IOControlLEDStatus()
         request.cls.bleuartpairingfeature = BLEUartPairingSupport()
+        request.cls.serialdriver = SerialSuppport()
         time.sleep(3)
     else:
         request.cls.iocontrolledstatus = IOControlLEDStatus()

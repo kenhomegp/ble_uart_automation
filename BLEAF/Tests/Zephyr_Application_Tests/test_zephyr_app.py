@@ -32,6 +32,7 @@ from ...StationConfig import conf_file
 
 from ...CommonSupportLib.iOS_BluetoothSupport import iOSBluetoothSupport
 from ...CommonSupportLib.iOS_BLEPairingSupport import iOSBLEPairingSupport
+
 from ...BaseWrappers.NewBaseDriver import NewBaseDriver
 from ...BaseWrappers.SSHSupport import ShellHandler
 
@@ -42,6 +43,7 @@ RESET_PIN = 0x02
 BTN_CTRL_PIN = 0x04
 
 MCU = Mcp2200()
+serial_data = ''
 
 #phone_list = ["SamsungS21", "GooglePixel5", "OPPO Reno", "SamsungS10", "GooglePixel3A", "VivoV11"]
 
@@ -64,17 +66,13 @@ def define_class_attributes(request, default_class_fixture):
         request.cls.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
 
     def serial_read(ser):
-        reading = ''
-        #data = []
-        print(f'<===== start')
+        global serial_data
+        serial_data = ''
         start_time = time.time()
         while time.time() < start_time + 5.0:
             if ser.inWaiting() > 0:
-                reading += ser.readline(ser.inWaiting()).decode()
-                #chunk = ser.read(ser.inWaiting)
-                #data.extend(chunk)
-            #time.sleep(0.01)
-        print(f'=====> serial data = {reading}')
+                serial_data += ser.readline(ser.inWaiting()).decode()
+            time.sleep(0.01)
         ser.close()
 
     t0 = threading.Thread(target=serial_read, args=(serialPort,))
@@ -83,13 +81,13 @@ def define_class_attributes(request, default_class_fixture):
     t1.start()
     t1.join()
     t0.join()
-    print('Get firmware version')
+    print(f'Get firmware version: {serial_data}')
+    assert 'Booting Zephyr OS' in serial_data, 'Reboot device: fail'
 
     def class_finalizer():
         print("Local Class finalizer")
 
     request.addfinalizer(class_finalizer)
-
 
 @pytest.fixture(scope="function", autouse=True)
 def local_function_fixture(request):
@@ -102,6 +100,7 @@ def local_function_fixture(request):
     def function_finalizer():
         print("Local function finalizer")
         # print("Close App")
+        print(f'mobile platform = {sd.mobile_platform}')
         if sd.mobile_platform == "iOS" or sd.mobile_platform == 'mac':
             if test_func_name == "test_zephyr_peripheral_hid_ble_bonded":
                 sd.mobile_driver.close_app(sd.config.ios_lightblue_app_package)
@@ -293,8 +292,8 @@ class TestZephyrApp:
     hid_dut_name = ""
     test_procedure = ""
 
-    #@pytest.mark.order(3)
-    @pytest.mark.skip(reason="test_zephyr_peripheral_hid_forget_device")
+    @pytest.mark.order(3)
+    #@pytest.mark.skip(reason="test_zephyr_peripheral_hid_forget_device")
     #@pytest.mark.test_id("Zephyr Peripheral HID Forget Device", '')
     def test_zephyr_peripheral_hid_forget_device(self):
         print("test_zephyr_peripheral_hid_forget_device")
@@ -311,9 +310,9 @@ class TestZephyrApp:
         #status = pairing.check_and_forget('Test HoG mouse')
         #assert status, 'Remove pairing: Failed'
 
-    #@pytest.mark.order(1)
+    @pytest.mark.order(1)
     # @pytest.mark.test_id("Zephyr Peripheral HID Pairing", '')
-    @pytest.mark.skip(reason="test_zephyr_peripheral_hid_pairing")
+    #@pytest.mark.skip(reason="test_zephyr_peripheral_hid_pairing")
     def test_zephyr_peripheral_hid_pairing_connect(self, zephyr_flash_firmware):
         print("test_zephyr_peripheral_hid_pairing_connect")
         print('Active app = {}'.format(sd.config.ios_lightblue_app_package))
@@ -398,9 +397,9 @@ class TestZephyrApp:
         except WebDriverException:
             print('WebDriverException')
 
-    #@pytest.mark.order(2)
+    @pytest.mark.order(2)
     #@pytest.mark.test_id("Zephyr Peripheral HID", '')
-    @pytest.mark.skip(reason="test_zephyr_peripheral_hid")
+    #@pytest.mark.skip(reason="test_zephyr_peripheral_hid")
     def test_zephyr_peripheral_hid_mouse_click(self):
         print("Testing Zephyr Peripheral HID Mouse click. BLE Bonded")
         print("Make sure all of the paired devices are deleted")
@@ -469,7 +468,8 @@ class TestZephyrApp:
         time.sleep(5)
 
         assert state != new_state, "HID test failed"
-        print('Remove paired device: Test HoG mouse')
+        #print('Remove paired device: Test HoG mouse')
+        assert int(new_state) - int(state) == 3, 'HID test failed'
 
     #@pytest.mark.order(1)
     #@pytest.mark.test_id("Zephyr Peripheral Android HID Pairing", '')
@@ -719,18 +719,23 @@ class TestZephyrApp:
             #print("app_package: {0}".format(app_package))
             #m_driver.close_app(app_package)
             m_driver.close_app(app)
-            print('app restart. close app')
+            print(f'app restart. close app:{app}')
             time.sleep(5)
             #status = m_driver.launch_app(app_package)
             status = m_driver.launch_app(app)
             print('app restart')
             time.sleep(5)
-            assert status, "Failed to launch application"
+            assert status, "Failed to launch lightblue app"
             time.sleep(2)
 
             lightblue_featuresupport.lightblue_filter_peripherals('Zephyr Peripheral')
             time.sleep(2)
 
+            print(f'test phone: {m_phone}')
+            ble_state = lightblue_featuresupport.lightblue_connect_and_verify_connected('Zephyr Peripheral')
+            assert ble_state, 'Ble connect fail!'
+            print('ble state: connected')
+            '''
             lightblue_featuresupport.lightblue_connect('Zephyr Peripheral')
             print('Ble connecting..')
             time.sleep(5)
@@ -743,6 +748,7 @@ class TestZephyrApp:
                 time.sleep(5)
                 status = lightblue_featuresupport.lightblue_verify_ble_connected()
                 assert status, f'test phone: {m_phone}, connect fail'
+            '''
 
             if 'Android' in m_phone:
                 bt_address = m_driver.android_get_textview_bt_address()
@@ -1070,8 +1076,8 @@ class TestZephyrApp:
 
 ################################################################################################
 
-    #@pytest.mark.skip(reason="Zephyr test IPE")
-    @pytest.mark.test_id("Zephyr test IPE", '')
+    @pytest.mark.skip(reason="Zephyr test IPE")
+    #@pytest.mark.test_id("Zephyr test IPE", '')
     def test_zephyr_flash_firmware(self, zephyr_flash_firmware):
         print('test_zephyr_flash_firmware')
         time.sleep(10)

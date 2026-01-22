@@ -1152,6 +1152,37 @@ class RNBDvsPhoneFeatureSupport:
         status = self.driver.click_element(peripheral)
         assert status, "Unable to click the dut"
 
+    def lightblue_connect_and_verify_connected(self, dut_name, fail_retry_timeout=30):
+        print(f'lightblue_connect_and_verify_connected. retry_timeout={fail_retry_timeout}')
+
+        self.lightblue_connect(dut_name)
+        time.sleep(5)
+        print('Ble connecting..')
+
+        ble_connected = False
+        start_time = time.time()
+        #while (not ble_connected) or (time.time() < start_time + 30.0):
+        while (not ble_connected) or (time.time() < start_time + fail_retry_timeout):
+            status, element = self.driver.find_element('XPATH', "//android.widget.TextView[@text='Connected']")
+            if status:
+                #print('ble connected')
+                ble_connected = True
+                break
+            else:
+                time.sleep(1)
+                status, alert_element = self.driver.find_element('XPATH', "//android.widget.TextView[@text='Connection Alert']")
+                if status:
+                    print('connection timeout!')
+                    status, ok_button = self.driver.find_element('XPATH', "//android.widget.TextView[@text='OK']")
+                    if status:
+                        ok_button.click()
+                        print('click ok button')
+                        time.sleep(3)
+                        self.lightblue_connect(dut_name)
+                        time.sleep(5)
+        print('ble connected or 30 sec timeout')
+        return ble_connected
+
     def lightblue_connect(self, dut_name):
         locator = "//android.widget.TextView[@text='{}']"
         print('lightblue_connect: {}'.format(dut_name))
@@ -1185,7 +1216,6 @@ class RNBDvsPhoneFeatureSupport:
             status, element = self.driver.find_element('XPATH', "//android.widget.TextView[@text='Connection Alert']")
             if status:
                 print('Connection Timeout')
-                #status, ok_button = self.driver.find_element('XPATH', "//android.widget.Button[@text='OK']")
                 status, ok_button = self.driver.find_element('XPATH', "//android.widget.TextView[@text='OK']")
                 if status:
                     ok_button.click()

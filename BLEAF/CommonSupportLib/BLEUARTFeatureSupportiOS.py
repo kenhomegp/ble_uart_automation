@@ -1526,6 +1526,40 @@ class BLEUARTFeatureSupportiOS:
                 return passkey_str
         return ''
 
+    def lightblue_connect_and_verify_connected(self, dut_name, fail_retry_timeout=30):
+        print(f'ios_lightblue_connect_and_verify_connected. retry_timeout={fail_retry_timeout}')
+
+        self.lightblue_connect(dut_name)
+        time.sleep(5)
+        print('Ble connecting..')
+
+        ble_connected = False
+        start_time = time.time()
+        #while (not ble_connected) or (time.time() < start_time + 30.0):
+        while (not ble_connected) or (time.time() < start_time + fail_retry_timeout):
+            status, element = self.driver.find_element('XPATH', "//XCUIElementTypeStaticText[@name='Connected']")
+            if status:
+                #print('ble connected')
+                ble_connected = True
+                break
+            else:
+                time.sleep(1)
+                #status, alert_element = self.driver.find_element('XPATH', "//android.widget.TextView[@text='Connection Alert']")
+                status, alert_element = self.driver.find_element('XPATH', "//XCUIElementTypeStaticText[@name='Connection Alert']")
+                if status:
+                    print('connection timeout!')
+                    #status, ok_button = self.driver.find_element('XPATH', "//android.widget.TextView[@text='OK']")
+                    #// XCUIElementTypeButton[ @ name =\"Ok\"]
+                    status, ok_button = self.driver.find_element('XPATH', "//XCUIElementTypeButton[@name=\"Ok\"]")
+                    if status:
+                        ok_button.click()
+                        print('click ok button')
+                        time.sleep(3)
+                        self.lightblue_connect(dut_name)
+                        time.sleep(5)
+        print('ble connected or 30 sec timeout')
+        return ble_connected
+
     def lightblue_connect(self, dut_name):
         print('lightblue_connect: {}'.format(dut_name))
 
@@ -1633,7 +1667,7 @@ class BLEUARTFeatureSupportiOS:
             #time.sleep(5)
 
     def lightblue_verify_ble_connected(self):
-        print('lightblue_verify_ble_connected')
+        print('ios_lightblue_verify_ble_connected')
         status, element = self.driver.find_element('XPATH', '//XCUIElementTypeStaticText[@name="Connected"]')
         assert status, "Failed to find the element. Connected"
 
