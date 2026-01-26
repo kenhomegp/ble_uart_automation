@@ -27,9 +27,11 @@ sd = stationData()
 def default_class_fixture(request):
     print("BLE_UART_MBDA_Tests\conftest]")
     multilink = request.config.getoption('--multilink')
-    print(f"multilink option = {multilink}")
+    if multilink:
+        print("multilink option = enabled")
 
-    if multilink is not None and multilink == 'no':
+    #if multilink is not None and multilink == 'no':
+    if not multilink:
         print(f"sd.platform = {sd.platform}")
         mobile_to_use = sd.config.mobile_data_config.get(sd.platform)
         print("Appium Server Config data:")
@@ -62,7 +64,8 @@ def default_class_fixture(request):
 
     remote_appium = sd.config.use_remote_appium
 
-    if multilink is not None and multilink != 'no':
+    #if multilink is not None and multilink != 'no':
+    if multilink:
         platform = 'multilink'
         sd.mobile_platform = 'multilink'
         print(f'multilink = {multilink}')
@@ -135,7 +138,8 @@ def default_class_fixture(request):
         print('conftest.py: platform: {}'.format(platform))
 
     #if multilink is None:
-    if multilink == 'no':
+    #if multilink == 'no':
+    if not multilink:
         mobile_data_dic = {}
         dev_name = mobile_to_use.get(DEVICE_NAME_K)
         mobile_data_dic['driver'] = driver
@@ -213,7 +217,7 @@ def default_class_fixture(request):
                         print("[Windows]kill local appium server")
                         mobile_driver.kill_appium_server()
                 else:
-                    if multilink == 'no':
+                    if not multilink:
                         if mobile_driver.ssh_handler is not None:
                             print("[MacOS]kill remote appium server")
                             sd.mobile_driver.kill_remote_appium_server()
