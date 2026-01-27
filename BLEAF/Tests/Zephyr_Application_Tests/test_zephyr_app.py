@@ -44,7 +44,7 @@ dut_friendly_name = conf_file.dut_friendly_name
 RESET_PIN = 0x02
 BTN_CTRL_PIN = 0x04
 
-MCU = Mcp2200()
+MCU = Mcp2200(PID='0x00da')
 serial_data = ''
 
 #phone_list = ["SamsungS21", "GooglePixel5", "OPPO Reno", "SamsungS10", "GooglePixel3A", "VivoV11"]
@@ -72,6 +72,9 @@ def define_class_attributes(request, default_class_fixture):
     result, serial_data = serial_runner.execute(dut_reset)
     print(f'task = {result}, data = {serial_data}')
     assert 'Booting Zephyr OS' in serial_data, 'Reboot device: fail'
+    fw_version = 'v1.0.0-rc5'
+    assert fw_version in serial_data, 'Firmware version is not correct'
+    print(f'zephyr test version : {fw_version}')
 
     '''
     serialPort = request.cls.serialdriver.ComportSet(com_port, baud_rate)
@@ -122,7 +125,7 @@ def local_function_fixture(request):
             if test_func_name == "test_zephyr_peripheral_hid_ble_bonded":
                 sd.mobile_driver.close_app(sd.config.ios_lightblue_app_package)
         else:
-            if test_func_name != 'test_zephyr_peripheral_identity':
+            if 'zephyr' in test_func_name and test_func_name != 'test_zephyr_peripheral_identity':
                 app_package = sd.mobile_driver.get_capability('appPackage')
                 print(f"Close app.{app_package}")
                 sd.mobile_driver.close_app(app_package)
@@ -260,6 +263,10 @@ def zephyr_flash_firmware(request):
     if fw_update:
         func_name = request.node.name
         print(f'zephyr_flash_firmware. test case : {func_name}')
+        #print(f'fwfolderpath = {sd.config.fwfolderpath}')
+        fwfolderpath = sd.config.fwfolderpath
+        print(f'fwfolderpath = {fwfolderpath}')
+
         ipecmd = sd.config.mplab_path
         tool = '-TSWBZ653002198'
         deviceid = '-P32WM_BZ6204'
@@ -268,17 +275,37 @@ def zephyr_flash_firmware(request):
         reset = "-OL"
         verifyprogrammemory = "-YP"
         #flashfile = '-Fzephyr_signed.hex'
+        flashfile = '-F.\\Test firmware\\Zephyr\\Peripheral_identity\\zephyr_signed.hex'
+        fwfolderpath += 'Peripheral_identity\\'
 
         if 'identity' in func_name.lower():
             flashfile = '-F.\\Test firmware\\Zephyr\\Peripheral_identity\\zephyr_signed.hex'
+            fwfolderpath += 'Peripheral_identity\\'
         elif 'hid_pairing' in func_name.lower():
             flashfile = '-F.\\Test firmware\\Zephyr\\Peripheral_hid\\zephyr_signed.hex'
+            fwfolderpath += 'Peripheral_hid\\'
         elif 'direct_advertising_pairing' in func_name.lower():
             flashfile = '-F.\\Test firmware\\Zephyr\\Direct advertising\\zephyr_signed.hex'
+            fwfolderpath += 'Direct advertising\\'
         elif 'peripheral_application' in func_name.lower():
             flashfile = '-F.\\Test firmware\\Zephyr\\Peripheral_application\\zephyr_signed.hex'
+            fwfolderpath += 'Peripheral_application\\'
+        print(f'fwfolderpath = {fwfolderpath}')
 
-        #bool_ipecmd = subprocess.run([ipecmd, tool, deviceid, erase], cwd=ipecmd, capture_output=True)
+        ipe_comd = "C:\\Program Files\\Microchip\\MPLABX\\v6.25\\mplab_platform\\mplab_ipe\\ipecmd.exe -P32WM_BZ6204 -E -M -OL -TSWBZ653002198 -Fzephyr_signed.hex"
+        #fw_path = 'C:\\Work\\Microchip\\Project\\Automation\\GitHub\\Test firmware\\Zephyr\\Peripheral_identity\\'
+        process = subprocess.Popen(ipe_comd, cwd=fwfolderpath, stdout=subprocess.PIPE, universal_newlines=True)
+        output_list = process.stdout.readlines()
+        output = ' '.join(map(str, output_list))
+        print(output)
+        if 'Program Succeeded' in output:
+            print('Program Succeeded')
+            time.sleep(2)
+            return True
+        else:
+            return False
+
+        '''
         bool_ipecmd_erase = subprocess.run([ipecmd, tool, deviceid, erase], capture_output=True)
 
         if bool_ipecmd_erase.returncode != 0:
@@ -299,6 +326,7 @@ def zephyr_flash_firmware(request):
             print('Program pass')
             time.sleep(2)
             return True
+        '''
     else:
         print(f'skip_flash_firmware. test case : {request.node.name}')
         return True
@@ -1095,13 +1123,13 @@ class TestZephyrApp:
 
     #@pytest.mark.skip(reason="Zephyr test IPE")
     @pytest.mark.test_id("Zephyr test IPE", '')
-    def test_zephyr_flash_firmware(self, zephyr_flash_firmware):
+    def test_flash_firmware(self, zephyr_flash_firmware):
         print('test_zephyr_flash_firmware')
         time.sleep(10)
 
-    @pytest.mark.skip(reason="Zephyr test reset")
-    # @pytest.mark.test_id("Zephyr test reset", 'Putty')
-    def test_zephyr_reset(self):
+    @pytest.mark.skip(reason="Zephyr dut reset")
+    # @pytest.mark.test_id("Zephyr dut reset", 'Putty')
+    def test_dut_reset(self):
         print('test_zephyr_reset')
         # MCU = Mcp2200()
         # time.sleep(1)

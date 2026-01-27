@@ -3,10 +3,11 @@ import ctypes
 import platform
 
 class Mcp2200:
-    def __init__(self):
+    def __init__(self, PID=0x00da):
         self.vid = 0x04d8
         #self.pid = 0x00df
-        self.pid = 0x00da
+        #self.pid = 0x00da
+        self.pid = int(PID, 16)
 
         self.checkOS = platform.system()
 
