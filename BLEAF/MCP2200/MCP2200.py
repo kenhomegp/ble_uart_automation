@@ -3,7 +3,7 @@ import ctypes
 import platform
 
 class Mcp2200:
-    def __init__(self, PID=0x00da):
+    def __init__(self, PID='0x00df'):
         self.vid = 0x04d8
         #self.pid = 0x00df
         #self.pid = 0x00da

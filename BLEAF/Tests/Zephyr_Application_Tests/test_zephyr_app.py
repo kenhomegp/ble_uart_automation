@@ -33,6 +33,7 @@ from ...StationConfig import conf_file
 from ...CommonSupportLib.iOS_BluetoothSupport import iOSBluetoothSupport
 from ...CommonSupportLib.iOS_BLEPairingSupport import iOSBLEPairingSupport
 
+from ...CommonSupportLib.IOControl_LEDStatus import IOControlLEDStatus
 from ...CommonSupportLib.SerialReader import SerialReader
 
 from ...BaseWrappers.NewBaseDriver import NewBaseDriver
@@ -57,8 +58,10 @@ def define_class_attributes(request, default_class_fixture):
     #    print("Android: Init MCP2200")
     #    request.cls.bleuartfeature.initialize_com_port()
 
-    request.cls.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
     baud_rate = conf_file.baud_rate
+    status = request.cls.iocontrolledstatus.Zephyr_InitMCP2200(baud_rate, MCU)
+    assert status, "Failed to initialize the MCP2200"
+    #baud_rate = conf_file.baud_rate
     com_port = conf_file.com_port
 
     serial_runner = SerialReader(com_port, baudrate=115200)
@@ -260,8 +263,14 @@ def zephyr_flash_firmware(request):
     dfu = request.config.getoption('--dfu')
     fw_update = dfu
 
+    test_image = request.param
+    func_name = request.node.name
+    print(f'zephyr_flash_firmware. test image: {test_image}')
+    if 'test_flash_firmware' in func_name:
+        fw_update = True
+
     if fw_update:
-        func_name = request.node.name
+        #func_name = request.node.name
         print(f'zephyr_flash_firmware. test case : {func_name}')
         #print(f'fwfolderpath = {sd.config.fwfolderpath}')
         fwfolderpath = sd.config.fwfolderpath
@@ -276,7 +285,7 @@ def zephyr_flash_firmware(request):
         verifyprogrammemory = "-YP"
         #flashfile = '-Fzephyr_signed.hex'
         flashfile = '-F.\\Test firmware\\Zephyr\\Peripheral_identity\\zephyr_signed.hex'
-        fwfolderpath += 'Peripheral_identity\\'
+        #fwfolderpath += 'Peripheral_identity\\'
 
         if 'identity' in func_name.lower():
             flashfile = '-F.\\Test firmware\\Zephyr\\Peripheral_identity\\zephyr_signed.hex'
@@ -290,6 +299,12 @@ def zephyr_flash_firmware(request):
         elif 'peripheral_application' in func_name.lower():
             flashfile = '-F.\\Test firmware\\Zephyr\\Peripheral_application\\zephyr_signed.hex'
             fwfolderpath += 'Peripheral_application\\'
+
+        if test_image:
+            print(f'test image = {test_image}')
+            fwfolderpath += test_image
+            fwfolderpath += '\\'
+
         print(f'fwfolderpath = {fwfolderpath}')
 
         ipe_comd = "C:\\Program Files\\Microchip\\MPLABX\\v6.25\\mplab_platform\\mplab_ipe\\ipecmd.exe -P32WM_BZ6204 -E -M -OL -TSWBZ653002198 -Fzephyr_signed.hex"
@@ -336,6 +351,53 @@ class TestZephyrApp:
     operate_characteristic = ""
     hid_dut_name = ""
     test_procedure = ""
+
+    def google_pixel_forget_device(self):
+        print('google_pixel_forget_device')
+
+    def Samsung_galaxy_settings(self, pair_unpair):
+        print('Samsung_galaxy_forget_device.Settings ==> Connections')
+
+        status, connections = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Connections"]')
+        assert status, "Failed to find the element."
+        connections.click()
+        time.sleep(3)
+
+        print('Connections ==> Bluetooth')
+        status, bt = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Bluetooth"]')
+        assert status, "Failed to find the element."
+        bt.click()
+        time.sleep(3)
+
+        if pair_unpair == 'pair':
+            print('Pairing...')
+            status, dut_to_pair = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Test HoG mouse"]')
+            assert status, "Failed to find the dut"
+            time.sleep(1)
+            dut_to_pair.click()
+            print('Tap dut')
+        else:
+            status, dut = sd.mobile_driver.find_element('XPATH', '//android.widget.ImageView[@content-desc="Test HoG mouse, Device settings"]')
+            assert status, "Failed to find the Test HoG mouse."
+            dut.click()
+            time.sleep(3)
+
+            status, button = sd.mobile_driver.find_element('XPATH', '//android.widget.Button[@content-desc="Unpair"]')
+            assert status, "Failed to find the unpair button"
+            button.click()
+            time.sleep(3)
+
+            #print('Pairing alert message..')
+            status, pairing = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.android.settings:id/alertTitle"]')
+            assert status, "Failed to find the title"
+            txt = pairing.text
+            print(f'Pairing alert message: {txt}')
+            time.sleep(3)
+
+            status, unpair_button = sd.mobile_driver.find_element('XPATH', '//android.widget.Button[@resource-id="android:id/button1"]')
+            assert status, "Failed to find the unpair button"
+            unpair_button
+            time.sleep(3)
 
     #@pytest.mark.order(3)
     @pytest.mark.skip(reason="test_zephyr_peripheral_hid_forget_device")
@@ -676,6 +738,8 @@ class TestZephyrApp:
 
         print('test_zephyr_peripheral_android_hid_forget_device')
 
+        self.google_pixel_forget_device()
+
         print('Activate settings app')
         sd.mobile_driver.app_activate('com.android.settings')
 
@@ -941,10 +1005,10 @@ class TestZephyrApp:
                 self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
                 time.sleep(3)
 
-            self.bleuartfeature.ble_smart_filter_peripherals('Direct', search_icon=True)
+            self.bleuartfeature.ble_smart_filter_peripherals('Direct A', search_icon=True)
             time.sleep(2)
             self.bleuartfeature.ble_smart_connect('Direct A')
-            print('Ble connecting..')
+            print('DeviceScan ==> Device')
             time.sleep(3)
             connection_state = self.bleuartfeature.ble_smart_verify_ble_connected('Direct A')
             assert connection_state == "Connected", 'Error, failed to connect to dut'
@@ -957,7 +1021,15 @@ class TestZephyrApp:
                 action = 'cancel'
             elif i == 2:
                 action = 'accept'
-            result = self.bleuartfeature.ble_smart_pairing_google_phone('Direct A', action)
+
+            if 'Galaxy' in sd.platform and i == 2:
+                print(f'Galaxy_platform = {sd.platform}')
+                wait = WebDriverWait(sd.mobile_driver.driver, 5, poll_frequency=0.5)
+                wait.until(EC.alert_is_present())
+                print("Alert is present")
+                result = self.bleuartfeature.ble_smart_pairing('Direct A', action)
+            else:
+                result = self.bleuartfeature.ble_smart_pairing_google_phone('Direct A', action)
 
             if i == 2:
                 time.sleep(60)
@@ -1121,11 +1193,92 @@ class TestZephyrApp:
 
 ################################################################################################
 
+    @pytest.mark.skip(reason="test android setting app")
+    #@pytest.mark.test_id("test_android_iop_settings_app", '')
+    def test_android_iop_settings_app(self):
+        print(f'test_android_iop_settings_app. platform = {sd.platform}')
+        sd.mobile_driver.close_app('com.android.settings')
+        time.sleep(5)
+        print("Launch setting app")
+        sd.mobile_driver.launch_app('com.android.settings')
+        time.sleep(5)
+        #print('DUT Reset. Firmware reset')
+        #self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
+        #time.sleep(3)
+        #self.Samsung_galaxy_settings('pair')
+
+        com_port = conf_file.com_port
+
+        serial_runner = SerialReader(com_port, baudrate=115200)
+        time.sleep(1)
+
+        status, connections = sd.mobile_driver.find_element('XPATH',
+                                                            '//android.widget.TextView[@resource-id="android:id/title" and @text="Connections"]')
+        assert status, "Failed to find the element."
+        connections.click()
+        time.sleep(3)
+
+        print('DUT Reset. Firmware reset')
+        self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
+
+        print('Connections ==> Bluetooth')
+        status, bt = sd.mobile_driver.find_element('XPATH',
+                                                   '//android.widget.TextView[@resource-id="android:id/title" and @text="Bluetooth"]')
+        assert status, "Failed to find the element."
+        bt.click()
+
+        time.sleep(5)
+
+        def dut_tap():
+            status, button = sd.mobile_driver.find_element('XPATH', '//android.widget.Button[@text="Stop"]')
+            assert status, "Failed to find the stop button"
+            button.click()
+            print('Scan stop')
+            time.sleep(3)
+            #print('DUT Reset. Firmware reset')
+            #request.cls.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
+            status, dut_to_pair = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Test HoG mouse"]')
+            assert status, "Failed to find the dut"
+            #dut_to_pair = sd.mobile_driver.android_uiselector_find_element('')
+            time.sleep(1)
+            dut_to_pair.click()
+            print('Tap dut')
+            return 'Tap dut'
+
+        result, serial_data = serial_runner.execute(dut_tap)
+        print(f'task = {result}, data = {serial_data}')
+
     #@pytest.mark.skip(reason="Zephyr test IPE")
-    @pytest.mark.test_id("Zephyr test IPE", '')
+    #@pytest.mark.test_id("Zephyr test IPE", '')
+    @pytest.mark.parametrize('zephyr_flash_firmware', ['Peripheral_hid'], indirect=True)
     def test_flash_firmware(self, zephyr_flash_firmware):
         print('test_zephyr_flash_firmware')
-        time.sleep(10)
+        time.sleep(5)
+
+    @pytest.mark.skip(reason="test_dut2_reset")
+    #@pytest.mark.test_id("test_dut2_reset", '')
+    def test_dut2_reset(self):
+        print('test_dut2_reset')
+        dut2_mcu = Mcp2200()
+        print(f'dut2_mcp2200.PID = {dut2_mcu.pid}')
+        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', dut2_mcu)
+        assert status, "Failed to initialize the MCP2200"
+        time.sleep(1)
+
+        serial_runner = SerialReader('COM23', baudrate=115200)
+        time.sleep(1)
+
+        def dut_reset():
+            print('DUT Reset. Firmware reset')
+            self.iocontrolledstatus.Zephyr_IOCtrl(dut2_mcu, RESET_PIN, 0.3)
+            return 'reset_dut'
+
+        result, serial_data = serial_runner.execute(dut_reset)
+        print(f'task = {result}, data = {serial_data}')
+        assert 'Booting Zephyr OS' in serial_data, 'Reboot device: fail'
+        fw_version = 'v1.0.0-rc5'
+        assert fw_version in serial_data, 'Firmware version is not correct'
+        print(f'zephyr test version : {fw_version}')
 
     @pytest.mark.skip(reason="Zephyr dut reset")
     # @pytest.mark.test_id("Zephyr dut reset", 'Putty')
@@ -1133,7 +1286,9 @@ class TestZephyrApp:
         print('test_zephyr_reset')
         # MCU = Mcp2200()
         # time.sleep(1)
-        self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
+        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
+        assert status, "Failed to initialize the MCP2200"
+
         print('Open Putty')
         time.sleep(20)
 

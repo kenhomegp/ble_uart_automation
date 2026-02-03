@@ -783,3 +783,24 @@ class NewBaseDriver:
             if re.match(bt_pattern, tv.text):
                 return tv.text
         return ''
+
+    def android_listactivity_get_dut(self, dut):
+
+        print('android_listactivity_get_dut')
+
+        textviews = self.driver.find_elements(
+            AppiumBy.ANDROID_UIAUTOMATOR,
+            'new UiSelector().className("android.widget.TextView")'
+        )
+        for tv in textviews:
+            #if re.match(bt_pattern, tv.text):
+            if dut == tv.text:
+                tv.click()
+                print('dut . click')
+                return True
+        return False
+
+    def android_uiselector_find_element(self, dut_name):
+        print('android_uiselector_find_element')
+        element = self.driver.find_element(AppiumBy.ANDROID_UIAUTOMATOR, 'new UiSelector().text("Test HoG mouse")')
+        return element

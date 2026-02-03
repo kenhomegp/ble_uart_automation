@@ -597,6 +597,7 @@ class RNBDvsPhoneFeatureSupport:
         time.sleep(1)
         status = self.driver.click_element(cancel_pair)
         assert status, "Failed to click on Cancel"
+        print('google_pixel_pair_cancel')
 
     def google_pixel_pairing_ok(self):
         status, ok_pair = self.driver.find_element('XPATH', locators.pixel3a_ok_button)
@@ -1127,7 +1128,7 @@ class RNBDvsPhoneFeatureSupport:
         self.driver.send_keys(search_field, name)
 
     def ble_smart_connect(self, dut_name):
-        print('ble_smart_connect')
+        print(f'ble_smart_connect: {dut_name}')
         status, scan_button = self.driver.find_element('XPATH', '//android.widget.Button[@resource-id="com.microchip.bluetooth.data:id/menu_scan"]')
         assert status, "Failed to find the scan button"
         button_text = scan_button.get_attribute('text')
@@ -1136,7 +1137,6 @@ class RNBDvsPhoneFeatureSupport:
             scan_button.click()
             print("Stop scan")
         time.sleep(1)
-        peripheral = None
         locator = '//android.widget.TextView[@resource-id="com.microchip.bluetooth.data:id/device_name" and @text="{}"]'
         status, peripheral = self.driver.find_element('XPATH', locator.format(dut_name))
         if not status:
@@ -1151,6 +1151,10 @@ class RNBDvsPhoneFeatureSupport:
         time.sleep(1)
         status = self.driver.click_element(peripheral)
         assert status, "Unable to click the dut"
+        #time.sleep(1)
+        #peripheral.click()
+        #print('Tap the peripheral')
+        #self.driver.android_listactivity_get_dut(dut_name)
 
     def lightblue_connect_and_verify_connected(self, dut_name, fail_retry_timeout=30):
         print(f'lightblue_connect_and_verify_connected. retry_timeout={fail_retry_timeout}')
@@ -1308,7 +1312,11 @@ class RNBDvsPhoneFeatureSupport:
         assert status, "Failed to find the dut name"
         name = dut.get_attribute('text')
         print('dut name = {}'.format(name))
-        assert name == dut_name, "Failed to find the dut name"
+        if dut_name == 'Direct A':
+            new_dut_name = 'Direct Adv'
+            assert (name == dut_name or name == new_dut_name), "Failed to find the dut name"
+        else:
+            assert name == dut_name, "Failed to find the dut name"
         time.sleep(2)
 
         serial_port = self.serialdriver.ComportSet(comport, baudrate)
@@ -1643,7 +1651,8 @@ class RNBDvsPhoneFeatureSupport:
 
     def ble_lightblue_Bonded(self, dut_name):
         print('ble_lightblue_Bonded. dut = {}'.format(dut_name))
-        dut_locator = "//android.widget.TextView[@text='{}']"
+        #dut_locator = "//android.widget.TextView[@text='{}']"
+        #dut_locator = "//android.widget.TextView[@text='{}' or @text= '{}']"
         status, Bonded_icon = self.driver.find_element('XPATH', '//android.widget.TextView[@text="Bonded"]')
         assert status, "Failed to find the Bonded_icon"
         time.sleep(1)
@@ -1653,7 +1662,13 @@ class RNBDvsPhoneFeatureSupport:
         status, Bonded_List = self.driver.find_element('XPATH', '//android.widget.TextView[@text="Bonded Devices"]')
         assert status, "Failed to find the Bonded Devices"
         time.sleep(3)
-        status, Bonded_dut = self.driver.find_element('XPATH', dut_locator.format(dut_name))
+        if dut_name == 'Direct A':
+            dut_locator = "//android.widget.TextView[@text='{}' or @text= '{}']"
+            new_dut_name = 'Direct Adv'
+            status, Bonded_dut = self.driver.find_element('XPATH', dut_locator.format(dut_name, new_dut_name))
+        else:
+            dut_locator = "//android.widget.TextView[@text='{}']"
+            status, Bonded_dut = self.driver.find_element('XPATH', dut_locator.format(dut_name))
         assert status, "Failed to find the Bonded device"
         print('{} is bonded'.format(dut_name))
 
