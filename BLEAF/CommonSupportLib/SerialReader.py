@@ -34,7 +34,7 @@ class SerialReader():
             print('SerialRead stop. Serial Close')
         return readings
 
-    def settings(self, timeout, execute_close):
+    def settings(self, timeout, execute_close=True):
         print('Settings')
         self.timeout = timeout
         self.execute_close = execute_close

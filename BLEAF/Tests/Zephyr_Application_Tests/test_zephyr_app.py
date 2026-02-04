@@ -1193,8 +1193,8 @@ class TestZephyrApp:
 
 ################################################################################################
 
-    @pytest.mark.skip(reason="test android setting app")
-    #@pytest.mark.test_id("test_android_iop_settings_app", '')
+    #@pytest.mark.skip(reason="test android setting app")
+    @pytest.mark.test_id("test_android_iop_settings_app", '')
     def test_android_iop_settings_app(self):
         print(f'test_android_iop_settings_app. platform = {sd.platform}')
         sd.mobile_driver.close_app('com.android.settings')
@@ -1202,14 +1202,11 @@ class TestZephyrApp:
         print("Launch setting app")
         sd.mobile_driver.launch_app('com.android.settings')
         time.sleep(5)
-        #print('DUT Reset. Firmware reset')
-        #self.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
-        #time.sleep(3)
-        #self.Samsung_galaxy_settings('pair')
 
         com_port = conf_file.com_port
 
         serial_runner = SerialReader(com_port, baudrate=115200)
+        serial_runner.settings(10)
         time.sleep(1)
 
         status, connections = sd.mobile_driver.find_element('XPATH',
@@ -1235,25 +1232,20 @@ class TestZephyrApp:
             button.click()
             print('Scan stop')
             time.sleep(3)
-            #print('DUT Reset. Firmware reset')
-            #request.cls.iocontrolledstatus.Zephyr_IOCtrl(MCU, RESET_PIN, 0.3)
-            status, dut_to_pair = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Test HoG mouse"]')
-            assert status, "Failed to find the dut"
-            #dut_to_pair = sd.mobile_driver.android_uiselector_find_element('')
-            time.sleep(1)
-            dut_to_pair.click()
-            print('Tap dut')
+            tap_status = sd.mobile_driver.android_listactivity_tap_dut('Test HoG mouse')
+            assert tap_status, "Failed to find the dut"
             return 'Tap dut'
 
         result, serial_data = serial_runner.execute(dut_tap)
         print(f'task = {result}, data = {serial_data}')
 
-    #@pytest.mark.skip(reason="Zephyr test IPE")
-    #@pytest.mark.test_id("Zephyr test IPE", '')
-    @pytest.mark.parametrize('zephyr_flash_firmware', ['Peripheral_hid'], indirect=True)
+    @pytest.mark.skip(reason="test flash firmware")
+    #@pytest.mark.test_id("test flash firmware", '')
+    #@pytest.mark.parametrize('zephyr_flash_firmware', ['Peripheral_hid'], indirect=True)
     def test_flash_firmware(self, zephyr_flash_firmware):
-        print('test_zephyr_flash_firmware')
+        print('test_flash_firmware')
         time.sleep(5)
+        assert zephyr_flash_firmware, 'Test flash firmware: Fail'
 
     @pytest.mark.skip(reason="test_dut2_reset")
     #@pytest.mark.test_id("test_dut2_reset", '')
