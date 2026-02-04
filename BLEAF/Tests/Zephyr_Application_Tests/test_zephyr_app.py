@@ -75,7 +75,7 @@ def define_class_attributes(request, default_class_fixture):
     result, serial_data = serial_runner.execute(dut_reset)
     print(f'task = {result}, data = {serial_data}')
     assert 'Booting Zephyr OS' in serial_data, 'Reboot device: fail'
-    fw_version = 'v1.0.0-rc5'
+    fw_version = conf_file.zephyr_test_version
     assert fw_version in serial_data, 'Firmware version is not correct'
     print(f'zephyr test version : {fw_version}')
 
@@ -260,8 +260,9 @@ def zephyr_flash_firmware(request):
     #print(f'zephyr_flash_firmware.{os.getcwd()}')
     #print(f'zephyr_flash_firmware. test case : {request.node.name}')
 
-    dfu = request.config.getoption('--dfu')
-    fw_update = dfu
+    #dfu = request.config.getoption('--dfu')
+    #fw_update = dfu
+    fw_update = True
 
     test_image = request.param
     func_name = request.node.name
@@ -269,11 +270,17 @@ def zephyr_flash_firmware(request):
     if 'test_flash_firmware' in func_name:
         fw_update = True
 
+    print(f'parse config data')
+    image_config = test_image.split('_')
+    if len(image_config) == 2:
+        print(f'flash tool = {image_config[0]}, image name = {image_config[1]}')
+
     if fw_update:
         #func_name = request.node.name
         print(f'zephyr_flash_firmware. test case : {func_name}')
         #print(f'fwfolderpath = {sd.config.fwfolderpath}')
         fwfolderpath = sd.config.fwfolderpath
+        fwfolderpath += conf_file.zephyr_test_image
         print(f'fwfolderpath = {fwfolderpath}')
 
         ipecmd = sd.config.mplab_path
@@ -1193,8 +1200,8 @@ class TestZephyrApp:
 
 ################################################################################################
 
-    #@pytest.mark.skip(reason="test android setting app")
-    @pytest.mark.test_id("test_android_iop_settings_app", '')
+    @pytest.mark.skip(reason="test android setting app")
+    #@pytest.mark.test_id("test_android_iop_settings_app", '')
     def test_android_iop_settings_app(self):
         print(f'test_android_iop_settings_app. platform = {sd.platform}')
         sd.mobile_driver.close_app('com.android.settings')
@@ -1239,13 +1246,14 @@ class TestZephyrApp:
         result, serial_data = serial_runner.execute(dut_tap)
         print(f'task = {result}, data = {serial_data}')
 
-    @pytest.mark.skip(reason="test flash firmware")
+    #@pytest.mark.skip(reason="test flash firmware")
     #@pytest.mark.test_id("test flash firmware", '')
-    #@pytest.mark.parametrize('zephyr_flash_firmware', ['Peripheral_hid'], indirect=True)
+    @pytest.mark.parametrize('zephyr_flash_firmware', [conf_file.zephyr_dut1_flashtool + "_" + 'Peripheral_hid'], indirect=True)
     def test_flash_firmware(self, zephyr_flash_firmware):
         print('test_flash_firmware')
-        time.sleep(5)
+        time.sleep(1)
         assert zephyr_flash_firmware, 'Test flash firmware: Fail'
+        print('Success')
 
     @pytest.mark.skip(reason="test_dut2_reset")
     #@pytest.mark.test_id("test_dut2_reset", '')
