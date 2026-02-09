@@ -88,7 +88,7 @@ class IOControlLEDStatus:
 
         status = self.Zephyr_IO_Initial(mcu)
         if status:
-            print("Configure MCP2200 successfully")
+            print(f"Configure MCP2200 successfully. PID = {hex(mcu.pid)}")
             return True
         else:
             return False

@@ -16,7 +16,7 @@ class SerialReader():
         self.ser = serial.Serial(self.port, self.baudrate, parity=serial.PARITY_NONE, timeout=0.10, xonxoff=1, rtscts=1)
         print(f'SerialReader init. {self.port}')
         if not self.ser.is_open:
-            print('Serial port not open')
+            print(f'Serial port not open.{port}')
 
     def serial_read(self, run_time=3):
         #print('SerialRead start')
@@ -35,7 +35,7 @@ class SerialReader():
         return readings
 
     def settings(self, timeout, execute_close=True):
-        print('Settings')
+        print(f'Settings. timeout = {timeout}')
         self.timeout = timeout
         self.execute_close = execute_close
 

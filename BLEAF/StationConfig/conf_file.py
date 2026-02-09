@@ -6,8 +6,19 @@ from ..CommonSupportLib.StationDefines import DEVICE_NAME_K, PLATFORM_NAME_K, PL
 #dut_friendly_name = "BLE_UART_824B"
 #dut_friendly_name = "MBD_PERIPHERAL"
 dut_friendly_name = "Direct A"
-com_port = "COM18"
+#===========================================
+#   Zephyr test config
+com_port = "COM24"
 baud_rate = "115200"
+zephyr_test_project = "BZ6_128M"
+zephyr_test_version = "v1.0.0-rc5"
+#zephyr_dut1_flashtool = "WBZ653002198"
+#zephyr_dut2_flashtool = "WBZ653002023"
+zephyr_dut1_flashtool = "WBZ653002200"
+zephyr_dut2_flashtool = "WBZ653002198"
+zephyr_dut2_com_port = "COM18"
+zephyr_special_test_case = True
+#===========================================
 #com_port = '/dev/tty.usbmodem00159523561'
 #baud_rate = "115200"
 FW_Version = "0.9.0.6"
@@ -112,8 +123,8 @@ appium_config = {
         #"appium_server_ip": "172.20.10.6",
         #"appium_server_ip":  "10.160.56.74",
         "appium_server_port": "4723",
-        "use_remote_appium" : True,
-        "remote_appium_server_ip":  "10.160.59.52",
+        "use_remote_appium": True,
+        "remote_appium_server_ip":  "10.160.59.59",
         "remote_appium_server_port": "4723",
         #"remote_appium_username": "WSGAppDev",
         #"remote_appium_pwd" : 'Amchp17217',
@@ -121,7 +132,7 @@ appium_config = {
         "remote_appium_pwd" : 'a6j3939b',
         #"remote_appium_username": "MCHP",
         #"remote_appium_pwd" : 'mchp',
-        "usb_hubs" : ['20-2.1','20-2.2']
+        "usb_hubs" : ['20-2.1', '20-2.2']
     },
 
     "mobile_data_config": {
@@ -275,7 +286,7 @@ appium_config = {
                        PLATFORM_NAME_K: "Android",
                        PLATFORM_VERSION_K: "11",
                        },
-        "Pixel 7": {DEVICE_NAME_K: "Pixel 7",
+        "Pixel7": {DEVICE_NAME_K: "Pixel 7",
                       PHONE_UDID_K: "28101FDH2005ML",
                       PLATFORM_NAME_K: "Android",
                       PLATFORM_VERSION_K: "14",
@@ -347,6 +358,18 @@ appium_config = {
                       PLATFORM_VERSION_K: "13",
                       PHONE_BT_ADDRESS_K: "A8798DA59882",
                       },
+        "Galaxy_Z_Flip6": {DEVICE_NAME_K: "Galaxy_Z_Flip6",
+                      PHONE_UDID_K: "R5CX717787Y",
+                      PLATFORM_NAME_K: "Android",
+                      PLATFORM_VERSION_K: "15",
+                      PHONE_BT_ADDRESS_K: "A8798DA59882",
+                      },
+        "Galaxy_Z_Flip7": {DEVICE_NAME_K: "Galaxy_Z_Flip7",
+                      PHONE_UDID_K: "R5CY71ENLVH",
+                      PLATFORM_NAME_K: "Android",
+                      PLATFORM_VERSION_K: "16",
+                      PHONE_BT_ADDRESS_K: "A8798DA59882",
+                      },
         "Nokia": {DEVICE_NAME_K: "Nokia 7.2",
                       PHONE_UDID_K: "J0AA002438K12702783",
                       PLATFORM_NAME_K: "Android",
@@ -401,13 +424,13 @@ appium_config = {
 }
 
 duts_to_use = {
-    MOBILE_TO_USE: "Pixel 7",
+    MOBILE_TO_USE: "Galaxy_Z_Flip7",
     "server":"DUT1",
     "client":"DUT2"
 }
 
 multilink_phone_config = {
-    MOBILE_TO_USE: "Pixel 7"
+    MOBILE_TO_USE: "Pixel7"
     #MOBILE_TO_USE: "Pixel7/SamsungS23/Pixel17217"
     #MOBILE_TO_USE: "SamsungA54/Pixel7/iPhone15/Pixel17217/SamsungS23"
 }
@@ -415,7 +438,7 @@ multilink_phone_config = {
 DUT_ADD_K = "001167939393"
 client = MEDC
 mcpfolderpath = r'C:\BLEAF\ExternalDependencies\MCP2210CLI'
-fwfolderpath = os.getcwd() + '\\BLE_UART_FW\\'
+fwfolderpath = os.getcwd() + '\\Test firmware\\Zephyr\\'
 capture_sodera_logs = False
 sedora_logs_folder_path = r"D:\A\Automation\Humming Bird\hummingbird_scripts\BLEAF\Logs"
 RpiIpAddress = "192.168.0.100"
@@ -433,12 +456,15 @@ central_multilink_peripheral_list = ["DUT2"]
 usb_hubs = ["YK25256","YK25362","YK25253"]
 pid = "00D8"
 #multilink_phone_list = ["SamsungS22","SamsungS24","GooglePixel5","GooglePixel3A","SamsungS10","SamsungM34"]
-multilink_phone_list = ['Pixel7']
+multilink_phone_list = ['iPhone 16', 'Pixel7']
+#multilink_phone_list = ['Pixel7', 'SamsungA54', 'iPhone 16']
+#multilink_phone_list = ['iPhone 16']
 multirole_phone_list = ["SamsungS21"]
 throughput_phone_list = "Vivo X100"
 testlink_project = "BigBuck"
 testlink_devkey = "29b1991c2f36a6e9e8cab12e502c47cf"
-mplab_path = "C:/Program Files/Microchip/MPLABX/v6.20/mplab_platform/mplab_ipe/ipecmd.exe"
+#mplab_path = "C:/Program Files/Microchip/MPLABX/v6.25/mplab_platform/mplab_ipe/ipecmd.exe"
+mplab_path = "C:\\Program Files\\Microchip\\MPLABX\\v6.25\\mplab_platform\\mplab_ipe\\ipecmd.exe"
 
 ###### HUT CODE TESTS CONFIG ######
 

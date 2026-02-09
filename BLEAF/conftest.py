@@ -51,10 +51,9 @@ def pytest_addoption(parser):
     )
     parser.addoption(
         "--multilink",
-        action="store",
-        metavar="BLE link",
-        help="New option for Zephyr test",
-        default="no"
+        action="store_true",
+        help="New option for Zephyr identity",
+        default=False
     )
     parser.addoption(
         "--dfu",
