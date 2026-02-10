@@ -124,7 +124,7 @@ appium_config = {
         #"appium_server_ip":  "10.160.56.74",
         "appium_server_port": "4723",
         "use_remote_appium": True,
-        "remote_appium_server_ip":  "10.160.59.59",
+        "remote_appium_server_ip":  "10.160.59.62",
         "remote_appium_server_port": "4723",
         #"remote_appium_username": "WSGAppDev",
         #"remote_appium_pwd" : 'Amchp17217',

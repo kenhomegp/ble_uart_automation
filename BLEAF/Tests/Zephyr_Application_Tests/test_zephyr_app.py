@@ -290,6 +290,9 @@ def zephyr_flash_firmware(request):
         elif 'broadcaster_observer' in func_name.lower():
             fwfolderpath += 'Multiple broadcaster\\'
             fw_update_dut2 = True
+        elif 'central_gatt_write' in func_name.lower():
+            fwfolderpath += 'Central Gatt Write\\'
+            fw_update_dut2 = True
 
         #if test_image:
         #    print(f'test image = {test_image}')
@@ -324,6 +327,8 @@ def zephyr_flash_firmware(request):
 
         if 'broadcaster_observer' in func_name.lower():
             fwfolderpath += 'Observer\\'
+        elif 'central_gatt_write' in func_name.lower():
+            fwfolderpath += 'Central Peripheral test\\'
 
         print(f'fwfolderpath = {fwfolderpath}')
 
@@ -1217,6 +1222,69 @@ class TestZephyrApp:
 
 ################################################################################################
 
+    #@pytest.mark.skip(reason="test_dut_serial")
+    @pytest.mark.test_id("test dut serial", '')
+    def test_dut_serial(self):
+        print('test_dut_serial')
+        serial_runner = SerialReader('COM24', 'COM18', baudrate=115200, dut_only=True)
+        time.sleep(1)
+
+        def dut_reset():
+            print('DUT1,DUT2 Reset. Firmware reset')
+            return 'reset_dut1_dut2'
+
+        serial_runner.settings(60)
+        result, data = serial_runner.dut_execute(dut_reset)
+        #print(f'serial_data1 = {data[0]}')
+        #print(f'serial_data2 = {data[1]}')
+
+        time.sleep(3)
+
+        #serial_runner = SerialReader('COM24', baudrate=115200)
+        #time.sleep(1)
+
+        #serial_runner.settings(30)
+        #result, data = serial_runner.execute(dut_reset)
+        #print(f'serial_data = {data}')
+
+        #print('parsing serial data.')
+        data_lines = data[0]
+        keyword_sets = ["start_scan: scanning successfully started", "mtu_exchange_cb: mtu exchange successful"]
+        print(f'parsing serial data. len = {len(data_lines)}')
+
+        serial_runner.search_keyword_sets_ordered(data_lines, keyword_sets)
+
+        #result = serial_runner.search_keyword_sets_ordered(data_lines, keyword_sets)
+        #for i, res in enumerate(result):
+        #    if res != -1:
+        #        print(f"Set {i + 1} first found at line {res + 1}: {data_lines[res]}")
+        #    else:
+        #        print(f"Set {i + 1} not found after previous matches.")
+
+        '''
+        data_lines = [
+            "The quick brown fox jumps over the lazy dog",
+            "The dog jumps over the quick fox quickly",
+            "Somewhere later the quick brown fox appears again",
+            "Finally, all the keywords are collected together",
+        ]
+
+        #start_scan: Scanning successfully started
+        keyword_sets = [
+            ["quick", "fox"],  # first set
+            ["dog", "quick"],  # second set (must come *after* the first fox)
+            ["collected", "keywords"]  # third set
+        ]
+
+
+        result = serial_runner.search_keyword_sets_ordered(data_lines, keyword_sets)
+        for i, res in enumerate(result):
+            if res != -1:
+                print(f"Set {i + 1} first found at line {res + 1}: {data_lines[res]}")
+            else:
+                print(f"Set {i + 1} not found after previous matches.")
+        '''
+
     @pytest.mark.skip(reason="test android setting app")
     #@pytest.mark.test_id("test_android_iop_settings_app", '')
     def test_android_iop_settings_app(self):
@@ -1363,17 +1431,19 @@ class TestZephyrApp:
     #@pytest.mark.test_id("test flash firmware", '')
     #@pytest.mark.parametrize('zephyr_flash_firmware', [conf_file.zephyr_dut1_flashtool + "_" + 'Peripheral_hid'], indirect=True)
     #@pytest.mark.order(1)
-    def test_flash_firmware_broadcaster_observer(self, zephyr_flash_firmware):
+    #def test_flash_firmware_broadcaster_observer(self, zephyr_flash_firmware):
+    def test_flash_firmware_central_gatt_write(self, zephyr_flash_firmware):
     #def test_flash_firmware_hid_pairing(self, zephyr_flash_firmware):
-        print('test_flash_firmware.broadcaster_observer')
+        #print('test_flash_firmware.broadcaster_observer')
         #print('test_flash_firmware.hid_pairing')
+        print('test_flash_firmware_central_gatt_write')
         time.sleep(1)
         assert zephyr_flash_firmware, 'Test flash firmware: Fail'
         print('Success')
 
-    #@pytest.mark.skip(reason="test_dut2_reset")
+    @pytest.mark.skip(reason="test_dut2_reset")
     #@pytest.mark.test_id("test_dut2_reset", '')
-    @pytest.mark.order(1)
+    #@pytest.mark.order(2)
     def test_dut2_reset(self):
         print('test_dut2_reset')
         dut2_mcu = Mcp2200(PID='0x00da')
@@ -1390,6 +1460,7 @@ class TestZephyrApp:
             self.iocontrolledstatus.Zephyr_IOCtrl(dut2_mcu, RESET_PIN, 0.3)
             return 'reset_dut2'
 
+        #serial_runner.settings(60)
         result, serial_data = serial_runner.execute(dut_reset)
         print(f'task = {result}, data = {serial_data}')
         status = self.iocontrolledstatus.Zephyr_IO_Default(dut2_mcu)
@@ -1400,9 +1471,9 @@ class TestZephyrApp:
         #assert fw_version in serial_data, 'Firmware version is not correct'
         #print(f'zephyr test version : {fw_version}')
 
-    #@pytest.mark.skip(reason="Zephyr dut1 reset")
+    @pytest.mark.skip(reason="Zephyr dut1 reset")
     #@pytest.mark.test_id("Zephyr dut1 reset", '')
-    @pytest.mark.order(2)
+    #@pytest.mark.order(3)
     def test_dut1_reset(self):
         print('test_dut1_reset')
         dut2_mcu = Mcp2200(PID='0x00dc')
