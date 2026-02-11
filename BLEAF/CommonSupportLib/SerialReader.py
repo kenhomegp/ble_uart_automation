@@ -32,20 +32,23 @@ class SerialReader():
                 print(f'Serial port not open:{port2}')
 
     def serial_read(self, run_time=3):
-        #print('SerialRead start')
+        print(f'SerialRead start, run time = {run_time}')
+        debug = False
         readings = ''
+        serial_data = []
         self.running = True
         start_time = time.time()
-        #while self.running and (time.time() - start_time) < 5.0:
         while ((time.time() - start_time) < run_time) and self.running:
             if self.ser.in_waiting > 0:
-                #self.readings += self.ser.readline(self.ser.in_waiting).decode()
-                readings += self.ser.readline(self.ser.in_waiting).decode()
-            time.sleep(0.01)  # Brief sleep to prevent high CPU usage [web:17]
+                serial_data.append(self.ser.readline(self.ser.in_waiting).decode())
+            time.sleep(0.001)
         if self.ser and self.execute_close:
             self.ser.close()
             print('SerialRead stop. Serial Close')
-        return readings
+            if debug:
+                print(f'serial_data = {readings}')
+        #return readings
+        return serial_data
 
     def dut_serial_read(self, run_time=10):
         print('dut_serial_read start')
@@ -65,7 +68,7 @@ class SerialReader():
                 if debug:
                     dbg_data2 += self.ser2.readline(self.ser2.in_waiting).decode()
                     serial_data2.append(self.ser2.readline(self.ser2.in_waiting).decode())
-            time.sleep(0.001)  # Brief sleep to prevent high CPU usage [web:17]
+            time.sleep(0.001)
         if self.execute_close:
             self.ser1.close()
             self.ser2.close()
@@ -120,19 +123,22 @@ class SerialReader():
 
     def search_keyword_sets_ordered(self, data_lines, keywords):
         print('search_keyword_sets_ordered')
-        start_idx = 0
+        result = []
         next_start_line = 0
         for kw in keywords:
             for line_idx in range(next_start_line, len(data_lines)):
-                words = data_lines[line_idx].lower()
+                #words = data_lines[line_idx].lower()
+                words = data_lines[line_idx]
                 #print(f'{line_idx}:Compare words:{words}')
                 if kw in words:
                     print(f'Found: {kw} in line{line_idx}')
                     next_start_line = line_idx + 1
+                    result.append(words)
                     break
             if next_start_line == 0:
                 print('First keyword not found')
                 break
+        return result
 
 
 
