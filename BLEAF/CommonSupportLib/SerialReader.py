@@ -125,6 +125,30 @@ class SerialReader():
         print('search_keyword_sets_ordered')
         result = []
         next_start_line = 0
+        kw_idx = 0
+        for idx in range(kw_idx, len(keywords)):
+            for line_idx in range(next_start_line, len(data_lines)):
+                words = data_lines[line_idx]
+                if keywords[idx] in words:
+                    print(f'kw found: {keywords[idx]} in line {line_idx}')
+                    if (kw_idx + 1) <= len(keywords):
+                        kw_idx_temp = kw_idx
+                        for next_kw_idx in range((kw_idx + 1), len(keywords)):
+                            #print(f'check next kw index = {next_kw_idx}')
+                            if keywords[next_kw_idx] in words:
+                                kw_idx = next_kw_idx
+                                print(f'next kw found: {keywords[next_kw_idx]} in line{line_idx}')
+                        if kw_idx_temp != kw_idx:
+                            print('Multiple keyword in one line')
+                            if (kw_idx + 1 ) <= len(keywords):
+                                kw_idx = kw_idx + 1
+                    next_start_line = line_idx + 1
+                    result.append(words)
+                    break
+            if next_start_line == 0:
+                print('First keyword not found')
+                break
+        '''
         for kw in keywords:
             for line_idx in range(next_start_line, len(data_lines)):
                 #words = data_lines[line_idx].lower()
@@ -138,6 +162,7 @@ class SerialReader():
             if next_start_line == 0:
                 print('First keyword not found')
                 break
+        '''
         return result
 
 

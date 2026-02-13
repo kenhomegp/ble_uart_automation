@@ -1222,6 +1222,27 @@ class TestZephyrApp:
 
 ################################################################################################
 
+    @pytest.mark.skip(reason="test_serial_parser")
+    #@pytest.mark.test_id("test_serial_parser", '')
+    def test_serial_parser(self):
+        print('test_dut_serial')
+        serial_runner = SerialReader('COM24', baudrate=115200)
+        time.sleep(1)
+
+        serial_data = ["Hello world", "Devops test automation"]
+        #serial_data = ["Hello world"]
+
+        expected_data = ["Hello",
+                         "world",
+                         "abcd"]
+
+        print(f'parsing serial data. len = {len(serial_data)}')
+
+        expected_result = serial_runner.search_keyword_sets_ordered(serial_data, expected_data)
+        print(f"result = {expected_result}")
+        #assert len(expected_result) != 0, "The test result did not meet expectations"
+        #print("Success")
+
     @pytest.mark.skip(reason="test_dut_serial")
     #@pytest.mark.test_id("test dut serial", '')
     def test_dut_serial(self):
@@ -1430,10 +1451,10 @@ class TestZephyrApp:
         assert status, "Failed to set MCP2200 I/O default"
         time.sleep(1)
 
-    #@pytest.mark.skip(reason="test flash firmware")
+    @pytest.mark.skip(reason="test flash firmware")
     #@pytest.mark.test_id("test flash firmware", '')
     #@pytest.mark.parametrize('zephyr_flash_firmware', [conf_file.zephyr_dut1_flashtool + "_" + 'Peripheral_hid'], indirect=True)
-    @pytest.mark.order(1)
+    #@pytest.mark.order(1)
     def test_flash_firmware_broadcaster_observer(self, zephyr_flash_firmware):
     #def test_flash_firmware_central_gatt_write(self, zephyr_flash_firmware):
     #def test_flash_firmware_hid_pairing(self, zephyr_flash_firmware):
@@ -1446,7 +1467,7 @@ class TestZephyrApp:
 
     #@pytest.mark.skip(reason="test_dut2_reset")
     #@pytest.mark.test_id("test_dut2_reset", '')
-    @pytest.mark.order(3)
+    @pytest.mark.order(2)
     def test_dut2_reset(self):
         print('test_dut2_reset')
         dut2_mcu = Mcp2200(PID='0x00da')
@@ -1503,7 +1524,7 @@ class TestZephyrApp:
 
     #@pytest.mark.skip(reason="Zephyr dut1 reset")
     #@pytest.mark.test_id("Zephyr dut1 reset", '')
-    @pytest.mark.order(2)
+    @pytest.mark.order(1)
     def test_dut1_reset(self):
         print('test_dut1_reset')
         dut2_mcu = Mcp2200(PID='0x00dc')
