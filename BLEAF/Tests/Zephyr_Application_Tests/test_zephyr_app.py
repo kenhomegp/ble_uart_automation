@@ -326,7 +326,7 @@ def zephyr_flash_firmware(request):
         print(f'zephyr_test_project = {conf_file.zephyr_test_project}')
 
         if 'broadcaster_observer' in func_name.lower():
-            fwfolderpath += 'Observer\\'
+            fwfolderpath += 'Observer_extended\\'
         elif 'central_gatt_write' in func_name.lower():
             fwfolderpath += 'Central Peripheral test\\'
 
@@ -1458,9 +1458,9 @@ class TestZephyrApp:
     def test_flash_firmware_broadcaster_observer(self, zephyr_flash_firmware):
     #def test_flash_firmware_central_gatt_write(self, zephyr_flash_firmware):
     #def test_flash_firmware_hid_pairing(self, zephyr_flash_firmware):
-        #print('test_flash_firmware.broadcaster_observer')
+        print('test_flash_firmware.broadcaster_observer')
         #print('test_flash_firmware.hid_pairing')
-        print('test_flash_firmware_central_gatt_write')
+        #print('test_flash_firmware_central_gatt_write')
         time.sleep(1)
         assert zephyr_flash_firmware, 'Test flash firmware: Fail'
         print('Success')
@@ -1485,7 +1485,7 @@ class TestZephyrApp:
             self.iocontrolledstatus.Zephyr_IOCtrl(dut2_mcu, RESET_PIN, 1)
             return 'reset_dut2'
 
-        serial_runner.settings(30)
+        serial_runner.settings(15)
         result, serial_data = serial_runner.execute(dut_reset)
         #print(f'task = {result}, data = {serial_data}')
         dd = ''.join(serial_data)
@@ -1494,6 +1494,49 @@ class TestZephyrApp:
         assert status, "Failed to set MCP2200 I/O default"
         time.sleep(1)
 
+        # observer_extended role
+        expected_data = ["Starting Observer Demo",
+                         "Registered scan callback",
+                         "Started scanning"
+                         ]
+        print(f'parsing serial data. len = {len(serial_data)}')
+
+        expected_result = serial_runner.search_keyword_sets_ordered(serial_data, expected_data)
+        assert len(expected_result) != 0, "The test result did not meet expectations "
+
+        #[DEVICE]: 34:79:6D:7C:C5:5E (random), AD evt type 5, Tx Pwr: 127, RSSI -25 Data status: 0, AD data len: 31 Name: Broadcaster Multiple C:0 S:0 D:0 SR:0 E:1 Pri PHY: LE 1M, Sec PHY: LE 2M, Interval: 0x0000 (0 ms), SID: 0
+        #[DEVICE]: 1E:97:9E:BF:51:31 (random), AD evt type 5, Tx Pwr: 127, RSSI -25 Data status: 0, AD data len: 31 Name: Broadcaster Multiple C:0 S:0 D:0 SR:0 E:1 Pri PHY: LE 1M, Sec PHY: LE 2M, Interval: 0x0000 (0 ms), SID: 1
+        print("keyword: Pass")
+
+        pattern_sid_0 = (
+                r"\[DEVICE\]: (?:[0-9A-F]{2}:){5}[0-9A-F]{2} \(\w+\), "  # [DEVICE]: BT位址 (類型)
+                r"AD evt type \d+, Tx Pwr: -?\d+, RSSI -?\d+ "          # AD事件, Tx功率, RSSI
+                r"Data status: \d+, AD data len: \d+ "                  # 資料狀態, 長度
+                r"Name: Broadcaster Multiple "                          # 固定 Name 內容
+                r"C:\d+ S:\d+ D:\d+ SR:\d+ E:\d+ "                      # 參數 C, S, D, SR, E
+                r"Pri PHY: [\w\s]+, Sec PHY: [\w\s]+, "                 # 實體層 PHY 資訊
+                r"Interval: 0x[0-9A-F]+ \(\d+ ms\), SID: 0"           # Interval (ms) 與 SID)
+        )
+
+        pattern_test_result = serial_runner.search_test_pattern(serial_data, pattern_sid_0, fullmatch=False)
+        assert len(pattern_test_result) == 1, "The test result did not meet expectations "
+        print("Test pattern_sid_0: Pass ")
+
+        pattern_sid_1 = (
+                r"\[DEVICE\]: (?:[0-9A-F]{2}:){5}[0-9A-F]{2} \(\w+\), "  # [DEVICE]: BT位址 (類型)
+                r"AD evt type \d+, Tx Pwr: -?\d+, RSSI -?\d+ "          # AD事件, Tx功率, RSSI
+                r"Data status: \d+, AD data len: \d+ "                  # 資料狀態, 長度
+                r"Name: Broadcaster Multiple "                          # 固定 Name 內容
+                r"C:\d+ S:\d+ D:\d+ SR:\d+ E:\d+ "                      # 參數 C, S, D, SR, E
+                r"Pri PHY: [\w\s]+, Sec PHY: [\w\s]+, "                 # 實體層 PHY 資訊
+                r"Interval: 0x[0-9A-F]+ \(\d+ ms\), SID: 1"           # Interval (ms) 與 SID)
+        )
+
+        pattern_test_result = serial_runner.search_test_pattern(serial_data, pattern_sid_1, fullmatch=False)
+        assert len(pattern_test_result) == 1, "The test result did not meet expectations "
+        print("Test pattern_sid_1: Pass ")
+
+        '''
         # observer role
         expected_data = ["Starting Observer Demo",
                          "Started scanning..."
@@ -1502,7 +1545,15 @@ class TestZephyrApp:
 
         expected_result = serial_runner.search_keyword_sets_ordered(serial_data, expected_data)
         assert len(expected_result) != 0, "The test result did not meet expectations "
-        print("Success")
+        #print("Success")
+
+        #Device found: CF:2D:0E:1B:06:C3 (random) (RSSI -85), type 0, AD data len 24
+        pattern = r"Device found: (?:[0-9A-F]{2}:){5}[0-9A-F]{2} \(random\) \(RSSI -?\d+\), type \d+, AD data len \d+"
+
+        pattern_test_result = serial_runner.search_test_pattern(serial_data, pattern, count=10)
+        assert len(pattern_test_result) != 0, "The test result did not meet expectations "
+        print("Pass")
+        '''
 
         '''
         #peripheral role
