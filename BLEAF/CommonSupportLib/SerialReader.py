@@ -4,25 +4,27 @@ import serial
 import time
 import re
 
+
 class SerialReader():
     def __init__(self, port1, port2='', baudrate=9600, timeout=3, execute_close=True, dut_only=False):
-        #super().__init__()
+        # super().__init__()
         self.port = port1
         self.baudrate = baudrate
         self.timeout = timeout
-        #self.readings = ''
+        # self.readings = ''
         self.ser = None
         self.running = False
         self.execute_close = execute_close
         if not dut_only:
-            self.ser = serial.Serial(self.port, self.baudrate, parity=serial.PARITY_NONE, timeout=0.10, xonxoff=1, rtscts=1)
+            self.ser = serial.Serial(self.port, self.baudrate, parity=serial.PARITY_NONE, timeout=0.10, xonxoff=1,
+                                     rtscts=1)
             print(f'SerialReader init. {self.port}')
             if not self.ser.is_open:
                 print(f'Serial port not open.{self.port}')
         else:
             self.timeout = 10
             self.ser1 = serial.Serial(port1, self.baudrate, parity=serial.PARITY_NONE, timeout=0.10, xonxoff=1,
-                                     rtscts=1)
+                                      rtscts=1)
             print(f'SerialReader init.{port1}')
             if not self.ser1.is_open:
                 print(f'Serial port not open:{port1}')
@@ -51,7 +53,7 @@ class SerialReader():
             print('SerialRead stop. Serial Close')
             if debug:
                 print(f'serial_data = {readings}')
-        #return readings
+        # return readings
         return serial_data
 
     def dut_serial_read(self, run_time=10):
@@ -128,8 +130,48 @@ class SerialReader():
         print('dut_serial_read.execute complete')
         return task_result, serial_data
 
-    def search_test_pattern_with_keyword(self, data_lines, test_pattern, keyword=[]):
+    def search_test_pattern_with_keyword(self, data_lines, test_pattern, keyword, pass_count=2):
         print('search_test_pattern_with_keyword')
+        match_count = 0
+        match_pattern = []
+        result = []
+        for line_idx in range(len(data_lines)):
+            words = data_lines[line_idx]
+            match = re.search(test_pattern, words, re.IGNORECASE)
+            if match:
+                match_pattern.append(words)
+                # result.append(words)
+                print(f'match pattern = {words}')
+                # print(f"data = {match.group(1)}")
+
+        if len(match_pattern) != 0:
+            for data in match_pattern:
+                for kw in keyword:
+                    #print(f"kw = {kw}")
+                    if kw in data:
+                        #print(f"find {kw}")
+                        match_count += 1
+                        result.append(data)
+                # sid_match = re.search(r"SID: 0", data)
+                # if sid_match:
+                #    print("SID 0. pass 1")
+                #    result.append(data)
+                if match_count == pass_count:
+                    break
+
+        '''
+        for line_idx in range(len(data_lines)):
+            words = data_lines[line_idx]
+            if re.search(test_pattern, words, re.IGNORECASE):
+                #match_count += 1
+                #result.append(words)
+                match_pattern.append(words)
+                print(f'match result = {words}')
+        '''
+        return result
+
+    def search_test_pattern_1(self, data_lines, test_pattern, count=1):
+        print('search_test_pattern_1')
         match_count = 0
         result = []
         for line_idx in range(len(data_lines)):
@@ -137,7 +179,9 @@ class SerialReader():
             if re.search(test_pattern, words, re.IGNORECASE):
                 match_count += 1
                 result.append(words)
-                print(f'match result = {words}')
+
+            if match_count == count:
+                break
         return result
 
     def search_test_pattern(self, data_lines, test_pattern, count=1, fullmatch=True):
@@ -166,18 +210,20 @@ class SerialReader():
         result = []
         next_start_line = 0
         kw_idx = 0
-        while kw_idx < len(keywords):
+        start_time = time.time()
+        while (kw_idx < len(keywords)) and ((time.time() - start_time) < 1.5):
             for line_idx in range(next_start_line, len(data_lines)):
                 words = data_lines[line_idx]
+                print(f'check kw = {keywords[kw_idx]}, data = {words}')
                 if keywords[kw_idx] in words:
-                    #if keywords[kw_idx] == 'Starting Observer Demo':
+                    # if keywords[kw_idx] == 'Starting Observer Demo':
                     #    print('Debug start')
                     print(f'kw found: {keywords[kw_idx]} in line {line_idx}')
                     print(f'idx = {kw_idx}')
-                    if (kw_idx + 1) < len(keywords):
+                    if (kw_idx + 1) <= len(keywords):
                         kw_idx_temp = kw_idx
                         for next_kw_idx in range((kw_idx + 1), len(keywords)):
-                            #print(f'check next kw index = {next_kw_idx}')
+                            # print(f'check next kw index = {next_kw_idx}')
                             if keywords[next_kw_idx] in words:
                                 kw_idx = next_kw_idx
                                 print(f'next kw found: {keywords[next_kw_idx]} in line{line_idx}')
@@ -185,24 +231,33 @@ class SerialReader():
                         result.append(words)
                         if kw_idx_temp != kw_idx:
                             print('Multiple keyword in one line:True')
-                            if (kw_idx + 1) < len(keywords):
+                            if (kw_idx + 1) <= len(keywords):
                                 kw_idx = kw_idx + 1
+                                print(f'new kw_idx = {kw_idx}')
                         else:
                             print('Multiple keyword in one line:False')
                             kw_idx = kw_idx + 1
-                            #if kw_idx == (len(keywords) - 1):
+                            # if kw_idx == (len(keywords) - 1):
                             #    print('Find all keywords')
                             #    break
                         print(f'next_start_line = {next_start_line}, kw_idx = {kw_idx}')
                         break
                     else:
                         print('Find all keywords')
+                        if len(keywords) == 1:
+                            result.append(words)
+                            next_start_line += next_start_line
                         kw_idx = kw_idx + 1
                         break
             if next_start_line == 0:
                 print('First keyword not found')
                 break
-
+            else:
+                print(f'proceed. next_start_line = {next_start_line}, kw_idx = {kw_idx}')
+                if (next_start_line + 1) == len(data_lines):
+                    print("Data end!")
+                    break
+        print('Search complete..')
         '''
         for idx in range(kw_idx, len(keywords)):
             for line_idx in range(next_start_line, len(data_lines)):
@@ -245,10 +300,3 @@ class SerialReader():
                 break
         '''
         return result
-
-
-
-
-
-
-

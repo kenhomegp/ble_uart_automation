@@ -62,6 +62,13 @@ def pytest_addoption(parser):
         default=False
     )
 
+
+@pytest.hookimpl(optionalhook=True)
+def pytest_metadata(metadata):
+    #Custom pytest-html report
+    metadata['Project Name'] = 'Zephyr sample application'
+    metadata['Tester'] = 'Minglung Huang'
+
 def pytest_configure(config):
     config.addinivalue_line("markers",
                             "test_id(id): marker with test id corresponding to testlink test case")

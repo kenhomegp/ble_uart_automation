@@ -34,6 +34,7 @@ def default_class_fixture(request):
     if not multilink:
         print(f"sd.platform = {sd.platform}")
         mobile_to_use = sd.config.mobile_data_config.get(sd.platform)
+        assert mobile_to_use is not None, "Mobile phone config error."
         print("Appium Server Config data:")
         print(mobile_to_use)
 

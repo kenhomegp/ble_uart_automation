@@ -17,7 +17,7 @@ zephyr_test_version = "v1.0.0-rc5"
 zephyr_dut1_flashtool = "WBZ653002200"
 zephyr_dut2_flashtool = "WBZ653002198"
 zephyr_dut2_com_port = "COM18"
-zephyr_special_test_case = True
+zephyr_dut_only_test_case = True
 #===========================================
 #com_port = '/dev/tty.usbmodem00159523561'
 #baud_rate = "115200"
@@ -424,7 +424,7 @@ appium_config = {
 }
 
 duts_to_use = {
-    MOBILE_TO_USE: "Galaxy_Z_Flip7",
+    MOBILE_TO_USE: "",
     "server":"DUT1",
     "client":"DUT2"
 }

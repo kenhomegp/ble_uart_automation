@@ -52,7 +52,7 @@ BTN_CTRL_PIN = 0x04
 
 @pytest.fixture(scope="class", autouse=True)
 def define_class_attributes(request, default_class_fixture):
-    print(f"this is local specific class fixture. {conf_file.zephyr_special_test_case}")
+    print(f"this is local specific class fixture. {conf_file.zephyr_dut_only_test_case}")
 
     # if (isinstance(request.cls.bleuartfeature, BLEUARTFeatureSupport)):
     #    print("Android: Init MCP2200")
@@ -62,7 +62,7 @@ def define_class_attributes(request, default_class_fixture):
     #status = request.cls.iocontrolledstatus.Zephyr_InitMCP2200(baud_rate, MCU)
     #assert status, "Failed to initialize the MCP2200"
 
-    if not conf_file.zephyr_special_test_case:
+    if not conf_file.zephyr_dut_only_test_case:
         _MCU = Mcp2200(PID='0x00dc')
         request.cls.MCU = _MCU
         serial_runner = SerialReader(conf_file.com_port, baudrate=115200)
@@ -102,10 +102,11 @@ def local_function_fixture(request):
                 sd.mobile_driver.close_app(sd.config.ios_lightblue_app_package)
         else:
             if 'zephyr' in test_func_name and test_func_name != 'test_zephyr_peripheral_identity':
-                app_package = sd.mobile_driver.get_capability('appPackage')
-                print(f"Close app.{app_package}")
-                sd.mobile_driver.close_app(app_package)
-                time.sleep(3)
+                if not conf_file.zephyr_dut_only_test_case:
+                    app_package = sd.mobile_driver.get_capability('appPackage')
+                    print(f"Close app.{app_package}")
+                    sd.mobile_driver.close_app(app_package)
+                    time.sleep(3)
 
     request.addfinalizer(function_finalizer)
 
@@ -287,6 +288,8 @@ def zephyr_flash_firmware(request):
         elif 'peripheral_application' in func_name.lower():
             flashfile = '-F.\\Test firmware\\Zephyr\\Peripheral_application\\zephyr_signed.hex'
             fwfolderpath += 'Peripheral_application\\'
+        elif 'observer_application' in func_name.lower():
+            fwfolderpath += 'Observer\\'
         elif 'broadcaster_observer' in func_name.lower():
             fwfolderpath += 'Multiple broadcaster\\'
             fw_update_dut2 = True
@@ -1219,8 +1222,291 @@ class TestZephyrApp:
         assert status, "[MCP2200 I/O state] Failed to restore to default"
         time.sleep(1)
 
+    ################################################################################################
+    #   DUT only test case
+    ################################################################################################
 
-################################################################################################
+    @pytest.mark.skip(reason="test_zephyr_observer")
+    #@pytest.mark.test_id("Zephyr observer application", '')
+    def test_zephyr_observer_application(self, zephyr_flash_firmware):
+        assert zephyr_flash_firmware, 'zephyr flash firmware: Fail'
+        time.sleep(1)
+        print('test_zephyr_observer_application')
+        dut_mcu = Mcp2200(PID='0x00dc')
+        print(f'dut_mcp2200.PID = {dut_mcu.pid}')
+        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', dut_mcu)
+        assert status, "Failed to initialize the MCP2200"
+        time.sleep(1)
+
+        serial_runner = SerialReader('COM24', baudrate=115200)
+        time.sleep(1)
+
+        def dut_reset():
+            print('DUT Reset. Firmware reset')
+            self.iocontrolledstatus.Zephyr_IOCtrl(dut_mcu, RESET_PIN, 1)
+            return 'reset_dut'
+
+        serial_runner.settings(15)
+        result, serial_data = serial_runner.execute(dut_reset)
+        # print(f'task = {result}, data = {serial_data}')
+        assert len(serial_data) != 0, "Can't get the serial data"
+        if len(serial_data) > 20:
+            print(f'task = {result}\n')
+            for i in range(20):
+                print(f'{serial_data[i]}')
+        else:
+            dd = ''.join(serial_data)
+            print(f'task = {result}, data = {dd}')
+        #dd = ''.join(serial_data)
+        #print(f'task = {result}, data = {dd}')
+
+        status = self.iocontrolledstatus.Zephyr_IO_Default(dut_mcu)
+        assert status, "Failed to set MCP2200 I/O default"
+        time.sleep(1)
+
+        expected_data = ["Starting Observer Demo",
+                         "Started scanning..."
+                         ]
+        print(f'parsing serial data. len = {len(serial_data)}')
+
+        expected_result = serial_runner.search_keyword_sets_ordered(serial_data, expected_data)
+        assert len(expected_result) != 0, "The test result did not meet expectations "
+        # print("Success")
+
+        # Device found: CF:2D:0E:1B:06:C3 (random) (RSSI -85), type 0, AD data len 24
+        pattern = r"Device found: (?:[0-9A-F]{2}:){5}[0-9A-F]{2} \(random\) \(RSSI -?\d+\), type \d+, AD data len \d+"
+
+        print('Scan Device')
+        pattern_test_result = serial_runner.search_test_pattern_1(serial_data, pattern, count=5)
+        assert len(pattern_test_result) >= 3, "The test result did not meet expectations "
+        print("Pass")
+
+    #@pytest.mark.order(1)
+    # @pytest.mark.test_id("Zephyr broadcaster observer 1", '')
+    @pytest.mark.skip(reason="test_zephyr_broadcaster_observer_1")
+    def test_zephyr_broadcaster_observer_1(self, zephyr_flash_firmware):
+        assert zephyr_flash_firmware, 'zephyr flash firmware: Fail'
+        time.sleep(1)
+        print('test_zephyr_broadcaster_observer_1')
+        dut_mcu = Mcp2200(PID='0x00dc')
+        print(f'dut_mcp2200.PID = {dut_mcu.pid}')
+        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', dut_mcu)
+        assert status, "Failed to initialize the MCP2200"
+        time.sleep(1)
+
+        serial_runner = SerialReader('COM24', baudrate=115200)
+        time.sleep(1)
+
+        def dut_reset():
+            print('DUT Reset. Firmware reset')
+            self.iocontrolledstatus.Zephyr_IOCtrl(dut_mcu, RESET_PIN, 1)
+            return 'reset_dut'
+
+        serial_runner.settings(15)
+        result, serial_data = serial_runner.execute(dut_reset)
+        assert len(serial_data) != 0, "Can't get the serial data"
+        dd = ''.join(serial_data)
+        print(f'task = {result}, data = {dd}')
+        status = self.iocontrolledstatus.Zephyr_IO_Default(dut_mcu)
+        assert status, "Failed to set MCP2200 I/O default"
+        time.sleep(1)
+
+        # Broadcaster role
+        expected_data = ["Started Extended Advertising Set 0",
+                         "Started Extended Advertising Set 1"]
+
+        #print(f'parsing serial data. len = {len(serial_data)}')
+        print('Started Extended Advertising')
+
+        expected_result = serial_runner.search_keyword_sets_ordered(serial_data, expected_data)
+        assert len(expected_result) != 0, "The test result did not meet expectations"
+        print("Success")
+
+    #@pytest.mark.order(2)
+    # @pytest.mark.test_id("Zephyr broadcaster observer 2", '')
+    @pytest.mark.skip(reason="test_zephyr_broadcaster_observer_2")
+    def test_zephyr_broadcaster_observer_2(self):
+        print('test_zephyr_broadcaster_observer_2')
+        dut_mcu = Mcp2200(PID='0x00da')
+        print(f'dut_mcp2200.PID = {dut_mcu.pid}')
+        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', dut_mcu)
+        assert status, "Failed to initialize the MCP2200"
+        time.sleep(1)
+
+        serial_runner = SerialReader('COM18', baudrate=115200)
+        time.sleep(1)
+
+        def dut_reset():
+            print('DUT Reset. Firmware reset')
+            self.iocontrolledstatus.Zephyr_IOCtrl(dut_mcu, RESET_PIN, 1)
+            return 'reset_dut'
+
+        serial_runner.settings(15)
+        result, serial_data = serial_runner.execute(dut_reset)
+        assert len(serial_data) != 0, "Can't get the serial data"
+        if len(serial_data) > 20:
+            print(f'task = {result}\n')
+            for i in range(20):
+                print(f'{serial_data[i]}')
+        else:
+            dd = ''.join(serial_data)
+            print(f'task = {result}, data = {dd}')
+        status = self.iocontrolledstatus.Zephyr_IO_Default(dut_mcu)
+        assert status, "Failed to set MCP2200 I/O default"
+        time.sleep(1)
+
+        # observer_extended role
+        expected_data = ["Starting Observer Demo",
+                         "Registered scan callback",
+                         "Started scanning"
+                         ]
+        #print(f'parsing serial data. len = {len(serial_data)}')
+
+        expected_result = serial_runner.search_keyword_sets_ordered(serial_data, expected_data)
+        assert len(expected_result) != 0, "The test result did not meet expectations "
+
+        # [DEVICE]: 34:79:6D:7C:C5:5E (random), AD evt type 5, Tx Pwr: 127, RSSI -25 Data status: 0, AD data len: 31 Name: Broadcaster Multiple C:0 S:0 D:0 SR:0 E:1 Pri PHY: LE 1M, Sec PHY: LE 2M, Interval: 0x0000 (0 ms), SID: 0
+        # [DEVICE]: 1E:97:9E:BF:51:31 (random), AD evt type 5, Tx Pwr: 127, RSSI -25 Data status: 0, AD data len: 31 Name: Broadcaster Multiple C:0 S:0 D:0 SR:0 E:1 Pri PHY: LE 1M, Sec PHY: LE 2M, Interval: 0x0000 (0 ms), SID: 1
+        print("Started scanning\n")
+
+        pattern_sid = (
+            r"\[DEVICE\]: (?:[0-9A-F]{2}:){5}[0-9A-F]{2} \(\w+\), "
+            r"AD evt type \d+, Tx Pwr: -?\d+, RSSI -?\d+ "
+            r"Data status: \d+, AD data len: \d+ "
+            r"Name: Broadcaster Multiple "
+            r"C:\d+ S:\d+ D:\d+ SR:\d+ E:\d+ "
+            r"Pri PHY: [\w\s]+, Sec PHY: [\w\s]+, "
+            r"Interval: 0x[0-9A-F]+ \(\d+ ms\), SID: \d+"
+        )
+
+        expected_data = ["SID: 0", "SID: 1"]
+        pattern_test_result = serial_runner.search_test_pattern_with_keyword(serial_data, pattern_sid, expected_data)
+        assert len(pattern_test_result) == len(expected_data), "The test result did not meet expectations "
+        # print("Test pattern_sid_0_1: Pass ")
+        print("Scan result: \n")
+        for result in pattern_test_result:
+            print(f"{result}")
+
+    #@pytest.mark.order(3)
+    # @pytest.mark.test_id("Zephyr central gatt write 1", '')
+    @pytest.mark.skip(reason="test_zephyr_central_gatt_write_1")
+    def test_zephyr_central_gatt_write_1(self, zephyr_flash_firmware):
+        assert zephyr_flash_firmware, 'zephyr flash firmware: Fail'
+        time.sleep(1)
+        print('test_zephyr_central_gatt_write_1')
+        dut_mcu = Mcp2200(PID='0x00dc')
+        print(f'dut_mcp2200.PID = {dut_mcu.pid}')
+        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', dut_mcu)
+        assert status, "Failed to initialize the MCP2200"
+        time.sleep(1)
+
+        serial_runner = SerialReader('COM24', baudrate=115200)
+        time.sleep(1)
+
+        def dut_reset():
+            print('DUT Reset. Firmware reset')
+            self.iocontrolledstatus.Zephyr_IOCtrl(dut_mcu, RESET_PIN, 1)
+            return 'reset_dut'
+
+        serial_runner.settings(10)
+        result, serial_data = serial_runner.execute(dut_reset)
+        assert len(serial_data) != 0, "Can't get the serial data"
+        dd = ''.join(serial_data)
+        print(f'task = {result}, data = {dd}')
+        status = self.iocontrolledstatus.Zephyr_IO_Default(dut_mcu)
+        assert status, "Failed to set MCP2200 I/O default"
+        time.sleep(1)
+
+        # Central role
+        expected_data = ["start_scan: Scanning successfully started"]
+
+        #print(f'parsing serial data. len = {len(serial_data)}')
+
+        print("Central: start")
+        expected_result = serial_runner.search_keyword_sets_ordered(serial_data, expected_data)
+        assert len(expected_result) != 0, "The test result did not meet expectations"
+        print("Scanning successfully")
+
+    #@pytest.mark.order(4)
+    # @pytest.mark.test_id("Zephyr central gatt write 2", '')
+    @pytest.mark.skip(reason="test_zephyr_central_gatt_write_2")
+    def test_zephyr_central_gatt_write_2(self):
+        print('test_zephyr_central_gatt_write_2')
+        dut_mcu = Mcp2200(PID='0x00da')
+        print(f'dut_mcp2200.PID = {dut_mcu.pid}')
+        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', dut_mcu)
+        assert status, "Failed to initialize the MCP2200"
+        time.sleep(1)
+
+        serial_runner = SerialReader('COM18', baudrate=115200)
+        time.sleep(1)
+
+        def dut_reset():
+            print('DUT Reset. Firmware reset')
+            self.iocontrolledstatus.Zephyr_IOCtrl(dut_mcu, RESET_PIN, 1)
+            return 'reset_dut'
+
+        serial_runner.settings(15)
+        result, serial_data = serial_runner.execute(dut_reset)
+        assert len(serial_data) != 0, "Can't get the serial data"
+        dd = ''.join(serial_data)
+        print(f'task = {result}, data = {dd}')
+        status = self.iocontrolledstatus.Zephyr_IO_Default(dut_mcu)
+        assert status, "Failed to set MCP2200 I/O default"
+        time.sleep(1)
+
+        # peripheral role
+        expected_data = ["Advertising successfully started",
+                         "Connected",
+                         "Updated MTU: TX: 247 RX: 247 bytes"
+                         ]
+        #print(f'parsing serial data. len = {len(serial_data)}')
+
+        expected_result = serial_runner.search_keyword_sets_ordered(serial_data, expected_data)
+        assert len(expected_result) != 0, "The test result did not meet expectations"
+        print("peripheral log: \n")
+        for result in expected_result:
+            print(f"{result}")
+
+    #@pytest.mark.order(5)
+    # @pytest.mark.test_id("Zephyr central gatt write 3", '')
+    @pytest.mark.skip(reason="test_zephyr_central_gatt_write_3")
+    def test_zephyr_central_gatt_write_3(self):
+        print('test_zephyr_central_gatt_write_3')
+        dut_mcu = Mcp2200(PID='0x00dc')
+        print(f'dut1_mcp2200.PID = {dut_mcu.pid}')
+        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', dut_mcu)
+        assert status, "Failed to initialize the MCP2200"
+        time.sleep(1)
+
+        serial_runner = SerialReader('COM24', baudrate=115200)
+        time.sleep(1)
+
+        def dut_reset():
+            print('DUT Reset. Firmware reset')
+            # self.iocontrolledstatus.Zephyr_IOCtrl(dut2_mcu, RESET_PIN, 0.3)
+            self.iocontrolledstatus.Zephyr_IOCtrl(dut_mcu, RESET_PIN, 1)
+            return 'reset_dut'
+
+        serial_runner.settings(10)
+        result, serial_data = serial_runner.execute(dut_reset)
+        # print(f'task = {result}, data = {serial_data}')
+
+        status = self.iocontrolledstatus.Zephyr_IO_Default(dut_mcu)
+        assert status, "Failed to set MCP2200 I/O default"
+        time.sleep(1)
+
+        dd = ''.join(serial_data)
+        print(f'task = {result}, data = {dd}')
+
+        pattern = r"write_cmd_cb: count= \d+, len= \d+, rate= \d+ bps"
+        pattern_test_result = serial_runner.search_test_pattern_1(serial_data, pattern, count=3)
+        assert len(pattern_test_result) == 3, "The test result did not meet expectations "
+        for result in pattern_test_result:
+            print(f"{result}")
+        print("Central gatt write: success")
+
+    ################################################################################################
 
     @pytest.mark.skip(reason="test_serial_parser")
     #@pytest.mark.test_id("test_serial_parser", '')
@@ -1395,10 +1681,10 @@ class TestZephyrApp:
         status = self.iocontrolledstatus.Zephyr_IO_Default(dut2_mcu)
         assert status, "Failed to set MCP2200 I/O default"
 
-    @pytest.mark.skip(reason="test_dut_special_test")
-    #@pytest.mark.test_id("test dut special test", '')
+    #@pytest.mark.skip(reason="test_dut_special_test")
+    @pytest.mark.test_id("test dut special test", '')
     def test_dut_special_test(self):
-        print('test_dut_special_test')
+        print('test_dut1_dut2_reset')
         time.sleep(1)
         #dut1: broadcaster, central
         #dut2: observer, peripheral
@@ -1416,6 +1702,28 @@ class TestZephyrApp:
             self.iocontrolledstatus.Zephyr_IOCtrl(dut1_mcu, RESET_PIN, 1)
             return 'reset_dut1'
 
+        print(f'time = {datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")}')
+        dut1_serial_runner.settings(5)
+        result, serial_data1 = dut1_serial_runner.execute(dut1_reset)
+        print(f'task = {result}, data = {serial_data1}')
+        print(f'time = {datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")}')
+
+        status = self.iocontrolledstatus.Zephyr_IO_Default(dut1_mcu)
+        assert status, "Failed to set MCP2200 I/O default"
+        time.sleep(3)
+
+        #status = self.iocontrolledstatus.Zephyr_IO_Default(dut1_mcu)
+        #assert status, "Failed to set MCP2200 I/O default"
+        #time.sleep(1)
+        dut1_mcu.Release()
+        time.sleep(1)
+        del dut1_mcu
+        time.sleep(1)
+
+        dut2_mcu = Mcp2200(PID='0x00da')
+        self.iocontrolledstatus.Zephyr_InitMCP2200(conf_file.baud_rate, dut2_mcu)
+        time.sleep(2)
+
         def dut2_reset():
             print('DUT 2 Reset. Firmware reset')
             #self.iocontrolledstatus.Zephyr_IOCtrl(dut2_mcu, RESET_PIN, 0.3)
@@ -1423,51 +1731,37 @@ class TestZephyrApp:
             return 'reset_dut2'
 
         print(f'time = {datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")}')
-        dut1_serial_runner.settings(5)
-        result, serial_data1 = dut1_serial_runner.execute(dut1_reset)
-        print(f'task = {result}, data = {serial_data1}')
-        print(f'time = {datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")}')
-
-        time.sleep(10)
-
-        #status = self.iocontrolledstatus.Zephyr_IO_Default(dut1_mcu)
-        #assert status, "Failed to set MCP2200 I/O default"
-        #time.sleep(1)
-
-        dut2_mcu = Mcp2200(PID='0x00da')
-        self.iocontrolledstatus.Zephyr_InitMCP2200(conf_file.baud_rate, dut2_mcu)
-        time.sleep(2)
-
-        print(f'time = {datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")}')
         dut2_serial_runner.settings(5)
         result, serial_data2 = dut2_serial_runner.execute(dut2_reset)
         print(f'task = {result}, data = {serial_data2}')
         print(f'time = {datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")}')
 
-        status = self.iocontrolledstatus.Zephyr_IO_Default(dut1_mcu)
-        assert status, "Failed to set MCP2200 I/O default"
-        time.sleep(1)
         status = self.iocontrolledstatus.Zephyr_IO_Default(dut2_mcu)
         assert status, "Failed to set MCP2200 I/O default"
+        time.sleep(1)
+
+        dut2_mcu.Release()
+        time.sleep(1)
+        del dut2_mcu
         time.sleep(1)
 
     @pytest.mark.skip(reason="test flash firmware")
     #@pytest.mark.test_id("test flash firmware", '')
     #@pytest.mark.parametrize('zephyr_flash_firmware', [conf_file.zephyr_dut1_flashtool + "_" + 'Peripheral_hid'], indirect=True)
     #@pytest.mark.order(1)
-    def test_flash_firmware_broadcaster_observer(self, zephyr_flash_firmware):
-    #def test_flash_firmware_central_gatt_write(self, zephyr_flash_firmware):
+    #def test_flash_firmware_broadcaster_observer(self, zephyr_flash_firmware):
+    def test_flash_firmware_central_gatt_write(self, zephyr_flash_firmware):
     #def test_flash_firmware_hid_pairing(self, zephyr_flash_firmware):
-        print('test_flash_firmware.broadcaster_observer')
+        #print('test_flash_firmware.broadcaster_observer')
         #print('test_flash_firmware.hid_pairing')
-        #print('test_flash_firmware_central_gatt_write')
+        print('test_flash_firmware_central_gatt_write')
         time.sleep(1)
         assert zephyr_flash_firmware, 'Test flash firmware: Fail'
         print('Success')
 
-    #@pytest.mark.skip(reason="test_dut2_reset")
+    @pytest.mark.skip(reason="test_dut2_reset")
     #@pytest.mark.test_id("test_dut2_reset", '')
-    @pytest.mark.order(2)
+    #@pytest.mark.order(2)
     def test_dut2_reset(self):
         print('test_dut2_reset')
         dut2_mcu = Mcp2200(PID='0x00da')
@@ -1485,15 +1779,18 @@ class TestZephyrApp:
             self.iocontrolledstatus.Zephyr_IOCtrl(dut2_mcu, RESET_PIN, 1)
             return 'reset_dut2'
 
-        serial_runner.settings(15)
+        serial_runner.settings(30)
         result, serial_data = serial_runner.execute(dut_reset)
         #print(f'task = {result}, data = {serial_data}')
-        dd = ''.join(serial_data)
-        print(f'task = {result}, data = {dd}')
+
         status = self.iocontrolledstatus.Zephyr_IO_Default(dut2_mcu)
         assert status, "Failed to set MCP2200 I/O default"
         time.sleep(1)
 
+        dd = ''.join(serial_data)
+        print(f'task = {result}, data = {dd}')
+
+        '''
         # observer_extended role
         expected_data = ["Starting Observer Demo",
                          "Registered scan callback",
@@ -1508,34 +1805,25 @@ class TestZephyrApp:
         #[DEVICE]: 1E:97:9E:BF:51:31 (random), AD evt type 5, Tx Pwr: 127, RSSI -25 Data status: 0, AD data len: 31 Name: Broadcaster Multiple C:0 S:0 D:0 SR:0 E:1 Pri PHY: LE 1M, Sec PHY: LE 2M, Interval: 0x0000 (0 ms), SID: 1
         print("keyword: Pass")
 
-        pattern_sid_0 = (
-                r"\[DEVICE\]: (?:[0-9A-F]{2}:){5}[0-9A-F]{2} \(\w+\), "  # [DEVICE]: BT位址 (類型)
-                r"AD evt type \d+, Tx Pwr: -?\d+, RSSI -?\d+ "          # AD事件, Tx功率, RSSI
-                r"Data status: \d+, AD data len: \d+ "                  # 資料狀態, 長度
-                r"Name: Broadcaster Multiple "                          # 固定 Name 內容
-                r"C:\d+ S:\d+ D:\d+ SR:\d+ E:\d+ "                      # 參數 C, S, D, SR, E
-                r"Pri PHY: [\w\s]+, Sec PHY: [\w\s]+, "                 # 實體層 PHY 資訊
-                r"Interval: 0x[0-9A-F]+ \(\d+ ms\), SID: 0"           # Interval (ms) 與 SID)
+        pattern_sid = (
+            r"\[DEVICE\]: (?:[0-9A-F]{2}:){5}[0-9A-F]{2} \(\w+\), "
+            r"AD evt type \d+, Tx Pwr: -?\d+, RSSI -?\d+ "
+            r"Data status: \d+, AD data len: \d+ "
+            r"Name: Broadcaster Multiple "
+            r"C:\d+ S:\d+ D:\d+ SR:\d+ E:\d+ "
+            r"Pri PHY: [\w\s]+, Sec PHY: [\w\s]+, "
+            r"Interval: 0x[0-9A-F]+ \(\d+ ms\), SID: \d+"
         )
 
-        pattern_test_result = serial_runner.search_test_pattern(serial_data, pattern_sid_0, fullmatch=False)
-        assert len(pattern_test_result) == 1, "The test result did not meet expectations "
-        print("Test pattern_sid_0: Pass ")
-
-        pattern_sid_1 = (
-                r"\[DEVICE\]: (?:[0-9A-F]{2}:){5}[0-9A-F]{2} \(\w+\), "  # [DEVICE]: BT位址 (類型)
-                r"AD evt type \d+, Tx Pwr: -?\d+, RSSI -?\d+ "          # AD事件, Tx功率, RSSI
-                r"Data status: \d+, AD data len: \d+ "                  # 資料狀態, 長度
-                r"Name: Broadcaster Multiple "                          # 固定 Name 內容
-                r"C:\d+ S:\d+ D:\d+ SR:\d+ E:\d+ "                      # 參數 C, S, D, SR, E
-                r"Pri PHY: [\w\s]+, Sec PHY: [\w\s]+, "                 # 實體層 PHY 資訊
-                r"Interval: 0x[0-9A-F]+ \(\d+ ms\), SID: 1"           # Interval (ms) 與 SID)
-        )
-
-        pattern_test_result = serial_runner.search_test_pattern(serial_data, pattern_sid_1, fullmatch=False)
-        assert len(pattern_test_result) == 1, "The test result did not meet expectations "
-        print("Test pattern_sid_1: Pass ")
-
+        expected_data = ["SID: 0", "SID: 1"]
+        pattern_test_result = serial_runner.search_test_pattern_with_keyword(serial_data, pattern_sid, expected_data)
+        assert len(pattern_test_result) == len(expected_data), "The test result did not meet expectations "
+        #print("Test pattern_sid_0_1: Pass ")
+        print("Test result: \n")
+        for result in pattern_test_result:
+            print(f"{result}")
+        #print("Test pattern_SID_0_1: Pass ")
+        '''
         '''
         # observer role
         expected_data = ["Starting Observer Demo",
@@ -1555,7 +1843,7 @@ class TestZephyrApp:
         print("Pass")
         '''
 
-        '''
+
         #peripheral role
         expected_data = ["Advertising successfully started",
                         "Connected",
@@ -1566,16 +1854,15 @@ class TestZephyrApp:
         expected_result = serial_runner.search_keyword_sets_ordered(serial_data, expected_data)
         assert len(expected_result) != 0, "The test result did not meet expectations "
         print("Success")
-        '''
 
         #assert 'Booting Zephyr OS' in serial_data, 'Reboot device: fail'
         #fw_version = 'v1.0.0-rc5'
         #assert fw_version in serial_data, 'Firmware version is not correct'
         #print(f'zephyr test version : {fw_version}')
 
-    #@pytest.mark.skip(reason="Zephyr dut1 reset")
+    @pytest.mark.skip(reason="Zephyr dut1 reset")
     #@pytest.mark.test_id("Zephyr dut1 reset", '')
-    @pytest.mark.order(1)
+    #@pytest.mark.order(1)
     def test_dut1_reset(self):
         print('test_dut1_reset')
         dut2_mcu = Mcp2200(PID='0x00dc')
@@ -1593,12 +1880,18 @@ class TestZephyrApp:
             self.iocontrolledstatus.Zephyr_IOCtrl(dut2_mcu, RESET_PIN, 1)
             return 'reset_dut1'
 
-        #serial_runner.settings(60)
+        serial_runner.settings(10)
         result, serial_data = serial_runner.execute(dut_reset)
         #print(f'task = {result}, data = {serial_data}')
+
+        status = self.iocontrolledstatus.Zephyr_IO_Default(dut2_mcu)
+        assert status, "Failed to set MCP2200 I/O default"
+        time.sleep(1)
+
         dd = ''.join(serial_data)
         print(f'task = {result}, data = {dd}')
 
+        '''
         # Broadcaster role
         expected_data = ["Started Extended Advertising Set 0",
                          "Started Extended Advertising Set 1"]
@@ -1608,8 +1901,8 @@ class TestZephyrApp:
         expected_result = serial_runner.search_keyword_sets_ordered(serial_data, expected_data)
         assert len(expected_result) != 0, "The test result did not meet expectations"
         print("Success")
-
         '''
+
         #Central role
         expected_data = ["start_scan: Scanning successfully started"]
 
@@ -1618,15 +1911,49 @@ class TestZephyrApp:
         expected_result = serial_runner.search_keyword_sets_ordered(serial_data, expected_data)
         assert len(expected_result) != 0, "The test result did not meet expectations"
         print("Success")
-        '''
 
-        status = self.iocontrolledstatus.Zephyr_IO_Default(dut2_mcu)
-        assert status, "Failed to set MCP2200 I/O default"
-        time.sleep(1)
         #assert 'Booting Zephyr OS' in serial_data, 'Reboot device: fail'
         #fw_version = 'v1.0.0-rc5'
         #assert fw_version in serial_data, 'Firmware version is not correct'
         #print(f'zephyr test version : {fw_version}')
+
+    @pytest.mark.skip(reason="Zephyr dut step3")
+    # @pytest.mark.test_id("Zephyr dut step3", '')
+    #@pytest.mark.order(3)
+    def test_dut_step3(self):
+        print('test_dut_step3')
+        dut2_mcu = Mcp2200(PID='0x00dc')
+        print(f'dut1_mcp2200.PID = {dut2_mcu.pid}')
+        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', dut2_mcu)
+        assert status, "Failed to initialize the MCP2200"
+        time.sleep(1)
+
+        serial_runner = SerialReader('COM24', baudrate=115200)
+        time.sleep(1)
+
+        def dut_reset():
+            print('DUT Reset. Firmware reset')
+            # self.iocontrolledstatus.Zephyr_IOCtrl(dut2_mcu, RESET_PIN, 0.3)
+            self.iocontrolledstatus.Zephyr_IOCtrl(dut2_mcu, RESET_PIN, 1)
+            return 'reset_dut'
+
+        serial_runner.settings(10)
+        result, serial_data = serial_runner.execute(dut_reset)
+        # print(f'task = {result}, data = {serial_data}')
+
+        status = self.iocontrolledstatus.Zephyr_IO_Default(dut2_mcu)
+        assert status, "Failed to set MCP2200 I/O default"
+        time.sleep(1)
+
+        dd = ''.join(serial_data)
+        print(f'task = {result}, data = {dd}')
+
+        pattern = r"write_cmd_cb: count= \d+, len= \d+, rate= \d+ bps"
+        pattern_test_result = serial_runner.search_test_pattern_1(serial_data, pattern, count=3)
+        assert len(pattern_test_result) == 3, "The test result did not meet expectations "
+        for result in pattern_test_result:
+            print(f"{result}")
+        print("Pass")
 
     #@pytest.mark.test_id("Mac_lightblue_scan_and_connect", '')
     @pytest.mark.skip(reason="Used for BLE_UART firmware")
