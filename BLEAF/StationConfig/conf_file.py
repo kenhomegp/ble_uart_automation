@@ -17,7 +17,7 @@ zephyr_test_version = "v1.0.0-rc5"
 zephyr_dut1_flashtool = "WBZ653002200"
 zephyr_dut2_flashtool = "WBZ653002198"
 zephyr_dut2_com_port = "COM18"
-zephyr_dut_only_test_case = True
+zephyr_dut_only_test_case = False
 #===========================================
 #com_port = '/dev/tty.usbmodem00159523561'
 #baud_rate = "115200"
@@ -124,7 +124,7 @@ appium_config = {
         #"appium_server_ip":  "10.160.56.74",
         "appium_server_port": "4723",
         "use_remote_appium": True,
-        "remote_appium_server_ip":  "10.160.59.62",
+        "remote_appium_server_ip":  "10.160.59.61",
         "remote_appium_server_port": "4723",
         #"remote_appium_username": "WSGAppDev",
         #"remote_appium_pwd" : 'Amchp17217',
@@ -420,14 +420,15 @@ appium_config = {
         APP_PACKAGE_K: "com.punchthrough.lightblueexplorer",
         APP_ACTIVITY_K: "com.punchthrough.lightblueexplorer.MainActivity"
     }
-
 }
 
 duts_to_use = {
-    MOBILE_TO_USE: "",
+    MOBILE_TO_USE: "Pixel7",
     "server":"DUT1",
     "client":"DUT2"
 }
+
+multilink_phone_list = ['Pixel7']
 
 multilink_phone_config = {
     MOBILE_TO_USE: "Pixel7"
@@ -456,7 +457,7 @@ central_multilink_peripheral_list = ["DUT2"]
 usb_hubs = ["YK25256","YK25362","YK25253"]
 pid = "00D8"
 #multilink_phone_list = ["SamsungS22","SamsungS24","GooglePixel5","GooglePixel3A","SamsungS10","SamsungM34"]
-multilink_phone_list = ['iPhone 16', 'Pixel7']
+#multilink_phone_list = ['iPhone 16', 'Pixel7']
 #multilink_phone_list = ['Pixel7', 'SamsungA54', 'iPhone 16']
 #multilink_phone_list = ['iPhone 16']
 multirole_phone_list = ["SamsungS21"]

@@ -303,6 +303,7 @@ def zephyr_flash_firmware(request):
         #    fwfolderpath += '\\'
 
         print(f'fwfolderpath = {fwfolderpath}')
+        print('DUT1 firmware update\n')
 
         ipe_comd = "C:\\Program Files\\Microchip\\MPLABX\\v6.25\\mplab_platform\\mplab_ipe\\ipecmd.exe -P32WM_BZ6204 -E -M -OL -TSWBZ653002198 -Fzephyr_signed.hex"
         #fw_path = 'C:\\Work\\Microchip\\Project\\Automation\\GitHub\\Test firmware\\Zephyr\\Peripheral_identity\\'
@@ -314,14 +315,20 @@ def zephyr_flash_firmware(request):
         output_list = process.stdout.readlines()
         output = ' '.join(map(str, output_list))
         print(output)
-        if 'Program Succeeded' in output:
+        #if 'Program Succeeded' in output:
+        #    print('Program Succeeded')
+        #    time.sleep(2)
+        #    if not fw_update_dut2:
+        #        return True
+        #    print('Update dut2...')
+
+        if 'Program Succeeded' in output and not fw_update_dut2:
             print('Program Succeeded')
-            time.sleep(2)
-            if not fw_update_dut2:
-                return True
-            print('Update dut2...')
+            return True
         else:
             return False
+
+        print('DUT2 firmware update\n')
 
         fwfolderpath = sd.config.fwfolderpath
         fwfolderpath += conf_file.zephyr_test_project
@@ -430,6 +437,516 @@ class TestZephyrApp:
             assert status, "Failed to find the unpair button"
             unpair_button
             time.sleep(3)
+
+    ################################################################################################
+    #   Android phone test case
+    ################################################################################################
+
+    @pytest.mark.order(1)
+    #@pytest.mark.test_id("Zephyr Peripheral Android HID Pairing", '')
+    #@pytest.mark.skip(reason="test_zephyr_peripheral_android_hid_pairing")
+    def test_zephyr_peripheral_android_hid_pairing_connect(self, zephyr_flash_firmware):
+        print('test_zephyr_peripheral_android_hid_pairing_connect')
+        TestZephyrApp.test_procedure = ''
+        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', self.MCU)
+        assert status, "Failed to initialize the MCP2200"
+        time.sleep(2)
+        sd.mobile_driver.close_app('com.android.settings')
+        time.sleep(5)
+        print("Launch setting app")
+        sd.mobile_driver.launch_app('com.android.settings')
+        time.sleep(5)
+        print('DUT Reset. Firmware reset')
+        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, RESET_PIN, 0.3)
+        time.sleep(3)
+        print('Settings ==> Connected Devices')
+        status, connected_device = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Connected devices"]')
+        assert status, "Failed to find the element."
+        connected_device.click()
+        time.sleep(3)
+        status, id_1 = sd.mobile_driver.find_element('ID', 'Connected devices')
+        assert status, "Failed to find the ID:Connected devices"
+        print('Connected Devices ==> Pair new device')
+        status, pair_device = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Pair new device"]')
+        assert status, "Failed to find the element."
+        pair_device.click()
+        time.sleep(5)
+        status, id_2 = sd.mobile_driver.find_element('ID', 'Pair new device')
+        assert status, "Failed to find the ID:Pair new device"
+        print('Pair new device ==> Discover and connect')
+        status, dut = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Test HoG mouse"]')
+        assert status, "Failed to find the Test HoG mouse."
+        passkey = self.bleuartfeature.get_serial_data_passkey(dut)
+        #print('Click. Test HoG mouse')
+        #dut.click()
+        time.sleep(1)
+        status, alert = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.android.settings:id/alertTitle"]')
+        assert status, "Failed to find the alert title."
+        if 'Pair with Test HoG mouse' in alert.text:
+            time.sleep(1)
+            assert len(passkey) == 6, 'Passkey error!'
+            print(f'Pairing. passkey={passkey}')
+            status, edit = sd.mobile_driver.find_element('XPATH', '//android.widget.EditText[@resource-id="com.android.settings:id/text"]')
+            assert status, "Failed to find the edit text."
+            edit.send_keys(passkey)
+            #edit.send_keys('727816')
+            #print('Send passkey:727816')
+            #edit.send_keys('123456')
+            #print('Send passkey:123456')
+            time.sleep(3)
+
+        status, button = sd.mobile_driver.find_element('XPATH', '//android.widget.Button[@resource-id="android:id/button1"]')
+        assert status, "Failed to find the element."
+        if 'OK' in button.text:
+            print(f'press ok button')
+            button.click()
+            time.sleep(15)
+
+        #Check pairing success
+        status, id_1 = sd.mobile_driver.find_element('ID', 'Connected devices')
+        assert status, "Failed to find the ID:Connected devices"
+        print('Pair new device == > Connected Devices')
+        time.sleep(1)
+        status, paired_dut = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Test HoG mouse"]')
+        assert status, "Failed to find the Test HoG mouse."
+        print('Pairing success')
+        time.sleep(1)
+        sd.mobile_driver.close_app('com.android.settings')
+        time.sleep(5)
+        TestZephyrApp.test_procedure = 'android_hid_pairing_connect'
+
+    @pytest.mark.order(2)
+    #@pytest.mark.test_id("Zephyr Peripheral HID Android", '')
+    #@pytest.mark.skip(reason="test_zephyr_android_peripheral_hid")
+    def test_zephyr_peripheral_android_hid_mouse_click(self):
+        if TestZephyrApp.test_procedure != 'android_hid_pairing_connect':
+            print('Unknown state:test_zephyr_peripheral_android_hid_mouse_click')
+            return
+        else:
+            TestZephyrApp.test_procedure = ''
+
+        print("Testing Zephyr Peripheral Android HID Mouse click. BLE Bonded")
+
+        #self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
+        #time.sleep(1)
+
+        print('I/O Reset. Firmware reset')
+        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, RESET_PIN, 0.3)
+        time.sleep(3)
+
+        print('Launch HID test app')
+        sd.mobile_driver.app_activate('com.microchip.zephyrtest')
+        #sd.mobile_driver.launch_app('com.microchip.zephyrtest')
+        time.sleep(5)
+
+        print('Test HoG mouse. click test')
+
+        status, click_button = sd.mobile_driver.find_element('id', 'zephyr_hid_test')
+        assert status, "Failed to find the element id"
+        time.sleep(1)
+
+        state = sd.mobile_driver.get_text(click_button)
+        print("Test HoG mouse state: {}".format(state))
+        time.sleep(1)
+
+        print('Click button 3 times.')
+        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, BTN_CTRL_PIN, 0.3)
+        time.sleep(3)
+        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, BTN_CTRL_PIN, 0.3)
+        time.sleep(3)
+        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, BTN_CTRL_PIN, 0.3)
+        time.sleep(3)
+
+        new_state = sd.mobile_driver.get_text(click_button)
+        print("Test HoG mouse state: {}".format(new_state))
+        time.sleep(1)
+
+        #assert state != new_state, "HID test failed"
+        assert int(new_state)-int(state) == 3, 'HID test failed'
+        #print('Remove paired device: Test HoG mouse')
+
+        print('I/O Reset. Firmware reset')
+        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, RESET_PIN, 0.3)
+        time.sleep(5)
+
+        state = sd.mobile_driver.get_text(click_button)
+        print("Test HoG mouse state: {}".format(state))
+        time.sleep(1)
+
+        print('Click button 2 times.')
+        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, BTN_CTRL_PIN, 0.3)
+        time.sleep(3)
+        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, BTN_CTRL_PIN, 0.3)
+        time.sleep(3)
+
+        new_state = sd.mobile_driver.get_text(click_button)
+        print("Test HoG mouse state: {}".format(new_state))
+        time.sleep(1)
+
+        # assert state != new_state, "HID test failed"
+        assert int(new_state) - int(state) == 2, 'HID test failed'
+        #print('Remove paired device: Test HoG mouse')
+
+        TestZephyrApp.test_procedure = 'android_hid_mouse_click'
+        time.sleep(1)
+
+    @pytest.mark.order(3)
+    #@pytest.mark.skip(reason="test_zephyr_peripheral_android_hid_forget_device")
+    #@pytest.mark.test_id("Zephyr Peripheral HID Android Forget device", '')
+    def test_zephyr_peripheral_android_hid_forget_device(self):
+        if TestZephyrApp.test_procedure != 'android_hid_mouse_click':
+            print('Unknown state:test_zephyr_peripheral_android_hid_forget_device')
+            return
+        else:
+            TestZephyrApp.test_procedure = ''
+
+        print('test_zephyr_peripheral_android_hid_forget_device')
+
+        self.google_pixel_forget_device()
+
+        print('Activate settings app')
+        sd.mobile_driver.app_activate('com.android.settings')
+
+        print('I/O Reset. Firmware reset')
+        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, RESET_PIN, 0.3)
+        time.sleep(3)
+
+        print('Settings ==> Connected Devices')
+        status, connected_device = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Connected devices"]')
+        assert status, "Failed to find the element."
+        connected_device.click()
+        time.sleep(3)
+
+        status, id = sd.mobile_driver.find_element('ID', 'Connected devices')
+        assert status, "Failed to find the ID:Connected devices"
+        print('Connected Devices')
+        time.sleep(1)
+
+        status, paired_dut = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Test HoG mouse"]')
+        assert status, "Failed to find the Test HoG mouse."
+        paired_dut.click()
+        time.sleep(3)
+
+        status, dev_details = sd.mobile_driver.find_element('ID', 'Device details')
+        assert status, "Failed to find the ID:Device details."
+        print(f"Connected Devices ==> {dev_details.text}")
+        time.sleep(2)
+
+        status, forget_button = sd.mobile_driver.find_element('XPATH', '//android.widget.Button[@resource-id="com.android.settings:id/button1"]')
+        assert status, "Failed to find the Forget button."
+        time.sleep(1)
+        #print(f'Find button: {forget_button.text}')
+        assert forget_button.text == 'Forget', 'Failed to find the Forget'
+        print(f'Find Forget button')
+        forget_button.click()
+        time.sleep(3)
+
+        #status, alert = sd.mobile_driver.find_element('ID', 'com.android.settings:id/alertTitle')
+        status, alert = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.android.settings:id/alertTitle"]')
+        assert status, "Failed to find the alert title."
+        time.sleep(1)
+        assert alert.text == 'Forget device?', "Alert title: Error"
+        time.sleep(1)
+
+        status, button = sd.mobile_driver.find_element('XPATH', '//android.widget.Button[@resource-id="android:id/button1"]')
+        assert status, "Failed to find the Alert Forget button."
+        time.sleep(1)
+        assert button.text == 'Forget device', "Alert Forget device not found"
+        time.sleep(1)
+        button.click()
+        print('Click Forget device button')
+        time.sleep(2)
+
+        status = self.iocontrolledstatus.Zephyr_IO_Default(self.MCU)
+        assert status, "Failed to set MCP2200 I/O default"
+        time.sleep(1)
+
+    @pytest.mark.order(4)
+    #@pytest.mark.test_id("Zephyr Direct Advertising Pairing Connect", '')
+    #@pytest.mark.skip(reason="test_zephyr_direct_advertising Pairing Connect")
+    def test_zephyr_direct_advertising_pairing_connect(self, zephyr_flash_firmware):
+        print("Testing Zephyr Direct Advertising Pairing Connect")
+        assert sd.mobile_platform == "Android", 'Test test case is only or Android phones'
+        TestZephyrApp.test_procedure = ''
+        print('ble state = {}'.format(TestZephyrApp.bleState))
+        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', self.MCU)
+        assert status, "Failed to initialize the MCP2200"
+        time.sleep(2)
+        # 3 option for pairing. (pairing timeout, pairing cancel, pairing accept)
+        for i in range(3):
+            if i in range(3):
+                app_package = sd.mobile_driver.get_capability('appPackage')
+                print("app package= {}".format(app_package))
+                sd.mobile_driver.close_app(app_package)
+                time.sleep(5)
+                print("Launch app")
+                sd.mobile_driver.launch_app(app_package)
+                time.sleep(5)
+                self.scanandconnect.verify_app_open()
+                assert status, 'MBD open fail'
+                time.sleep(3)
+                print('DUT Reset. Firmware reset')
+                self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, RESET_PIN, 0.3)
+                print("open_ble_smart_scanner")
+                self.scanandconnect.open_ble_smart_scanner()
+                time.sleep(10)
+            else:
+                self.bleuartfeature.ble_smart_go_back()
+                print('DUT Reset. Firmware reset')
+                self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, RESET_PIN, 0.3)
+                time.sleep(3)
+
+            self.bleuartfeature.ble_smart_filter_peripherals('Direct A', search_icon=True)
+            time.sleep(2)
+            self.bleuartfeature.ble_smart_connect('Direct A')
+            print('DeviceScan ==> Device')
+            time.sleep(3)
+            connection_state = self.bleuartfeature.ble_smart_verify_ble_connected('Direct A')
+            assert connection_state == "Connected", 'Error, failed to connect to dut'
+            TestZephyrApp.bleState = connection_state
+            time.sleep(2)
+            self.bleuartfeature.ble_smart_characteristic_write('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef2', '1234')
+            if i == 0:
+                action = 'timeout'
+            elif i == 1:
+                action = 'cancel'
+            elif i == 2:
+                action = 'accept'
+
+            if 'Galaxy' in sd.platform and i == 2:
+                print(f'Galaxy_platform = {sd.platform}')
+                wait = WebDriverWait(sd.mobile_driver.driver, 5, poll_frequency=0.5)
+                wait.until(EC.alert_is_present())
+                print("Alert is present")
+                result = self.bleuartfeature.ble_smart_pairing('Direct A', action)
+            else:
+                result = self.bleuartfeature.ble_smart_pairing_google_phone('Direct A', action)
+
+            if i == 2:
+                time.sleep(60)
+                assert result, "[SMP_accept_pairing]Failed to parse the serial output data."
+                TestZephyrApp.bleState = 'Pairing complete.Reset'
+                print('Pairing complete')
+                time.sleep(1)
+            else:
+                assert result, '[SMP_pairing_timeout_cancel]Failed to parse the serial output data.'
+
+            '''
+            #These code doesn't work on Google Pixel
+            time.sleep(2)
+            try:
+                if i == 0:
+                    action = 'timeout'
+                elif i == 1:
+                    action = 'cancel'
+                elif i == 2:
+                    action = 'accept'
+                print('Pairing...')
+                wait = WebDriverWait(sd.mobile_driver.driver, 5, poll_frequency=0.5)
+                wait.until(EC.alert_is_present())
+                print("Alert is present")
+                result = self.bleuartfeature.ble_smart_pairing('Direct A', action)
+                if result:
+                    print('test result: PASS')
+                else:
+                    print('test result: FAIL')
+                if action == 'accept':
+                    print('Device reboot. Direct advertising start')
+                    time.sleep(60)
+                else:
+                    time.sleep(5)
+                #result = self.bleuartfeature.ble_smart_pairing('Direct A', 'timeout')
+                #result = self.bleuartfeature.ble_smart_pairing('Direct A', 'accept')
+            except WebDriverException:
+                print('WebDriverException. Pairing alert ')
+            '''
+
+    @pytest.mark.order(5)
+    #@pytest.mark.test_id("Zephyr Direct Advertising Data Read/Write", '')
+    #@pytest.mark.skip(reason="test_zephyr_direct_advertising_gatt_read_write")
+    def test_zephyr_direct_advertising_gatt_read_write(self):
+        if TestZephyrApp.bleState != 'Pairing complete.Reset':
+            print("test_zephyr_direct_advertising_gatt_read_write. Unknown state:{}".format(TestZephyrApp.bleState))
+            return
+        else:
+            print('test_zephyr_direct_advertising_gatt_read_write')
+        self.iocontrolledstatus.Zephyr_InitMCP2200('115200', self.MCU)
+        time.sleep(2)
+        print('Activate lightblue app')
+        sd.mobile_driver.app_activate(sd.config.lightblue_app_package)
+        time.sleep(10)
+        app_package = sd.mobile_driver.get_capability('appPackage')
+        print("app package= {}".format(app_package))
+        sd.mobile_driver.close_app(sd.config.lightblue_app_package)
+        time.sleep(3)
+        print("Launch lightblue app")
+        sd.mobile_driver.launch_app(sd.config.lightblue_app_package)
+        time.sleep(3)
+        self.bleuartfeature.ble_lightblue_Bonded('Direct A')
+        time.sleep(1)
+        sd.mobile_driver.close_app(sd.config.lightblue_app_package)
+        time.sleep(3)
+        print('Activate MBD app')
+        sd.mobile_driver.app_activate(sd.config.app_package)
+        time.sleep(3)
+        status = self.scanandconnect.verify_app_open()
+        assert status, "MBD open fail"
+        time.sleep(3)
+        print('DUT Reset. Firmware reset')
+        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, RESET_PIN, 0.3)
+        print("open_ble_smart_scanner")
+        self.scanandconnect.open_ble_smart_scanner()
+        time.sleep(10)
+        self.bleuartfeature.ble_smart_filter_peripherals('Direct', search_icon=True)
+        time.sleep(3)
+        self.bleuartfeature.ble_smart_connect('Direct A')
+        print('Ble connecting..')
+        time.sleep(3)
+        connection_state = self.bleuartfeature.ble_smart_verify_ble_connected('Direct A')
+        assert connection_state == "Connected - Bonded", 'Error, failed to connect to dut'
+        TestZephyrApp.bleState = connection_state
+        print('state = {}'.format(TestZephyrApp.bleState))
+        time.sleep(2)
+        write_data = '12345678'
+        self.bleuartfeature.ble_smart_characteristic_write('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef2', write_data)
+        time.sleep(2)
+        self.bleuartfeature.ble_smart_go_back()
+        time.sleep(5)
+        read_data = self.bleuartfeature.ble_smart_characteristic_read('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef1')
+        time.sleep(2)
+        self.bleuartfeature.ble_smart_go_back()
+        time.sleep(5)
+        write_data = '09abcdef'
+        self.bleuartfeature.ble_smart_characteristic_write('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef2', write_data, char_found=True)
+        time.sleep(2)
+        self.bleuartfeature.ble_smart_go_back()
+        time.sleep(5)
+        read_data = self.bleuartfeature.ble_smart_characteristic_read('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef1')
+        time.sleep(2)
+        self.bleuartfeature.ble_smart_go_back()
+        time.sleep(5)
+        TestZephyrApp.bleState = self.bleuartfeature.ble_smart_disconnect()
+        print('ble state = {}'.format(TestZephyrApp.bleState))
+        time.sleep(5)
+        if TestZephyrApp.bleState == 'Disconnected - Bonded':
+            print('test_zephyr_direct_advertising_unbond')
+            state = self.bleuartfeature.ble_smart_unbond()
+            print('ble state = {}'.format(state))
+            time.sleep(3)
+        else:
+            print('test_zephyr_direct_advertising_unbond. Unknown state: {}'.format(TestZephyrApp.bleState))
+            time.sleep(1)
+        status = self.iocontrolledstatus.Zephyr_IO_Default(self.MCU)
+        assert status, "[MCP2200 I/O state] Failed to restore to default"
+        time.sleep(1)
+
+    #@pytest.mark.test_id("Zephyr peripheral identity", '')
+    @pytest.mark.skip(reason="test_zephyr_peripheral_identity")
+    def test_zephyr_peripheral_identity(self, multilink_mobile_drivers):
+        print('test_zephyr_peripheral_identity')
+        assert len(sd.multilink_mobile_driver) == len(sd.config.multilink_phone_list), 'Fail to create drivers'
+        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', self.MCU)
+        assert status, "Failed to initialize the MCP2200"
+        time.sleep(2)
+
+        test_phones = []
+        zephyr_test = []
+        bt_address_arr = []
+        for index, dat in enumerate(sd.multilink_mobile_driver):
+            if index == 0:
+                print('I/O Reset. Firmware reset')
+                self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, RESET_PIN, 0.3)
+            m_driver = dat['driver']
+            m_phone = dat['phone']
+            if 'Android' in m_phone:
+                app = sd.config.lightblue_app_package
+                lightblue_featuresupport = RNBDvsPhoneFeatureSupport(driver=m_driver)
+                time.sleep(1)
+            else:
+                app = sd.config.ios_lightblue_app_package
+                lightblue_featuresupport = BLEUARTFeatureSupportiOS(driver=m_driver)
+                time.sleep(1)
+
+            #app_package = m_driver.get_capability('appPackage')
+            #print("app_package: {0}".format(app_package))
+            #m_driver.close_app(app_package)
+            m_driver.close_app(app)
+            print(f'app restart. close app:{app}')
+            time.sleep(5)
+            #status = m_driver.launch_app(app_package)
+            status = m_driver.launch_app(app)
+            print('app restart')
+            time.sleep(5)
+            assert status, "Failed to launch lightblue app"
+            time.sleep(2)
+
+            lightblue_featuresupport.lightblue_filter_peripherals('Zephyr Peripheral')
+            time.sleep(2)
+
+            print(f'test phone: {m_phone}')
+            ble_state = lightblue_featuresupport.lightblue_connect_and_verify_connected('Zephyr Peripheral')
+            assert ble_state, 'Ble connect fail!'
+            print('ble state: connected')
+            '''
+            lightblue_featuresupport.lightblue_connect('Zephyr Peripheral')
+            print('Ble connecting..')
+            time.sleep(5)
+
+            status = lightblue_featuresupport.lightblue_verify_ble_connected()
+            if not status:
+                time.sleep(2)
+                lightblue_featuresupport.lightblue_connect('Zephyr Peripheral')
+                print('Ble connecting..again')
+                time.sleep(5)
+                status = lightblue_featuresupport.lightblue_verify_ble_connected()
+                assert status, f'test phone: {m_phone}, connect fail'
+            '''
+
+            if 'Android' in m_phone:
+                bt_address = m_driver.android_get_textview_bt_address()
+                if bt_address != '':
+                    print(f'BT address = {bt_address}')
+                    bt_address_arr.append(bt_address)
+            else:
+                bt_address_arr.append('XX:XX:XX:XX:XX:XX')
+
+            zephyr_test.append(lightblue_featuresupport)
+            test_phones.append(m_phone)
+            time.sleep(2)
+
+        assert len(bt_address_arr) == len(sd.config.multilink_phone_list), 'Fail to find the bt address'
+        assert len(bt_address_arr) == len(set(bt_address_arr)), print(f'Duplicate BT address')
+
+        t1 = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
+        test_loop = 60  #145 sec
+        #test_loop = 120  #294 sec
+        print(f'Long-term idle test. test time = {t1}')
+        idle_test_connected = True
+        for i in range(test_loop):
+            print(f'Running test:{i}')
+            for j in range(len(zephyr_test)):
+                app_driver = zephyr_test[j]
+                status = app_driver.lightblue_verify_ble_connected()
+                print(f'app:{j}, verify_ble_connected')
+                if not status:
+                    print(f'app:{j}, disconnect')
+                    idle_test_connected = False
+                    break
+                time.sleep(1)
+            if not idle_test_connected:
+                break
+        t1 = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
+        print(f'multilink long-term idle test complete. time = {t1}')
+
+        status = self.iocontrolledstatus.Zephyr_IO_Default(self.MCU)
+        assert status, "Failed to set MCP2200 I/O default"
+        time.sleep(1)
+
+        assert idle_test_connected, 'BLE idle long-term test: Fail'
+
+    ################################################################################################
+    #   iOS iPhone test case
+    ################################################################################################
 
     #@pytest.mark.order(3)
     @pytest.mark.skip(reason="test_zephyr_peripheral_hid_forget_device")
@@ -611,577 +1128,6 @@ class TestZephyrApp:
         assert int(new_state) - int(state) == 3, 'HID test failed'
 
     #@pytest.mark.order(1)
-    #@pytest.mark.test_id("Zephyr Peripheral Android HID Pairing", '')
-    @pytest.mark.skip(reason="test_zephyr_peripheral_android_hid_pairing")
-    def test_zephyr_peripheral_android_hid_pairing_connect(self, zephyr_flash_firmware):
-        print('test_zephyr_peripheral_android_hid_pairing_connect')
-        TestZephyrApp.test_procedure = ''
-        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', self.MCU)
-        assert status, "Failed to initialize the MCP2200"
-        time.sleep(2)
-        sd.mobile_driver.close_app('com.android.settings')
-        time.sleep(5)
-        print("Launch setting app")
-        sd.mobile_driver.launch_app('com.android.settings')
-        time.sleep(5)
-        print('DUT Reset. Firmware reset')
-        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, RESET_PIN, 0.3)
-        time.sleep(3)
-        print('Settings ==> Connected Devices')
-        status, connected_device = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Connected devices"]')
-        assert status, "Failed to find the element."
-        connected_device.click()
-        time.sleep(3)
-        status, id_1 = sd.mobile_driver.find_element('ID', 'Connected devices')
-        assert status, "Failed to find the ID:Connected devices"
-        print('Connected Devices ==> Pair new device')
-        status, pair_device = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Pair new device"]')
-        assert status, "Failed to find the element."
-        pair_device.click()
-        time.sleep(5)
-        status, id_2 = sd.mobile_driver.find_element('ID', 'Pair new device')
-        assert status, "Failed to find the ID:Pair new device"
-        print('Pair new device ==> Discover and connect')
-        status, dut = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Test HoG mouse"]')
-        assert status, "Failed to find the Test HoG mouse."
-        passkey = self.bleuartfeature.get_serial_data_passkey(dut)
-        #print('Click. Test HoG mouse')
-        #dut.click()
-        time.sleep(1)
-        status, alert = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.android.settings:id/alertTitle"]')
-        assert status, "Failed to find the alert title."
-        if 'Pair with Test HoG mouse' in alert.text:
-            time.sleep(1)
-            assert len(passkey) == 6, 'Passkey error!'
-            print(f'Pairing. passkey={passkey}')
-            status, edit = sd.mobile_driver.find_element('XPATH', '//android.widget.EditText[@resource-id="com.android.settings:id/text"]')
-            assert status, "Failed to find the edit text."
-            edit.send_keys(passkey)
-            #edit.send_keys('727816')
-            #print('Send passkey:727816')
-            #edit.send_keys('123456')
-            #print('Send passkey:123456')
-            time.sleep(3)
-
-        status, button = sd.mobile_driver.find_element('XPATH', '//android.widget.Button[@resource-id="android:id/button1"]')
-        assert status, "Failed to find the element."
-        if 'OK' in button.text:
-            print(f'press ok button')
-            button.click()
-            time.sleep(15)
-
-        #Check pairing success
-        status, id_1 = sd.mobile_driver.find_element('ID', 'Connected devices')
-        assert status, "Failed to find the ID:Connected devices"
-        print('Pair new device == > Connected Devices')
-        time.sleep(1)
-        status, paired_dut = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Test HoG mouse"]')
-        assert status, "Failed to find the Test HoG mouse."
-        print('Pairing success')
-        time.sleep(1)
-        sd.mobile_driver.close_app('com.android.settings')
-        time.sleep(5)
-        TestZephyrApp.test_procedure = 'android_hid_pairing_connect'
-
-    #@pytest.mark.order(2)
-    #@pytest.mark.test_id("Zephyr Peripheral HID Android", '')
-    @pytest.mark.skip(reason="test_zephyr_android_peripheral_hid")
-    def test_zephyr_peripheral_android_hid_mouse_click(self):
-        if TestZephyrApp.test_procedure != 'android_hid_pairing_connect':
-            print('Unknown state:test_zephyr_peripheral_android_hid_mouse_click')
-            return
-        else:
-            TestZephyrApp.test_procedure = ''
-
-        print("Testing Zephyr Peripheral Android HID Mouse click. BLE Bonded")
-
-        #self.iocontrolledstatus.Zephyr_InitMCP2200('115200', MCU)
-        #time.sleep(1)
-
-        print('I/O Reset. Firmware reset')
-        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, RESET_PIN, 0.3)
-        time.sleep(3)
-
-        print('Launch HID test app')
-        sd.mobile_driver.app_activate('com.microchip.zephyrtest')
-        #sd.mobile_driver.launch_app('com.microchip.zephyrtest')
-        time.sleep(5)
-
-        print('Test HoG mouse. click test')
-
-        status, click_button = sd.mobile_driver.find_element('id', 'zephyr_hid_test')
-        assert status, "Failed to find the element id"
-        time.sleep(1)
-
-        state = sd.mobile_driver.get_text(click_button)
-        print("Test HoG mouse state: {}".format(state))
-        time.sleep(1)
-
-        print('Click button 3 times.')
-        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, BTN_CTRL_PIN, 0.3)
-        time.sleep(3)
-        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, BTN_CTRL_PIN, 0.3)
-        time.sleep(3)
-        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, BTN_CTRL_PIN, 0.3)
-        time.sleep(3)
-
-        new_state = sd.mobile_driver.get_text(click_button)
-        print("Test HoG mouse state: {}".format(new_state))
-        time.sleep(1)
-
-        #assert state != new_state, "HID test failed"
-        assert int(new_state)-int(state) == 3, 'HID test failed'
-        #print('Remove paired device: Test HoG mouse')
-
-        print('I/O Reset. Firmware reset')
-        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, RESET_PIN, 0.3)
-        time.sleep(5)
-
-        state = sd.mobile_driver.get_text(click_button)
-        print("Test HoG mouse state: {}".format(state))
-        time.sleep(1)
-
-        print('Click button 2 times.')
-        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, BTN_CTRL_PIN, 0.3)
-        time.sleep(3)
-        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, BTN_CTRL_PIN, 0.3)
-        time.sleep(3)
-
-        new_state = sd.mobile_driver.get_text(click_button)
-        print("Test HoG mouse state: {}".format(new_state))
-        time.sleep(1)
-
-        # assert state != new_state, "HID test failed"
-        assert int(new_state) - int(state) == 2, 'HID test failed'
-        #print('Remove paired device: Test HoG mouse')
-
-        TestZephyrApp.test_procedure = 'android_hid_mouse_click'
-        time.sleep(1)
-
-    #@pytest.mark.order(3)
-    @pytest.mark.skip(reason="test_zephyr_peripheral_android_hid_forget_device")
-    #@pytest.mark.test_id("Zephyr Peripheral HID Android Forget device", '')
-    def test_zephyr_peripheral_android_hid_forget_device(self):
-        if TestZephyrApp.test_procedure != 'android_hid_mouse_click':
-            print('Unknown state:test_zephyr_peripheral_android_hid_forget_device')
-            return
-        else:
-            TestZephyrApp.test_procedure = ''
-
-        print('test_zephyr_peripheral_android_hid_forget_device')
-
-        self.google_pixel_forget_device()
-
-        print('Activate settings app')
-        sd.mobile_driver.app_activate('com.android.settings')
-
-        print('I/O Reset. Firmware reset')
-        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, RESET_PIN, 0.3)
-        time.sleep(3)
-
-        print('Settings ==> Connected Devices')
-        status, connected_device = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Connected devices"]')
-        assert status, "Failed to find the element."
-        connected_device.click()
-        time.sleep(3)
-
-        status, id = sd.mobile_driver.find_element('ID', 'Connected devices')
-        assert status, "Failed to find the ID:Connected devices"
-        print('Connected Devices')
-        time.sleep(1)
-
-        status, paired_dut = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="android:id/title" and @text="Test HoG mouse"]')
-        assert status, "Failed to find the Test HoG mouse."
-        paired_dut.click()
-        time.sleep(3)
-
-        status, dev_details = sd.mobile_driver.find_element('ID', 'Device details')
-        assert status, "Failed to find the ID:Device details."
-        print(f"Connected Devices ==> {dev_details.text}")
-        time.sleep(2)
-
-        status, forget_button = sd.mobile_driver.find_element('XPATH', '//android.widget.Button[@resource-id="com.android.settings:id/button1"]')
-        assert status, "Failed to find the Forget button."
-        time.sleep(1)
-        #print(f'Find button: {forget_button.text}')
-        assert forget_button.text == 'Forget', 'Failed to find the Forget'
-        print(f'Find Forget button')
-        forget_button.click()
-        time.sleep(3)
-
-        #status, alert = sd.mobile_driver.find_element('ID', 'com.android.settings:id/alertTitle')
-        status, alert = sd.mobile_driver.find_element('XPATH', '//android.widget.TextView[@resource-id="com.android.settings:id/alertTitle"]')
-        assert status, "Failed to find the alert title."
-        time.sleep(1)
-        assert alert.text == 'Forget device?', "Alert title: Error"
-        time.sleep(1)
-
-        status, button = sd.mobile_driver.find_element('XPATH', '//android.widget.Button[@resource-id="android:id/button1"]')
-        assert status, "Failed to find the Alert Forget button."
-        time.sleep(1)
-        assert button.text == 'Forget device', "Alert Forget device not found"
-        time.sleep(1)
-        button.click()
-        print('Click Forget device button')
-        time.sleep(2)
-
-        status = self.iocontrolledstatus.Zephyr_IO_Default(self.MCU)
-        assert status, "Failed to set MCP2200 I/O default"
-        time.sleep(1)
-
-    #@pytest.mark.test_id("Zephyr peripheral identity", '')
-    @pytest.mark.skip(reason="test_zephyr_peripheral_identity")
-    def test_zephyr_peripheral_identity(self, multilink_mobile_drivers):
-        print('test_zephyr_peripheral_identity')
-        assert len(sd.multilink_mobile_driver) == len(sd.config.multilink_phone_list), 'Fail to create drivers'
-        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', self.MCU)
-        assert status, "Failed to initialize the MCP2200"
-        time.sleep(2)
-
-        test_phones = []
-        zephyr_test = []
-        bt_address_arr = []
-        for index, dat in enumerate(sd.multilink_mobile_driver):
-            if index == 0:
-                print('I/O Reset. Firmware reset')
-                self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, RESET_PIN, 0.3)
-            m_driver = dat['driver']
-            m_phone = dat['phone']
-            if 'Android' in m_phone:
-                app = sd.config.lightblue_app_package
-                lightblue_featuresupport = RNBDvsPhoneFeatureSupport(driver=m_driver)
-                time.sleep(1)
-            else:
-                app = sd.config.ios_lightblue_app_package
-                lightblue_featuresupport = BLEUARTFeatureSupportiOS(driver=m_driver)
-                time.sleep(1)
-
-            #app_package = m_driver.get_capability('appPackage')
-            #print("app_package: {0}".format(app_package))
-            #m_driver.close_app(app_package)
-            m_driver.close_app(app)
-            print(f'app restart. close app:{app}')
-            time.sleep(5)
-            #status = m_driver.launch_app(app_package)
-            status = m_driver.launch_app(app)
-            print('app restart')
-            time.sleep(5)
-            assert status, "Failed to launch lightblue app"
-            time.sleep(2)
-
-            lightblue_featuresupport.lightblue_filter_peripherals('Zephyr Peripheral')
-            time.sleep(2)
-
-            print(f'test phone: {m_phone}')
-            ble_state = lightblue_featuresupport.lightblue_connect_and_verify_connected('Zephyr Peripheral')
-            assert ble_state, 'Ble connect fail!'
-            print('ble state: connected')
-            '''
-            lightblue_featuresupport.lightblue_connect('Zephyr Peripheral')
-            print('Ble connecting..')
-            time.sleep(5)
-
-            status = lightblue_featuresupport.lightblue_verify_ble_connected()
-            if not status:
-                time.sleep(2)
-                lightblue_featuresupport.lightblue_connect('Zephyr Peripheral')
-                print('Ble connecting..again')
-                time.sleep(5)
-                status = lightblue_featuresupport.lightblue_verify_ble_connected()
-                assert status, f'test phone: {m_phone}, connect fail'
-            '''
-
-            if 'Android' in m_phone:
-                bt_address = m_driver.android_get_textview_bt_address()
-                if bt_address != '':
-                    print(f'BT address = {bt_address}')
-                    bt_address_arr.append(bt_address)
-            else:
-                bt_address_arr.append('XX:XX:XX:XX:XX:XX')
-
-            zephyr_test.append(lightblue_featuresupport)
-            test_phones.append(m_phone)
-            time.sleep(2)
-
-        assert len(bt_address_arr) == len(sd.config.multilink_phone_list), 'Fail to find the bt address'
-        assert len(bt_address_arr) == len(set(bt_address_arr)), print(f'Duplicate BT address')
-
-        t1 = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
-        test_loop = 60  #145 sec
-        #test_loop = 120  #294 sec
-        print(f'Long-term idle test. test time = {t1}')
-        idle_test_connected = True
-        for i in range(test_loop):
-            print(f'Running test:{i}')
-            for j in range(len(zephyr_test)):
-                app_driver = zephyr_test[j]
-                status = app_driver.lightblue_verify_ble_connected()
-                print(f'app:{j}, verify_ble_connected')
-                if not status:
-                    print(f'app:{j}, disconnect')
-                    idle_test_connected = False
-                    break
-                time.sleep(1)
-            if not idle_test_connected:
-                break
-        t1 = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
-        print(f'multilink long-term idle test complete. time = {t1}')
-
-        status = self.iocontrolledstatus.Zephyr_IO_Default(self.MCU)
-        assert status, "Failed to set MCP2200 I/O default"
-        time.sleep(1)
-
-        assert idle_test_connected, 'BLE idle long-term test: Fail'
-
-    #@pytest.mark.test_id("Zephyr peripheral hid demo", '')
-    @pytest.mark.skip(reason="test_zephyr_peripheral_hid")
-    def test_zephyr_peripheral_hid_demo(self):
-        print("Testing Zephyr Peripheral HID. BLE Bonded")
-        print("Make sure all of the paired devices are deleted")
-        if sd.mobile_platform == "iOS":
-            sd.mobile_driver.close_app(sd.config.ios_lightblue_app_package)
-            time.sleep(10)
-        else:
-            print('Platform "Android" not supported')
-        time.sleep(5)
-        print('Launch ios setting, Check BLE connection')
-        mobile_to_use = sd.config.mobile_data_config.get(sd.platform)
-        driver = NewBaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
-                            mobile_to_use.get(PHONE_UDID_K),
-                            mobile_to_use.get(PLATFORM_NAME_K),
-                            mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
-                            sd.config.ios_settings_app_package, fresh_env=False)
-        time.sleep(5)
-        iOSpairingsupport = iOSBluetoothSupport(driver)
-        print("new iOSBluetoothSupport driver")
-        #status = driver.launch_app(sd.config.ios_settings_app_package)
-        #assert status, "Failed to launch application"
-        #time.sleep(1)
-        status = driver.close_app(sd.config.ios_settings_app_package)
-        assert status, "Failed to close setting app"
-        time.sleep(5)
-        status = driver.launch_app(sd.config.ios_settings_app_package)
-        assert status, "Failed to launch setting app"
-        time.sleep(5)
-        print("Verify Settings App is open")
-        app_open = iOSpairingsupport.verify_settings_open()
-        assert app_open, "Failed to open Settings application"
-        time.sleep(5)
-        print("Open Bluetooth Page")
-        bt_open = iOSpairingsupport.open_bluetooth()
-        assert bt_open, "Failed to Open Bluetooth page"
-        time.sleep(3)
-        status = iOSpairingsupport.check_dut_paired_connected('Test HoG mouse')
-        assert status, "Failed to find the paired device"
-        time.sleep(3)
-        status = driver.close_app(sd.config.ios_settings_app_package)
-        assert status, "Failed to close application"
-        time.sleep(5)
-        print('Launch HID test app')
-        driver = NewBaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
-                            mobile_to_use.get(PHONE_UDID_K),
-                            mobile_to_use.get(PLATFORM_NAME_K),
-                            mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
-                            'com.microchip.MBDtest', fresh_env=False)
-        time.sleep(5)
-        status = driver.close_app('com.microchip.MBDtest')
-        assert status, "Failed to close HID test app"
-        time.sleep(5)
-        status = driver.launch_app('com.microchip.MBDtest')
-        assert status, "Failed to launch HIS test app"
-        time.sleep(5)
-        print('Test HoG mouse. click test')
-        time.sleep(5)
-        status, click_button = driver.find_element('id', 'zephyr_hid_test')
-        assert status, "Failed to find the element id"
-        time.sleep(1)
-        state = driver.get_text(click_button)
-        print("Test HoG mouse state: {}".format(state))
-        time.sleep(5)
-        status = driver.close_app('com.microchip.MBDtest')
-        assert status, "Failed to close application"
-        time.sleep(5)
-
-    #@pytest.mark.order(1)
-    #@pytest.mark.test_id("Zephyr Direct Advertising Pairing Connect", '')
-    @pytest.mark.skip(reason="test_zephyr_direct_advertising Pairing Connect")
-    def test_zephyr_direct_advertising_pairing_connect(self, zephyr_flash_firmware):
-        print("Testing Zephyr Direct Advertising Pairing Connect")
-        assert sd.mobile_platform == "Android", 'Test test case is only or Android phones'
-        TestZephyrApp.test_procedure = ''
-        print('ble state = {}'.format(TestZephyrApp.bleState))
-        status = self.iocontrolledstatus.Zephyr_InitMCP2200('115200', self.MCU)
-        assert status, "Failed to initialize the MCP2200"
-        time.sleep(2)
-        # 3 option for pairing. (pairing timeout, pairing cancel, pairing accept)
-        for i in range(3):
-            if i in range(3):
-                app_package = sd.mobile_driver.get_capability('appPackage')
-                print("app package= {}".format(app_package))
-                sd.mobile_driver.close_app(app_package)
-                time.sleep(5)
-                print("Launch app")
-                sd.mobile_driver.launch_app(app_package)
-                time.sleep(5)
-                self.scanandconnect.verify_app_open()
-                assert status, 'MBD open fail'
-                time.sleep(3)
-                print('DUT Reset. Firmware reset')
-                self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, RESET_PIN, 0.3)
-                print("open_ble_smart_scanner")
-                self.scanandconnect.open_ble_smart_scanner()
-                time.sleep(10)
-            else:
-                self.bleuartfeature.ble_smart_go_back()
-                print('DUT Reset. Firmware reset')
-                self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, RESET_PIN, 0.3)
-                time.sleep(3)
-
-            self.bleuartfeature.ble_smart_filter_peripherals('Direct A', search_icon=True)
-            time.sleep(2)
-            self.bleuartfeature.ble_smart_connect('Direct A')
-            print('DeviceScan ==> Device')
-            time.sleep(3)
-            connection_state = self.bleuartfeature.ble_smart_verify_ble_connected('Direct A')
-            assert connection_state == "Connected", 'Error, failed to connect to dut'
-            TestZephyrApp.bleState = connection_state
-            time.sleep(2)
-            self.bleuartfeature.ble_smart_characteristic_write('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef2', '1234')
-            if i == 0:
-                action = 'timeout'
-            elif i == 1:
-                action = 'cancel'
-            elif i == 2:
-                action = 'accept'
-
-            if 'Galaxy' in sd.platform and i == 2:
-                print(f'Galaxy_platform = {sd.platform}')
-                wait = WebDriverWait(sd.mobile_driver.driver, 5, poll_frequency=0.5)
-                wait.until(EC.alert_is_present())
-                print("Alert is present")
-                result = self.bleuartfeature.ble_smart_pairing('Direct A', action)
-            else:
-                result = self.bleuartfeature.ble_smart_pairing_google_phone('Direct A', action)
-
-            if i == 2:
-                time.sleep(60)
-                assert result, "[SMP_accept_pairing]Failed to parse the serial output data."
-                TestZephyrApp.bleState = 'Pairing complete.Reset'
-                print('Pairing complete')
-                time.sleep(1)
-            else:
-                assert result, '[SMP_pairing_timeout_cancel]Failed to parse the serial output data.'
-
-            '''
-            #These code doesn't work on Google Pixel
-            time.sleep(2)
-            try:
-                if i == 0:
-                    action = 'timeout'
-                elif i == 1:
-                    action = 'cancel'
-                elif i == 2:
-                    action = 'accept'
-                print('Pairing...')
-                wait = WebDriverWait(sd.mobile_driver.driver, 5, poll_frequency=0.5)
-                wait.until(EC.alert_is_present())
-                print("Alert is present")
-                result = self.bleuartfeature.ble_smart_pairing('Direct A', action)
-                if result:
-                    print('test result: PASS')
-                else:
-                    print('test result: FAIL')
-                if action == 'accept':
-                    print('Device reboot. Direct advertising start')
-                    time.sleep(60)
-                else:
-                    time.sleep(5)
-                #result = self.bleuartfeature.ble_smart_pairing('Direct A', 'timeout')
-                #result = self.bleuartfeature.ble_smart_pairing('Direct A', 'accept')
-            except WebDriverException:
-                print('WebDriverException. Pairing alert ')
-            '''
-
-    #@pytest.mark.order(2)
-    #@pytest.mark.test_id("Zephyr Direct Advertising Data Read/Write", '')
-    @pytest.mark.skip(reason="test_zephyr_direct_advertising_gatt_read_write")
-    def test_zephyr_direct_advertising_gatt_read_write(self):
-        if TestZephyrApp.bleState != 'Pairing complete.Reset':
-            print("test_zephyr_direct_advertising_gatt_read_write. Unknown state:{}".format(TestZephyrApp.bleState))
-            return
-        else:
-            print('test_zephyr_direct_advertising_gatt_read_write')
-        self.iocontrolledstatus.Zephyr_InitMCP2200('115200', self.MCU)
-        time.sleep(2)
-        print('Activate lightblue app')
-        sd.mobile_driver.app_activate(sd.config.lightblue_app_package)
-        time.sleep(10)
-        app_package = sd.mobile_driver.get_capability('appPackage')
-        print("app package= {}".format(app_package))
-        sd.mobile_driver.close_app(sd.config.lightblue_app_package)
-        time.sleep(3)
-        print("Launch lightblue app")
-        sd.mobile_driver.launch_app(sd.config.lightblue_app_package)
-        time.sleep(3)
-        self.bleuartfeature.ble_lightblue_Bonded('Direct A')
-        time.sleep(1)
-        sd.mobile_driver.close_app(sd.config.lightblue_app_package)
-        time.sleep(3)
-        print('Activate MBD app')
-        sd.mobile_driver.app_activate(sd.config.app_package)
-        time.sleep(3)
-        status = self.scanandconnect.verify_app_open()
-        assert status, "MBD open fail"
-        time.sleep(3)
-        print('DUT Reset. Firmware reset')
-        self.iocontrolledstatus.Zephyr_IOCtrl(self.MCU, RESET_PIN, 0.3)
-        print("open_ble_smart_scanner")
-        self.scanandconnect.open_ble_smart_scanner()
-        time.sleep(10)
-        self.bleuartfeature.ble_smart_filter_peripherals('Direct', search_icon=True)
-        time.sleep(3)
-        self.bleuartfeature.ble_smart_connect('Direct A')
-        print('Ble connecting..')
-        time.sleep(3)
-        connection_state = self.bleuartfeature.ble_smart_verify_ble_connected('Direct A')
-        assert connection_state == "Connected - Bonded", 'Error, failed to connect to dut'
-        TestZephyrApp.bleState = connection_state
-        print('state = {}'.format(TestZephyrApp.bleState))
-        time.sleep(2)
-        write_data = '12345678'
-        self.bleuartfeature.ble_smart_characteristic_write('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef2', write_data)
-        time.sleep(2)
-        self.bleuartfeature.ble_smart_go_back()
-        time.sleep(5)
-        read_data = self.bleuartfeature.ble_smart_characteristic_read('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef1')
-        time.sleep(2)
-        self.bleuartfeature.ble_smart_go_back()
-        time.sleep(5)
-        write_data = '09abcdef'
-        self.bleuartfeature.ble_smart_characteristic_write('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef2', write_data, char_found=True)
-        time.sleep(2)
-        self.bleuartfeature.ble_smart_go_back()
-        time.sleep(5)
-        read_data = self.bleuartfeature.ble_smart_characteristic_read('12345678-1234-5678-1234-56789abcdef0', '12345678-1234-5678-1234-56789abcdef1')
-        time.sleep(2)
-        self.bleuartfeature.ble_smart_go_back()
-        time.sleep(5)
-        TestZephyrApp.bleState = self.bleuartfeature.ble_smart_disconnect()
-        print('ble state = {}'.format(TestZephyrApp.bleState))
-        time.sleep(5)
-        if TestZephyrApp.bleState == 'Disconnected - Bonded':
-            print('test_zephyr_direct_advertising_unbond')
-            state = self.bleuartfeature.ble_smart_unbond()
-            print('ble state = {}'.format(state))
-            time.sleep(3)
-        else:
-            print('test_zephyr_direct_advertising_unbond. Unknown state: {}'.format(TestZephyrApp.bleState))
-            time.sleep(1)
-        status = self.iocontrolledstatus.Zephyr_IO_Default(self.MCU)
-        assert status, "[MCP2200 I/O state] Failed to restore to default"
-        time.sleep(1)
-
-    #@pytest.mark.order(1)
     #@pytest.mark.test_id("Zephyr peripheral application v1 rc5", '')
     @pytest.mark.skip(reason="test_zephyr_peripheral_rc5")
     def test_zephyr_peripheral_application(self, zephyr_flash_firmware):
@@ -1238,7 +1184,7 @@ class TestZephyrApp:
         assert status, "Failed to initialize the MCP2200"
         time.sleep(1)
 
-        serial_runner = SerialReader('COM24', baudrate=115200)
+        serial_runner = SerialReader(conf_file.com_port, baudrate=115200)
         time.sleep(1)
 
         def dut_reset():
@@ -1294,7 +1240,7 @@ class TestZephyrApp:
         assert status, "Failed to initialize the MCP2200"
         time.sleep(1)
 
-        serial_runner = SerialReader('COM24', baudrate=115200)
+        serial_runner = SerialReader(conf_file.com_port, baudrate=115200)
         time.sleep(1)
 
         def dut_reset():
@@ -1333,7 +1279,7 @@ class TestZephyrApp:
         assert status, "Failed to initialize the MCP2200"
         time.sleep(1)
 
-        serial_runner = SerialReader('COM18', baudrate=115200)
+        serial_runner = SerialReader(conf_file.zephyr_dut2_com_port, baudrate=115200)
         time.sleep(1)
 
         def dut_reset():
@@ -1400,7 +1346,7 @@ class TestZephyrApp:
         assert status, "Failed to initialize the MCP2200"
         time.sleep(1)
 
-        serial_runner = SerialReader('COM24', baudrate=115200)
+        serial_runner = SerialReader(conf_file.com_port, baudrate=115200)
         time.sleep(1)
 
         def dut_reset():
@@ -1438,7 +1384,7 @@ class TestZephyrApp:
         assert status, "Failed to initialize the MCP2200"
         time.sleep(1)
 
-        serial_runner = SerialReader('COM18', baudrate=115200)
+        serial_runner = SerialReader(conf_file.zephyr_dut2_com_port, baudrate=115200)
         time.sleep(1)
 
         def dut_reset():
@@ -1479,7 +1425,7 @@ class TestZephyrApp:
         assert status, "Failed to initialize the MCP2200"
         time.sleep(1)
 
-        serial_runner = SerialReader('COM24', baudrate=115200)
+        serial_runner = SerialReader(conf_file.com_port, baudrate=115200)
         time.sleep(1)
 
         def dut_reset():
@@ -1681,8 +1627,8 @@ class TestZephyrApp:
         status = self.iocontrolledstatus.Zephyr_IO_Default(dut2_mcu)
         assert status, "Failed to set MCP2200 I/O default"
 
-    #@pytest.mark.skip(reason="test_dut_special_test")
-    @pytest.mark.test_id("test dut special test", '')
+    @pytest.mark.skip(reason="test_dut_special_test")
+    #@pytest.mark.test_id("test dut special test", '')
     def test_dut_special_test(self):
         print('test_dut1_dut2_reset')
         time.sleep(1)
@@ -1954,6 +1900,75 @@ class TestZephyrApp:
         for result in pattern_test_result:
             print(f"{result}")
         print("Pass")
+
+    #@pytest.mark.test_id("Zephyr peripheral hid demo", '')
+    @pytest.mark.skip(reason="test_zephyr_peripheral_hid")
+    def test_peripheral_hid_demo(self):
+        print("Testing Zephyr Peripheral HID. BLE Bonded")
+        print("Make sure all of the paired devices are deleted")
+        if sd.mobile_platform == "iOS":
+            sd.mobile_driver.close_app(sd.config.ios_lightblue_app_package)
+            time.sleep(10)
+        else:
+            print('Platform "Android" not supported')
+        time.sleep(5)
+        print('Launch ios setting, Check BLE connection')
+        mobile_to_use = sd.config.mobile_data_config.get(sd.platform)
+        driver = NewBaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
+                            mobile_to_use.get(PHONE_UDID_K),
+                            mobile_to_use.get(PLATFORM_NAME_K),
+                            mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
+                            sd.config.ios_settings_app_package, fresh_env=False)
+        time.sleep(5)
+        iOSpairingsupport = iOSBluetoothSupport(driver)
+        print("new iOSBluetoothSupport driver")
+        #status = driver.launch_app(sd.config.ios_settings_app_package)
+        #assert status, "Failed to launch application"
+        #time.sleep(1)
+        status = driver.close_app(sd.config.ios_settings_app_package)
+        assert status, "Failed to close setting app"
+        time.sleep(5)
+        status = driver.launch_app(sd.config.ios_settings_app_package)
+        assert status, "Failed to launch setting app"
+        time.sleep(5)
+        print("Verify Settings App is open")
+        app_open = iOSpairingsupport.verify_settings_open()
+        assert app_open, "Failed to open Settings application"
+        time.sleep(5)
+        print("Open Bluetooth Page")
+        bt_open = iOSpairingsupport.open_bluetooth()
+        assert bt_open, "Failed to Open Bluetooth page"
+        time.sleep(3)
+        status = iOSpairingsupport.check_dut_paired_connected('Test HoG mouse')
+        assert status, "Failed to find the paired device"
+        time.sleep(3)
+        status = driver.close_app(sd.config.ios_settings_app_package)
+        assert status, "Failed to close application"
+        time.sleep(5)
+        print('Launch HID test app')
+        driver = NewBaseDriver(sd.config.appium_server_ip, sd.config.appium_server_port,
+                            mobile_to_use.get(PHONE_UDID_K),
+                            mobile_to_use.get(PLATFORM_NAME_K),
+                            mobile_to_use.get(PLATFORM_VERSION_K), mobile_to_use.get(DEVICE_NAME_K),
+                            'com.microchip.MBDtest', fresh_env=False)
+        time.sleep(5)
+        status = driver.close_app('com.microchip.MBDtest')
+        assert status, "Failed to close HID test app"
+        time.sleep(5)
+        status = driver.launch_app('com.microchip.MBDtest')
+        assert status, "Failed to launch HIS test app"
+        time.sleep(5)
+        print('Test HoG mouse. click test')
+        time.sleep(5)
+        status, click_button = driver.find_element('id', 'zephyr_hid_test')
+        assert status, "Failed to find the element id"
+        time.sleep(1)
+        state = driver.get_text(click_button)
+        print("Test HoG mouse state: {}".format(state))
+        time.sleep(5)
+        status = driver.close_app('com.microchip.MBDtest')
+        assert status, "Failed to close application"
+        time.sleep(5)
 
     #@pytest.mark.test_id("Mac_lightblue_scan_and_connect", '')
     @pytest.mark.skip(reason="Used for BLE_UART firmware")
