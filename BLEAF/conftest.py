@@ -7,8 +7,10 @@ import os
 
 from .CommonSupportLib.StationData import stationData
 from .CommonSupportLib.ConfigReader import ConfigReader
+from .CommonSupportLib.StationDefines import PLATFORM_VERSION_K, PLATFORM_NAME_K
 from .CommonSupportLib.TestLinkAPI import TestLink
 from .BaseWrappers.SSHSupport import ShellHandler
+from .Tests.Zephyr_Application_Tests.test_zephyr_app import zephyr_execute_test
 
 import subprocess
 import time
@@ -67,7 +69,16 @@ def pytest_addoption(parser):
 def pytest_metadata(metadata):
     #Custom pytest-html report
     metadata['Project Name'] = 'Zephyr sample application'
-    metadata['Tester'] = 'Minglung Huang'
+    metadata['Tester'] = 'Dudo Du'
+    test_phone = sd.config.mobile_to_use
+    #metadata['Test phone'] = test_phone
+    mobile_to_use = sd.config.mobile_data_config.get(test_phone)
+    if mobile_to_use is not None:
+        version = mobile_to_use.get(PLATFORM_VERSION_K)
+        platform = mobile_to_use.get(PLATFORM_NAME_K)
+        info = [test_phone, platform, version]
+        phone_info = " ".join(info)
+        metadata['Test phone'] = phone_info
 
 def pytest_configure(config):
     config.addinivalue_line("markers",
@@ -112,7 +123,12 @@ def pytest_configure(config):
     '''
 
 def pytest_collection_modifyitems(session, config, items):
+    print("pytest_collection_modifyitems")
     selected_items = []
+    #zephyr_functions = ["test_zephyr_peripheral_application", "test_function_2", "test_function_3"]
+    #zephyr_functions = zephyr_execute_test
+    item_dict = {item.name: item for item in items}
+    test_zephyr = True
     if sd.platform == 'RPI_4B':
         for item in items:
             marker_list = item.iter_markers()
@@ -123,23 +139,31 @@ def pytest_collection_modifyitems(session, config, items):
                     if test_id in sd.tc_list and mark.args[1] == 'RPI_4B':
                         selected_items.append(item)
     else:
-        for item in items:
-            marker_list = item.iter_markers()
-            #print("Selected tests for execution1")
-            for mark in marker_list:
-                print(mark.name)
-                selected_items.append(item)
-                print("Selected tests for execution")
-            '''
-            for mark in marker_list:
-                if mark.name == "test_id":
-                    test_id = mark.args[0]
-                    if test_id in sd.tc_list and mark.args[1] != 'RPI_4B':
-                        # print(sd.test_cases_dict.get(test_id)['exec_status'])
-                        # if sd.test_cases_dict.get(test_id)['exec_status']  != 'p':
-                            selected_items.append(item)
-                            print("Selected tests for execution")
-            '''
+        if test_zephyr:
+            #for func_name in zephyr_functions:
+            for func_name in zephyr_execute_test:
+                if func_name in item_dict:
+                    print('Add zephyr test case: {}'.format(item_dict[func_name]))
+                    selected_items.append(item_dict[func_name])
+        else:
+            for item in items:
+                name = item.name
+                marker_list = item.iter_markers()
+                #print("Selected tests for execution1")
+                for mark in marker_list:
+                    print(mark.name)
+                    selected_items.append(item)
+                    print("Selected tests for execution")
+                '''
+                for mark in marker_list:
+                    if mark.name == "test_id":
+                        test_id = mark.args[0]
+                        if test_id in sd.tc_list and mark.args[1] != 'RPI_4B':
+                            # print(sd.test_cases_dict.get(test_id)['exec_status'])
+                            # if sd.test_cases_dict.get(test_id)['exec_status']  != 'p':
+                                selected_items.append(item)
+                                print("Selected tests for execution")
+                '''
     items[:] = selected_items
 
 
