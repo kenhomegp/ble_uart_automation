@@ -93,6 +93,7 @@ def define_class_attributes(request, default_class_fixture):
     if not conf_file.zephyr_dut_only_test_case and platform.system() == "Windows":
         _MCU = Mcp2200(PID='0x00dc')
         request.cls.MCU = _MCU
+        request.cls.iocontrolledstatus.Zephyr_InitMCP2200('115200', _MCU)
         serial_runner = SerialReader(conf_file.com_port, baudrate=115200)
         time.sleep(1)
 
@@ -277,8 +278,8 @@ def zephyr_flash_firmware(request):
     #if test_image:
     #    print(f'config data = {test_image}')
 
-    print(f'dut1_flash_tool = {conf_file.zephyr_dut1_flashtool}')
-    print(f'dut2_flash_tool = {conf_file.zephyr_dut2_flashtool}')
+    #print(f'dut1_flash_tool = {conf_file.zephyr_dut1_flashtool}')
+    #print(f'dut2_flash_tool = {conf_file.zephyr_dut2_flashtool}')
 
     if fw_update:
         #func_name = request.node.name
@@ -294,8 +295,19 @@ def zephyr_flash_firmware(request):
         tool = '-TS' + conf_file.zephyr_dut1_flashtool
         if 'BZ6' in conf_file.zephyr_test_project:
             deviceid = '-P32WM_BZ6204'
+            print('device: PIC32WM_BZ6204')
+        elif 'BZ2' in conf_file.zephyr_test_project:
+            deviceid = '-PWBZ451'
+            print('device: WBZ451')
+        elif 'BZ2' in conf_file.zephyr_test_project:
+            deviceid = '-PWBZ351'
+            print('device: WBZ351')
         else:
             deviceid = '-P32WM_BZ6204'
+
+        print(f'dut1_flash_tool = {conf_file.zephyr_dut1_flashtool}')
+        print(f'dut2_flash_tool = {conf_file.zephyr_dut2_flashtool}')
+
         erase = '-E'
         flashtype = '-M'
         reset = "-OL"

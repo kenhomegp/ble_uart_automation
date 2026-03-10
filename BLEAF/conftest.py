@@ -11,6 +11,7 @@ from .CommonSupportLib.StationDefines import PLATFORM_VERSION_K, PLATFORM_NAME_K
 from .CommonSupportLib.TestLinkAPI import TestLink
 from .BaseWrappers.SSHSupport import ShellHandler
 from .Tests.Zephyr_Application_Tests.test_zephyr_app import zephyr_execute_test
+from .StationConfig import conf_file
 
 import subprocess
 import time
@@ -72,6 +73,7 @@ def pytest_metadata(metadata):
     metadata['Tester'] = 'Dudo Du'
     test_phone = sd.config.mobile_to_use
     #metadata['Test phone'] = test_phone
+    metadata['Product'] = conf_file.zephyr_test_project
     mobile_to_use = sd.config.mobile_data_config.get(test_phone)
     if mobile_to_use is not None:
         version = mobile_to_use.get(PLATFORM_VERSION_K)
