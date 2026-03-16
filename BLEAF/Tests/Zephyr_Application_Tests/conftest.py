@@ -111,6 +111,9 @@ def default_class_fixture(request):
         elif app == 'setting':
             app_package = 'com.android.settings'
             app_activity = 'com.android.settings.Settings'
+        elif app == 'lightblue':
+            app_package = 'com.punchthrough.lightblueexplorer'
+            app_activity = 'com.punchthrough.lightblueexplorer.MainActivity'
         else:
             app_package = sd.config.app_package
             app_activity = sd.config.app_activity

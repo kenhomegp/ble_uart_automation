@@ -798,3 +798,21 @@ class NewBaseDriver:
                 print('dut found. tap')
                 return True
         return False
+
+    def android_search_multiple_peripheral(self, dut):
+        print('android_search_multiple_peripheral')
+
+        dut_found = 0
+
+        textviews = self.driver.find_elements(
+            AppiumBy.ANDROID_UIAUTOMATOR,
+            'new UiSelector().className("android.widget.TextView")'
+        )
+        for tv in textviews:
+            print(f'text = {tv.text}')
+            if dut in tv.text:
+                print(f'{dut} found')
+                dut_found += 1
+
+        print(f'dut found = {dut_found}')
+        return dut_found

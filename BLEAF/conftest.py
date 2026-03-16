@@ -70,7 +70,7 @@ def pytest_addoption(parser):
 def pytest_metadata(metadata):
     #Custom pytest-html report
     metadata['Project Name'] = 'Zephyr sample application'
-    metadata['Tester'] = 'Dudo Du'
+    metadata['Test PC'] = os.environ.get('COMPUTERNAME')    #Windows-only
     test_phone = sd.config.mobile_to_use
     #metadata['Test phone'] = test_phone
     metadata['Product'] = conf_file.zephyr_test_project
