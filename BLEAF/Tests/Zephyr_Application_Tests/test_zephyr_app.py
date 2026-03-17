@@ -40,7 +40,9 @@ from ...CommonSupportLib.SerialReader import SerialReader
 from ...BaseWrappers.NewBaseDriver import NewBaseDriver
 from ...BaseWrappers.SSHSupport import ShellHandler
 
+import os
 import inspect
+
 
 sd = stationData()
 dut_friendly_name = conf_file.dut_friendly_name
@@ -71,6 +73,9 @@ zephyr_execute_test = ['test_zephyr_broadcaster_observer_1',
                        'test_zephyr_peripheral_hid_pairing_connect_1',
                        'test_zephyr_peripheral_identity']
 '''
+#Test Debug
+#zephyr_execute_test = ['test_flash_firmware_central_gatt_write']
+
 # Android phone test case
 zephyr_execute_test = [
                         'test_zephyr_multiple_broadcaster_observer',
@@ -326,9 +331,6 @@ def zephyr_flash_firmware(request):
         else:
             deviceid = '-P32WM_BZ6204'
 
-        print(f'dut1_flash_tool = {conf_file.zephyr_dut1_flashtool}')
-        print(f'dut2_flash_tool = {conf_file.zephyr_dut2_flashtool}')
-
         erase = '-E'
         flashtype = '-M'
         reset = "-OL"
@@ -353,22 +355,36 @@ def zephyr_flash_firmware(request):
             fwfolderpath += 'Observer\\'
         elif 'broadcaster_observer' in func_name.lower():
             fwfolderpath += 'Multiple broadcaster\\'
-            fw_update_dut2 = True
+            if 'multiple' not in func_name.lower():
+                fw_update_dut2 = True
         elif 'central_gatt_write' in func_name.lower():
             fwfolderpath += 'Central Gatt Write\\'
             fw_update_dut2 = True
-
-        #if test_image:
-        #    print(f'test image = {test_image}')
-        #    fwfolderpath += test_image
-        #    fwfolderpath += '\\'
+        else:
+            fw_update_dut2 = False
 
         print(f'fwfolderpath = {fwfolderpath}')
         print('DUT1 firmware update\n')
+        print(f'dut1_flash_tool = {conf_file.zephyr_dut1_flashtool}')
 
-        ipe_comd = "C:\\Program Files\\Microchip\\MPLABX\\v6.25\\mplab_platform\\mplab_ipe\\ipecmd.exe -P32WM_BZ6204 -E -M -OL -TSWBZ653002198 -Fzephyr_signed.hex"
+        hex_file = ''
+        print('Search hex file...\n')
+        for filename in os.listdir(fwfolderpath):
+            #print(f'filename = {filename}')
+            file_path = os.path.join(fwfolderpath, filename)
+            if os.path.isfile(file_path):
+                print(f"file: {filename}")
+                if '.hex' in filename and 'zephyr' in filename:
+                    print(f"hex file: {filename}")
+                    hex_file = filename
+                    break
+        assert hex_file != '', "Can't find hex file"
+
+        #ipe_comd = "C:\\Program Files\\Microchip\\MPLABX\\v6.25\\mplab_platform\\mplab_ipe\\ipecmd.exe -P32WM_BZ6204 -E -M -OL -TSWBZ653002198 -Fzephyr_signed.hex"
         #fw_path = 'C:\\Work\\Microchip\\Project\\Automation\\GitHub\\Test firmware\\Zephyr\\Peripheral_identity\\'
-        ipe_cmds = [conf_file.mplab_path, deviceid, "-E -M -OL", tool, "-Fzephyr_signed.hex"]
+        param_hex_file = "-F" + hex_file
+        #ipe_cmds = [conf_file.mplab_path, deviceid, "-E -M -OL", tool, "-Fzephyr_signed.hex"]
+        ipe_cmds = [conf_file.mplab_path, deviceid, "-E -M -OL", tool, param_hex_file]
         new_ipe_cmd = " ".join(ipe_cmds)
         print(f"new ipe comd = {new_ipe_cmd}")
         #process = subprocess.Popen(ipe_comd, cwd=fwfolderpath, stdout=subprocess.PIPE, universal_newlines=True)
@@ -383,13 +399,18 @@ def zephyr_flash_firmware(request):
         #        return True
         #    print('Update dut2...')
 
-        if 'Program Succeeded' in output and not fw_update_dut2:
-            print('Program Succeeded')
-            return True
+        if not fw_update_dut2:
+            if 'Program Succeeded' in output:
+                print('Program Succeeded')
+                return True
+            else:
+                return False
         else:
-            return False
+            if 'Program Succeeded' not in output:
+                return False
 
         print('DUT2 firmware update\n')
+        print(f'dut2_flash_tool = {conf_file.zephyr_dut2_flashtool}')
 
         fwfolderpath = sd.config.fwfolderpath
         fwfolderpath += conf_file.zephyr_test_project
@@ -403,9 +424,23 @@ def zephyr_flash_firmware(request):
 
         print(f'fwfolderpath = {fwfolderpath}')
 
-        tool = '-TS' + conf_file.zephyr_dut2_flashtool
+        hex_file = ''
+        print('Search hex file...\n')
+        for filename in os.listdir(fwfolderpath):
+            #print(f'filename = {filename}')
+            file_path = os.path.join(fwfolderpath, filename)
+            if os.path.isfile(file_path):
+                print(f"file: {filename}")
+                if '.hex' in filename and 'zephyr' in filename:
+                    print(f"hex file: {filename}")
+                    hex_file = filename
+                    break
+        assert hex_file != '', "Can't find hex file"
 
-        ipe_cmds = [conf_file.mplab_path, deviceid, "-E -M -OL", tool, "-Fzephyr_signed.hex"]
+        tool = '-TS' + conf_file.zephyr_dut2_flashtool
+        param_hex_file = "-F" + hex_file
+        #ipe_cmds = [conf_file.mplab_path, deviceid, "-E -M -OL", tool, "-Fzephyr_signed.hex"]
+        ipe_cmds = [conf_file.mplab_path, deviceid, "-E -M -OL", tool, param_hex_file]
         new_ipe_cmd = " ".join(ipe_cmds)
         print(f"new ipe comd = {new_ipe_cmd}")
         # process = subprocess.Popen(ipe_comd, cwd=fwfolderpath, stdout=subprocess.PIPE, universal_newlines=True)
@@ -1549,6 +1584,28 @@ class TestZephyrApp:
 
     ################################################################################################
 
+    @pytest.mark.skip(reason="test_hexfile_exist")
+    #@pytest.mark.test_id("test_hexfile_exist", '')
+    def test_hexfile_exist(self):
+        print('test_hexfile_exist')
+        fwfolderpath = sd.config.fwfolderpath
+        fwfolderpath += conf_file.zephyr_test_project
+        fwfolderpath += "\\"
+        fwfolderpath += 'Multiple broadcaster\\'
+        print(f'zephyr_test_project = {conf_file.zephyr_test_project}')
+        print(f'path = {fwfolderpath}')
+        #directory_path = Path(fwfolderpath)  # Replace with your directory path
+        #for file_path in directory_path.glob("*.hex"):
+        #    print(file_path)
+        #folder_path = '/your/folder/path'  # 替換為實際路徑# 確保目錄存在if os.path.isdir(folder_path):
+        for filename in os.listdir(fwfolderpath):
+            #print(f'filename = {filename}')
+            file_path = os.path.join(fwfolderpath, filename)
+            if os.path.isfile(file_path):
+                print(f"檔案: {filename}")
+                if '.hex' in filename and 'zephyr' in filename:
+                    print(f"找到檔案: {filename}")
+
     @pytest.mark.skip(reason="test_multiple_broadcaster")
     #@pytest.mark.test_id("test_multiple_broadcaster", '')
     def test_multiple_broadcaster(self):
@@ -1799,8 +1856,8 @@ class TestZephyrApp:
         del dut2_mcu
         time.sleep(1)
 
-    @pytest.mark.skip(reason="test flash firmware")
-    #@pytest.mark.test_id("test flash firmware", '')
+    #@pytest.mark.skip(reason="test flash firmware")
+    @pytest.mark.test_id("test flash firmware", '')
     #@pytest.mark.parametrize('zephyr_flash_firmware', [conf_file.zephyr_dut1_flashtool + "_" + 'Peripheral_hid'], indirect=True)
     #@pytest.mark.order(1)
     #def test_flash_firmware_broadcaster_observer(self, zephyr_flash_firmware):
