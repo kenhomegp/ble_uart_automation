@@ -816,3 +816,16 @@ class NewBaseDriver:
 
         print(f'dut found = {dut_found}')
         return dut_found
+
+    def wait_and_tap_first(self, test_locators, timeout_each=8, step_name=""):
+        for by, value in test_locators:
+            try:
+                elem = WebDriverWait(self.driver, timeout_each).until(
+                    EC.element_to_be_clickable((by, value))
+                )
+                elem.click()
+                print(f"[OK] {step_name} clicked by locator: {by}={value}")
+                return True
+            except TimeoutException:
+                continue
+        return False

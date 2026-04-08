@@ -49,6 +49,7 @@ def default_class_fixture(request):
     #print(sd.config.appium_server_ip)
     # Multiple drivers for mobiles
 
+    ios_test_app_package = sd.config.ios_mbda_app_package
     app = request.config.getoption('--mobile_app')
     if app is not None:
         print('mobile app option = {}'.format(app))
